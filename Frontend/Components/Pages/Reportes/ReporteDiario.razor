@@ -1,0 +1,156 @@
+﻿@page "/ReporteDiario"
+
+@using Domain.Models
+@using Domain.Responses.Reportes
+@using Infrastructure.Services.Liquidaciones
+@using Infrastructure.Services.Pagos
+@using Infrastructure.Services.Parametros
+@inject ParametroService ParametroService;
+@inject PagosService Pagoservice;
+@inject NavigationManager NavigationManager
+@inject LiquidacionService RepResolServices;
+@inject HttpClient HttpClient
+@inject IJSRuntime JsRuntime
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode  InteractiveServer
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row align-items-end w-100 mt-0">
+                <div class="col-md-2 col-sm-6">
+                    <div class="form-group mb-2">
+                        <label class="font-size:12px; d-block">Desde Fecha</label>
+                        <input type="date" class="form-control form-control-sm" @bind="desde" @bind:format="yyyy-MM-dd">
+                    </div>
+                </div>
+                <div class="col-md-2 col-sm-6">
+                    <div class="form-group mb-2">
+                        <label class = "font-size:12px; d-block">Hasta Fecha</label>
+                        <input type="date" class="form-control form-control-sm" @bind="hasta" @bind:format="yyyy-MM-dd">
+                    </div>
+                </div>
+                <div class="col-md-6 col-sm-12 mb-2">
+                    <button class="btn btn-primary btn-sm mr-1" style="font-size:12px;" @onclick="Carga_datos" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        }
+                        Consultar
+                    </button>
+                    <button class="btn btn-secondary btn-sm mr-1" style="font-size:12px;" @onclick="Imprime_Rep" disabled="@(!ReporteDiarioList.Any() || isLoading)">
+                        Imprimir
+                    </button>
+                    <button class="btn btn-success btn-sm" style="font-size:12px;" @onclick="Exporta_Excl" disabled="@(!ReporteDiarioList.Any() || isLoading)">
+                        Exportar Excel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header p-0" style="background-color:#112366; height: 27px;">
+                            <h6 class="card-title ms-2 mt-1" style="font-size:17px; color:white">Informe Diario De Ingresos</h6>
+                        </div>
+                        <div class="card-body mt-1 p-0 table-responsive" style="max-height: 600px; overflow-y: auto;">
+                            @if (isLoading)
+                            {
+                                <div class="text-center p-4">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                    <p class="mt-2">Procesando datos, espere por favor...</p>
+                                </div>
+                            }
+                            else if (!ReporteDiarioList.Any())
+                            {
+                                <div class="text-center p-4 text-muted">
+                                    No hay registros para mostrar en el rango de fechas seleccionado.
+                                </div>
+                            }
+                            else
+                            {
+                                <table class="table table-sm table-striped table-bordered table-head-fixed text-nowrap m-0">
+                                    <thead style="background-color: #f4f6f9;">
+                                        <tr style="font-size: 12px;">
+                                            <th class="text-center">Recibo</th>
+                                            <th class="text-center">Placa</th>
+                                            <th class="text-center">Fecha</th>
+                                            <th class="text-center">Fecha Pago</th>
+                                            <th class="text-center">Desde</th>
+                                            <th class="text-center">Hasta</th>
+                                            <th class="text-right">Valor</th>
+                                            <th class="text-right">Impuesto</th>
+                                            <th class="text-right">Carga</th>
+                                            <th class="text-right">Costas</th>
+                                            <th class="text-right">Sistematizacion</th>
+                                            <th class="text-right">Interes</th>
+                                            <th class="text-right">Estampillas</th>
+                                            <th class="text-right">Sancion</th>
+                                            <th class="text-right">Descuento</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody style="font-size: 12px;">
+                                        @foreach (var item in ReporteDiarioList)
+                                        {
+                                            <tr>
+                                                <td class="text-center font-weight-bold">@item.NumeroRecibo</td>
+                                                <td class="text-center">@item.Placa</td>
+                                                <td class="text-center">@item.FechaCreacion.ToString("dd/MM/yyyy")</td>
+                                                <td class="text-center">@item.FechaPago.ToString("dd/MM/yyyy")</td>
+                                                <td class="text-center">@item.AnioDesde</td>
+                                                <td class="text-center">@item.AnioHasta</td>
+                                                <td class="text-right text-primary font-weight-bold">@item.ValorTotal.ToString("C")</td>
+                                                <td class="text-right">@item.ValorImpuesto.ToString("C")</td>
+                                                <td class="text-right">@item.ValorCarga.ToString("C")</td>
+                                                <td class="text-right">@item.ValorCostas.ToString("C")</td>
+                                                <td class="text-right">@item.ValorSistematizacion.ToString("C")</td>
+                                                <td class="text-right">@item.ValorInteres.ToString("C")</td>
+                                                <td class="text-right">@item.ValorEstampillas.ToString("C")</td>
+                                                <td class="text-right">@item.ValorSancion.ToString("C")</td>
+                                                <td class="text-right text-danger">@item.Descuento.ToString("C")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot style="background-color: #e9ecef; font-size: 12px;" class="font-weight-bold">
+                                        <tr>
+                                            <td colspan="6" class="text-right">TOTALES:</td>
+                                            <td class="text-right text-primary">@ReporteDiarioList.Sum(o => o.ValorTotal).ToString("C")</td>
+                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorImpuesto).ToString("C")</td>
+                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorCarga).ToString("C")</td>
+                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorCostas).ToString("C")</td>
+                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorSistematizacion).ToString("C")</td>
+                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorInteres).ToString("C")</td>
+                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorEstampillas).ToString("C")</td>
+                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorSancion).ToString("C")</td>
+                                            <td class="text-right text-danger">@ReporteDiarioList.Sum(o => o.Descuento).ToString("C")</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    function downloadFileFromStream(fileName, contentStreamReference) {
+        contentStreamReference.arrayBuffer().then(arrayBuffer => {
+            const blob = new Blob([arrayBuffer]);
+            const url = URL.createObjectURL(blob);
+            const anchorElement = document.createElement('a');
+            anchorElement.href = url;
+            anchorElement.download = fileName ?? '';
+            anchorElement.click();
+            anchorElement.remove();
+            URL.revokeObjectURL(url);
+        });
+    }
+    window.downloadFileFromStream = downloadFileFromStream;
+</script>

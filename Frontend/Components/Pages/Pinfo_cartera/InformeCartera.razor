@@ -1,0 +1,274 @@
+﻿@page "/Infocar_page"
+
+@using System.Diagnostics
+@using Infrastructure.Services.Liquidaciones
+@using Infrastructure.Services.Pagos
+@using Domain.Models.ProcesoLiquidacion
+@using Microsoft.AspNetCore.Components.Web
+
+@inject NavigationManager NavigationManager
+@inject LiquidacionService Rep_resolServices;
+@inject PagosService pagoservice;
+@inject HttpClient _httpClient
+@inject IJSRuntime JSRuntime
+
+<div class="content-wrapper container-fluid py-3" style="max-width: 1400px;">
+    
+    <section class="mb-3">
+        <div class="row align-items-center bg-transparent g-2">
+            <div class="col-auto d-flex gap-2">
+                <button type="button" class="btn btn-primary btn-sm px-3" style="font-size:12px;" @onclick="Carga_datos">
+                    Consultar
+                </button>
+                <button type="button" class="btn btn-success btn-sm px-3" style="font-size:12px;" @onclick="Imprime_Rep">
+                    Exportar Excel
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <section class="content">
+        <div class="card shadow-sm position-relative">
+            
+            <div class="card-header text-white py-2" style="background-color:#112366;">
+                <h6 class="card-title mb-0 fs-6 ms-2">Informe De Cartera</h6>
+            </div>
+            
+            <div class="card-body p-0">
+                @if (isLoading)
+                {
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 5;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                }
+
+                <div class="table-responsive" style="min-height: 250px;">
+                    <table class="table table-sm table-hover table-striped align-middle mb-0 text-nowrap">
+                        <thead class="table-light" style="font-size: 13px;">
+                            <tr>
+                                <th class="ps-3">No. Placa</th>
+                                <th>Marca</th>
+                                <th>Documento</th>
+                                <th>Nombre</th>
+                                <th>Dirección</th>
+                                <th>Teléfono</th>
+                                <th>Desde</th>
+                                <th>Hasta</th>
+                                <th>Valor</th>
+                                <th class="pe-3">Nota</th>
+                            </tr>
+                        </thead>
+                        <tbody style="font-size: 13px;">
+                            @if (Itemlist == null || !Itemlist.Any())
+                            {
+                                <tr>
+                                    <td colspan="10" class="text-center text-muted py-4">
+                                        No hay información disponible en la cartera. Presiona "Consultar".
+                                    </td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var data in ObtenerPaginado(Itemlist, paginaActual))
+                                {
+                                    <tr>
+                                        <td class="ps-3 fw-bold text-dark">@data.Vehiculo.Placa</td>
+                                        <td>@data.Vehiculo.Marca</td>
+                                        <td>@data.Vehiculo.Propietario.Documento</td>
+                                        <td>@data.Vehiculo.Propietario.Nombre</td>
+                                        <td>@data.Vehiculo.Propietario.Direccion</td>
+                                        <td>@data.Vehiculo.Propietario.Telefono</td>
+                                        <td>@data.VigenciaDesde</td>
+                                        <td>@data.VigenciaHasta</td>
+                                        <td class="fw-bold text-primary">@data.TotalDeuda.ToString("C0")</td>
+                                        <td class="pe-3 text-muted">@data.Proceso</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (CalcularTotalPaginas(Itemlist.Count) > 1)
+                {
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                        <span class="text-muted ms-2">Mostrando registros en la página @paginaActual de @CalcularTotalPaginas(Itemlist.Count)</span>
+                        <ul class="pagination pagination-sm m-0 me-2">
+                            <li class="page-item @(paginaActual == 1 ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => paginaActual--">Anterior</button>
+                            </li>
+                            <li class="page-item @(paginaActual == CalcularTotalPaginas(Itemlist.Count) ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => paginaActual++">Siguiente</button>
+                            </li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+</div>
+
+@if (mostrarSpinnerModal)
+{
+    <div class="modal-backdrop fade show" style="z-index: 1060;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1070;">
+        <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+            <div class="modal-content shadow border-0 py-3">
+                <div class="modal-body text-center">
+                    <div class="spinner-border text-success mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+                    <h6 class="text-dark fw-bold mb-1">Generando Reporte de Excel</h6>
+                    <p class="text-muted small mb-0">Escribiendo registros de cartera, por favor espere...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code
+{
+    private bool mostrarModal = false;
+    private bool mostrarSpinnerModal = false; // Control del Loading Spinner para Excel
+    public List<Liquidacion> Itemlist { get; set; } = new List<Liquidacion>();
+    public DateTime desde;
+    public DateTime hasta;
+
+    IQueryable<Liquidacion> data;
+    bool isLoading = false;
+
+    // Índices y propiedades de control para la paginación manual en memoria
+    private int paginaActual { get; set; } = 1;
+    private const int TamanoPagina = 11;
+
+    protected override async Task OnInitializedAsync()
+    {
+        desde = DateTime.UtcNow; 
+        hasta = DateTime.UtcNow;
+    }
+
+    async Task ShowLoading()
+    {
+        isLoading = true;
+        await Task.Yield();
+        isLoading = false;
+    }
+
+    private async Task Imprime_Rep()
+    {
+        bool confirmar = await JSRuntime.InvokeAsync<bool>("confirm", "¿Está seguro que desea exportar la cartera actual a Excel?");
+        if (confirmar)
+        {
+            try
+            {
+                await Exporta_Excl();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al generar el recibo: {ex}");
+            }
+        }
+    }
+
+    async Task Exporta_Excl()
+    {
+        mostrarSpinnerModal = true;
+        StateHasChanged();
+
+        try
+        {
+            string carpeta = "/var/www/velez/pdf/";
+            if (!Directory.Exists(carpeta))
+                Directory.CreateDirectory(carpeta);
+                
+            string fec = desde.ToShortDateString().Replace("/", "");
+            string filename = System.IO.Path.Combine(carpeta, $"Informe_cartera_{fec}.xlsx");
+
+            await pagoservice.WriteFile(Itemlist, filename);
+            await Task.Delay(2000); // Retraso controlado para asegurar la escritura correcta del archivo
+            await Muestra_Pdf($"Informe_cartera_{fec}.xlsx");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error crítico en exportación: {ex.Message}");
+        }
+        finally
+        {
+            mostrarSpinnerModal = false;
+            StateHasChanged();
+        }
+    }
+
+    public async Task Muestra_Pdf(string xname)
+    {
+        try
+        {
+            await DescargarYAbrirArchivo($"{xname.Trim()}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error: {ex.Message}");
+        }
+    }
+
+    private async Task<byte[]> DescargarArchivo(string fileUrl)
+    {
+        try
+        {
+            HttpResponseMessage response = await _httpClient.GetAsync(fileUrl);
+            response.EnsureSuccessStatusCode();
+            return await response.Content.ReadAsByteArrayAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al descargar el archivo: {ex.Message}");
+            return null;
+        }
+    }
+
+    private async Task DescargarYAbrirArchivo(string fileName)
+    {
+        try
+        {
+            string fileUrl = $"{NavigationManager.BaseUri}api/archivos/{fileName}";
+            var fileBytes = await DescargarArchivo(fileUrl);
+            if (fileBytes != null)
+            {
+                var contentStream = new DotNetStreamReference(new MemoryStream(fileBytes));
+                await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, contentStream);
+            }
+            else
+            {
+                Console.WriteLine($"Error: No se pudo descargar el archivo {fileName}.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al descargar y abrir el archivo: {ex.Message}");
+        }
+    }
+
+    private async Task Carga_datos()
+    {
+        try
+        {
+            await ShowLoading();
+            Itemlist = await Rep_resolServices.Informe_Cartera();
+            data = Itemlist.AsQueryable();
+            paginaActual = 1; // Reiniciamos la paginación al realizar una nueva consulta
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en getresoluciones: {ex.Message}");
+        }
+    }
+
+    // Funciones auxiliares para el control de paginación sobre colecciones en memoria
+    private int CalcularTotalPaginas(int cantidadItems)
+    {
+        return (int)Math.Ceiling((double)cantidadItems / TamanoPagina);
+    }
+
+    private IEnumerable<T> ObtenerPaginado<T>(List<T> lista, int paginaActual)
+    {
+        return lista.Skip((paginaActual - 1) * TamanoPagina).Take(TamanoPagina);
+    }
+}

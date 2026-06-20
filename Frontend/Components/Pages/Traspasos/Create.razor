@@ -1,0 +1,330 @@
+@page "/traspasos"
+@using Domain.Models.Vehiculos
+@using Infrastructure.Services.Traspasos
+@using System.Globalization
+
+@inject TraspasoManager TraspasoMgr
+@inject IJSRuntime JsRuntime
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8 col-xl-7">
+
+            <div class="card main-card shadow-sm border-0">
+
+                <div class="card-header main-header text-white p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="badge-icon me-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
+                                 class="bi bi-person-bounding-box" viewBox="0 0 16 16">
+                                <path
+                                    d="M1.5 1a.5.5 0 0 0-.5.5v3a.5.5 0 0 1-1 0v-3A1.5 1.5 0 0 1 1.5 0h3a.5.5 0 0 1 0 1zM11 .5a.5.5 0 0 1 .5-.5h3A1.5 1.5 0 0 1 16 1.5v3a.5.5 0 0 1-1 0v-3a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 1-.5-.5M.5 11a.5.5 0 0 1 .5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 1 0 1h-3A1.5 1.5 0 0 1 0 14.5v-3a.5.5 0 0 1 .5-.5m15 0a.5.5 0 0 1 .5.5v3a1.5 1.5 0 0 1-1.5 1.5h-3a.5.5 0 0 1 0-1h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 1 .5-.5"/>
+                                <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm8-9a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="h5 fw-bold mb-0">Traspaso de Propiedad</h4>
+                            <p class="opacity-75 mb-0 small">Cambio de propietario de vehículos registrados en la sede
+                                administrativa</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-4 bg-light bg-opacity-25">
+
+                    @if (!string.IsNullOrEmpty(_alertMessage))
+                    {
+                        <div class="alert @_alertClass d-flex align-items-center border-0 shadow-sm rounded-3 mb-4"
+                             role="alert">
+                            <div class="me-2">
+                                @if (_alertClass.Contains("alert-success"))
+                                {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+                                         class="bi bi-check-circle-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                                    </svg>
+                                }
+                                else if (_alertClass.Contains("alert-warning"))
+                                {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+                                         class="bi bi-exclamation-triangle-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5m.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/>
+                                    </svg>
+                                }
+                                else
+                                {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor"
+                                         class="bi bi-x-circle-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z"/>
+                                    </svg>
+                                }
+                            </div>
+                            <div class="small fw-semibold">@_alertMessage</div>
+                        </div>
+                    }
+
+                    <div class="row g-4">
+                        <div class="col-12 col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-small">Placa del Vehículo</label>
+                                <div class="input-group">
+                                    <span
+                                        class="input-group-text bg-white border-end-0 text-muted small fw-bold">ABC</span>
+                                    <input type="text" class="form-control fw-bold text-uppercase ps-2"
+                                           style="letter-spacing: 0.1em; font-size: 14px;"
+                                           placeholder="X-XXX" maxlength="7" @bind="_placa"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-small">Fecha de Radicación</label>
+                                <input type="date" class="form-control" @bind="_fechaTraspaso"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12">
+                        <hr class="text-muted opacity-25 my-1"/>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="form-group-custom">
+                            <label class="form-label-small">ID Interno del Nuevo Adquirente (Ciudadano)</label>
+                            <div class="input-group">
+                                    <span class="input-group-text bg-white text-secondary">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                             fill="currentColor" class="bi bi-hash" viewBox="0 0 16 16">
+                                            <path
+                                                d="M8.39 12.648a1 1 0 0 0-.015-.18l.773-4.744a1 1 0 0 0-.015-.18l-.773 4.744zm-.88-.415a1 1 0 0 1 .016.18l-.773 4.744a1 1 0 0 1-.016-.18l.773-4.744zm2.148-7.39a1 1 0 0 0-.016-.18l.773-4.744a1 1 0 0 0-.015-.18l-.773 4.744zm-.88-.415a1 1 0 0 1 .016.18l-.773 4.744a1 1 0 0 1-.016-.18l.773-4.744z"/>
+                                            <path
+                                                d="M5.213 6.088a1 1 0 0 1 .753-.915l7.396-1.603a1 1 0 0 1 1.187.753l.307 1.416a1 1 0 0 1-.753.915l-7.396 1.603a1 1 0 0 1-1.187-.753zm-1.6 7.396a1 1 0 0 1 .753-.915l7.396-1.603a1 1 0 0 1 1.187.753l.307 1.416a1 1 0 0 1-.753.915l-7.396 1.603a1 1 0 0 1-1.187-.753z"/>
+                                        </svg>
+                                    </span>
+                                <input type="number" class="form-control fw-bold"
+                                       placeholder="Ingrese el Id del propietario en base de datos"
+                                       @bind="_nuevoPropietarioId"/>
+                            </div>
+                            <span class="text-muted ms-1" style="font-size: 11px;">El ciudadano ya debe estar registrado previamente en el sistema central.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-footer bg-light border-top p-3 d-flex justify-content-end align-items-center gap-2">
+                <button type="button" class="btn btn-secondary-custom btn-sm px-4 fw-semibold"
+                        disabled="@_isLoading" @onclick="LimpiarCampos">
+                    Limpiar Campos
+                </button>
+                <button type="button"
+                        class="btn btn-save-custom btn-sm px-4 fw-semibold d-inline-flex align-items-center gap-2"
+                        disabled="@_isLoading" @onclick="ProcesarTraspaso">
+                    @if (_isLoading)
+                    {
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        <span>Procesando...</span>
+                    }
+                    else
+                    {
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                             class="bi bi-file-earmark-check-fill" viewBox="0 0 16 16">
+                            <path
+                                d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1m1.354 4.354-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708.708"/>
+                        </svg>
+                        <span>Ejecutar Traspaso</span>
+                    }
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Variables de Estilo VentanillaÚnica */
+    :root {
+        --c-main-dark: #112366;
+        --c-header-gradient: linear-gradient(135deg, #1a2b4c 0%, #0f1a2f 100%);
+        --c-border-soft: #cbd5e1;
+        --c-text-main: #1e293b;
+        --c-text-muted: #64748b;
+        --c-btn-action: #10b981;
+        --c-btn-action-hover: #059669;
+    }
+
+    /* Estructura Tarjeta */
+    .main-card {
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .main-header {
+        background: var(--c-header-gradient);
+    }
+
+    .badge-icon {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 0.5rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Inputs de Formulario */
+    .form-group-custom {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .form-label-small {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--c-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+
+    .form-control {
+        font-size: 13.5px;
+        border-radius: 8px;
+        border: 1px solid var(--c-border-soft);
+        padding: 0.5rem 0.75rem;
+        color: var(--c-text-main);
+    }
+
+    .form-control:focus {
+        border-color: #94a3b8;
+        box-shadow: none;
+    }
+
+    .input-group-text {
+        border: 1px solid var(--c-border-soft);
+        border-radius: 8px;
+        font-size: 13px;
+    }
+
+    /* Botones de Footer */
+    .btn-secondary-custom {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 13px;
+        padding: 0.5rem 1.25rem;
+        transition: background 0.15s;
+    }
+
+    .btn-secondary-custom:hover:not(:disabled) {
+        background: #e2e8f0;
+    }
+
+    .btn-save-custom {
+        background: var(--c-main-dark);
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        padding: 0.5rem 1.5rem;
+        transition: all 0.15s ease;
+    }
+
+    .btn-save-custom:hover:not(:disabled) {
+        background: #1e3a8a;
+        transform: translateY(-0.5px);
+    }
+</style>
+
+@code {
+    private string _placa = string.Empty;
+    private int _nuevoPropietarioId;
+    private DateTime _fechaTraspaso = DateTime.Today;
+
+    private bool _isLoading = false;
+    private string _alertMessage = string.Empty;
+    private string _alertClass = string.Empty;
+
+    private async Task ProcesarTraspaso()
+    {
+// Validaciones básicas de front-end antes de ir al Manager
+        if (string.IsNullOrWhiteSpace(_placa))
+        {
+            AsignarAlerta("alert-danger", "Por favor, digite la placa del vehículo.");
+
+            return;
+        }
+
+        if (_nuevoPropietarioId <= 0)
+        {
+            AsignarAlerta("alert-danger", "Debe ingresar un Id de propietario válido.");
+
+            return;
+        }
+
+        var confirmación = await JsRuntime.InvokeAsync<bool>("confirm",
+            $"¿Está seguro de radicar el traspaso del vehículo con placa {_placa.ToUpper().Trim()}?");
+
+        if (!confirmación) return;
+
+        try
+        {
+            _isLoading = true;
+            _alertMessage = string.Empty;
+            StateHasChanged();
+
+// Ejecuta el método nativo que me pasaste por parámetro
+            var resultado = await TraspasoMgr.TraspasoVehiculoAsync(
+                _placa.Trim().ToUpper(),
+                _nuevoPropietarioId,
+                _fechaTraspaso);
+
+            if (resultado.Success)
+            {
+// Si tiene la advertencia de deuda, pintamos la alerta amarilla (warning), si no, verde (success)
+                string claseAlerta = resultado.Message.Contains("⚠️") ? "alert-warning" : "alert-success";
+                AsignarAlerta(claseAlerta, resultado.Message);
+
+// Si sale bien, podemos resetear la placa e ID para un nuevo registro
+                _placa = string.Empty;
+                _nuevoPropietarioId = 0;
+            }
+            else
+            {
+                AsignarAlerta("alert-danger", resultado.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            AsignarAlerta("alert-danger", $"Error crítico en el servidor de trámites: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void AsignarAlerta(string tipoClase, string mensaje)
+    {
+        _alertClass = tipoClase;
+        _alertMessage = mensaje;
+    }
+
+    private void LimpiarCampos()
+    {
+        _placa = string.Empty;
+        _nuevoPropietarioId = 0;
+        _fechaTraspaso = DateTime.Today;
+        _alertMessage = string.Empty;
+    }
+
+}

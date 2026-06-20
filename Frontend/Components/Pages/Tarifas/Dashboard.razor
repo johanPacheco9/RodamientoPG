@@ -1,0 +1,275 @@
+@page "/Tarifaspage"
+
+@using Domain.Generics
+@using Domain.Models
+@using Domain.Models.Vehiculos
+@using Domain.Responses.Liquidacion.Enums
+@using Domain.Responses.Vehiculos.Enums
+@using Infrastructure.Services.Tarifas
+@using Infrastructure.Services.TiposVehiculos
+
+@inject TarifaService TarifaService
+@inject TiposService TiposService
+@inject IJSRuntime JSRuntime
+
+<div class="container-fluid py-3">
+    <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+        <h5 class="mb-0 fw-bold" style="color: #112366;">Tarifas del Sistema</h5>
+        <button type="button" class="btn btn-primary btn-sm d-flex align-items-center gap-1 shadow-none" 
+                style="background-color: #112366; border-color: #112366;" 
+                @onclick="() => AbrirModal(false)">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5a.5.5 0 0 1 .5-.5Z"/>
+            </svg>
+            Crear Tarifa
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive" style="min-height: 200px;">
+                <table class="table table-sm table-hover table-striped align-middle mb-0">
+                    <thead style="background-color: #f8f9fa;">
+                        <tr>
+                            <th style="width: 70px; font-size: 13px; padding-left: 15px;">Id</th>
+                            <th style="font-size: 13px;">Concepto</th>
+                            <th style="font-size: 13px; width: 110px;">Vigencia</th>
+                            <th style="font-size: 13px; width: 130px;">Servicio</th>
+                            <th style="font-size: 13px;">Clase</th>
+                            <th style="font-size: 13px; width: 100px;">Desde</th>
+                            <th style="font-size: 13px; width: 100px;">Hasta</th>
+                            <th style="font-size: 13px; width: 140px;">Valor</th>
+                            <th style="width: 80px; text-center:unset">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (tarifas == null || !tarifas.Any())
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4" style="font-size: 13px;">
+                                    No se encontraron registros de tarifas en el sistema.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var tarifa in ObtenerItemsPaginados())
+                            {
+                                <tr style="font-size: 13px;">
+                                    <td @onclick="() => Editar(tarifa)" style="cursor: pointer; padding-left: 15px;" class="fw-bold text-primary">@tarifa.Id</td>
+                                    <td @onclick="() => Editar(tarifa)" style="cursor: pointer;">@tarifa.ConceptoTarifa.GetDisplayName()</td>
+                                    <td @onclick="() => Editar(tarifa)" style="cursor: pointer;">@tarifa.AnioFiscal</td>
+                                    <td @onclick="() => Editar(tarifa)" style="cursor: pointer;">@tarifa.TipoServicioVehiculo.GetDisplayName()</td>
+                                    <td @onclick="() => Editar(tarifa)" style="cursor: pointer;">@ObtenerNombreTipoVehiculo(tarifa.TipoVehiculoId)</td>
+                                    <td @onclick="() => Editar(tarifa)" style="cursor: pointer;">@tarifa.RangoInicial</td>
+                                    <td @onclick="() => Editar(tarifa)" style="cursor: pointer;">@tarifa.RangoFinal</td>
+                                    <td @onclick="() => Editar(tarifa)" style="cursor: pointer;" class="fw-bold text-success">@tarifa.Valor.ToString("C0")</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-outline-danger btn-sm p-1 shadow-none" 
+                                                style="line-height: 1;"
+                                                @onclick="() => Eliminar(tarifa.Id)" @onclick:stopPropagation="true">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-trash3" viewBox="0 0 16 16">
+                                                <path d="M6.5 1h3a.5.5 0 0 1 .5.5v1H6v-1a.5.5 0 0 1 .5-.5ZM11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3A1.5 1.5 0 0 0 5 1.5v1H2.506a.5.5 0 0 0-.01 0H1.5a.5.5 0 0 0 0 1h.538l.853 10.66A2 2 0 0 0 4.885 16h6.23a2 2 0 0 0 1.994-1.84l.853-10.66h.538a.5.5 0 0 0 0-1h-.995a.5.5 0 0 0-.01 0H11Zm1.958 1-.846 10.58a1 1 0 0 1-.997.92h-6.23a1 1 0 0 1-.997-.92L3.042 3.5h9.916Zm-7.487 1a.5.5 0 0 1 .528.47l.5 8.5a.5.5 0 0 1-.998.06L5 5.03a.5.5 0 0 1 .47-.53Zm5.058 0a.5.5 0 0 1 .47.53l-.5 8.5a.5.5 0 1 1-.998-.06l.5-8.5a.5.5 0 0 1 .528-.47ZM8 4.5a.5.5 0 0 1 .5.5v8.5a.5.5 0 0 1-1 0V5a.5.5 0 0 1 .5-.5Z"/>
+                                            </svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            @if (TotalPaginas > 1)
+            {
+                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                    <div class="ms-2 text-muted">
+                        Mostrando de @(((PaginaActual - 1) * TamanoPagina) + 1) a @(Math.Min(PaginaActual * TamanoPagina, tarifas.Count)) de @tarifas.Count registros
+                    </div>
+                    <nav aria-label="Paginacion">
+                        <ul class="pagination pagination-sm m-0 me-2">
+                            <li class="page-item @(PaginaActual == 1 ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => CambiarPagina(PaginaActual - 1)">Anterior</button>
+                            </li>
+                            @for (int i = 1; i <= TotalPaginas; i++)
+                            {
+                                var paginaAsignada = i;
+                                <li class="page-item @(PaginaActual == paginaAsignada ? "active" : "")">
+                                    <button type="button" class="page-link" @onclick="() => CambiarPagina(paginaAsignada)">@paginaAsignada</button>
+                                </li>
+                            }
+                            <li class="page-item @(PaginaActual == TotalPaginas ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => CambiarPagina(PaginaActual + 1)">Siguiente</button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="modal-backdrop fade show" style="z-index: 1040;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1050; overflow-y: auto;">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header text-white" style="background-color: #112366;">
+                    <h6 class="modal-title fw-bold" style="font-size: 14px;">
+                        @(esEdicion ? "Modificar Configuración de Tarifa" : "Registrar Nueva Tarifa")
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white shadow-none" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body bg-light">
+                    <div class="card border-0 bg-transparent">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold" style="font-size: 12px; color: #475569;">Concepto</label>
+                                <select class="form-select form-select-sm shadow-none" style="font-size: 12px;" @bind="tarifaActual.ConceptoTarifa">
+                                    @foreach (var concepto in Enum.GetValues<TipoConceptoTarifa>())
+                                    {
+                                        <option value="@concepto">@concepto.GetDisplayName()</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold" style="font-size: 12px; color: #475569;">Servicio</label>
+                                <select class="form-select form-select-sm shadow-none" style="font-size: 12px;" @bind="tarifaActual.TipoServicioVehiculo">
+                                    @foreach (var servicio in Enum.GetValues<TipoServicioVehiculo>())
+                                    {
+                                        <option value="@servicio">@servicio.GetDisplayName()</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold" style="font-size: 12px; color: #475569;">Clase Vehículo</label>
+                                <select class="form-select form-select-sm shadow-none" style="font-size: 12px;" @bind="tarifaActual.TipoVehiculoId">
+                                    @foreach (var tipo in tiposVehiculo)
+                                    {
+                                        <option value="@tipo.Id">@tipo.Nombre</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold" style="font-size: 12px; color: #475569;">Vigencia (Año)</label>
+                                <input class="form-control form-control-sm shadow-none" style="font-size: 12px;" type="number" @bind="tarifaActual.AnioFiscal" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold" style="font-size: 12px; color: #475569;">Rango Desde</label>
+                                <input class="form-control form-control-sm shadow-none" style="font-size: 12px;" type="number" @bind="tarifaActual.RangoInicial" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold" style="font-size: 12px; color: #475569;">Rango Hasta</label>
+                                <input class="form-control form-control-sm shadow-none" style="font-size: 12px;" type="number" @bind="tarifaActual.RangoFinal" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold" style="font-size: 12px; color: #475569;">Valor ($)</label>
+                                <input class="form-control form-control-sm shadow-none fw-bold text-success" style="font-size: 12px;" type="number" step="0.01" @bind="tarifaActual.Valor" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-white border-top-0 py-2">
+                    <button class="btn btn-secondary btn-sm px-3" style="border-radius: 15px; font-size: 12px;" @onclick="CerrarModal">Cancelar</button>
+                    <button class="btn btn-success btn-sm px-4" style="border-radius: 15px; font-size: 12px;" @onclick="Guardar">Guardar Cambios</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Tarifa> tarifas = new();
+    private List<TipoVehiculo> tiposVehiculo = new();
+    private Tarifa tarifaActual = new();
+    private bool mostrarModal;
+    private bool esEdicion;
+
+    // Control de paginación interna
+    private int PaginaActual { get; set; } = 1;
+    private int TamanoPagina { get; set; } = 15; // PageSize="15" heredado de Radzen
+    private int TotalPaginas => (int)Math.Ceiling((double)tarifas.Count / TamanoPagina);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        tarifas = await TarifaService.GetAll() ?? new List<Tarifa>();
+        tiposVehiculo = await TiposService.GetAll() ?? new List<TipoVehiculo>();
+    }
+
+    private string ObtenerNombreTipoVehiculo(int id)
+    {
+        return tiposVehiculo.FirstOrDefault(t => t.Id == id)?.Nombre ?? id.ToString();
+    }
+
+    private void AbrirModal(bool editar)
+    {
+        esEdicion = editar;
+        tarifaActual = new Tarifa
+        {
+            AnioFiscal = DateTime.Today.Year,
+            TipoServicioVehiculo = TipoServicioVehiculo.Publico,
+            ConceptoTarifa = TipoConceptoTarifa.Rodamiento,
+            TipoVehiculoId = tiposVehiculo.FirstOrDefault()?.Id ?? 1
+        };
+        mostrarModal = true;
+    }
+
+    private void Editar(Tarifa tarifa)
+    {
+        tarifaActual = tarifa;
+        esEdicion = true;
+        mostrarModal = true;
+    }
+
+    private async Task Guardar()
+    {
+        if (esEdicion)
+            await TarifaService.Edit(tarifaActual);
+        else
+            await TarifaService.Add(tarifaActual);
+
+        mostrarModal = false;
+        await CargarDatos();
+    }
+
+    private async Task Eliminar(int id)
+    {
+        // Interop asíncrono para ventana de confirmación nativa del navegador
+        bool confirmacion = await JSRuntime.InvokeAsync<bool>("confirm", new object[] { "¿Desea eliminar de forma permanente esta tarifa?" });
+        if (confirmacion)
+        {
+            await TarifaService.Delete(id);
+            await CargarDatos();
+            
+            // Reajustar la página si nos quedamos sin ítems en la página actual tras el delete
+            if (!ObtenerItemsPaginados().Any() && PaginaActual > 1)
+            {
+                PaginaActual--;
+            }
+        }
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+
+    // Funciones Helper de soporte para la segmentación de páginas
+    private IEnumerable<Tarifa> ObtenerItemsPaginados()
+    {
+        return tarifas.Skip((PaginaActual - 1) * TamanoPagina).Take(TamanoPagina);
+    }
+
+    private void CambiarPagina(int nuevaPagina)
+    {
+        if (nuevaPagina >= 1 && nuevaPagina <= TotalPaginas)
+        {
+            PaginaActual = nuevaPagina;
+        }
+    }
+}

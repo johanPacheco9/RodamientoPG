@@ -1,0 +1,358 @@
+﻿@page "/Vehiculos"
+
+@using Domain.Generics
+@using Domain.Models
+@using Domain.Models.Vehiculos
+@using Infrastructure.Services.Colores
+@using Infrastructure.Services.Lineas
+@using Infrastructure.Services.Liquidaciones
+@using Infrastructure.Services.Marcas
+@using Infrastructure.Services.Propietarios
+@using Infrastructure.Services.TiposVehiculos
+@using Infrastructure.Services.Vehiculos
+
+@inject NavigationManager NavigationManager
+@inject VehiculosService VehiculosService
+@inject PropietarioService PropietarioService
+@inject LiquidacionService ComparendoService
+@inject MarcaService GruposService
+@inject LineasService LineasService
+@inject TiposService Claseservice
+@inject ColoresService Clasescolor
+@inject IJSRuntime JsRuntime
+@rendermode InteractiveServer
+
+<div class="container-fluid px-4 py-3">
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3" style="border-left: 4px solid #112366;">
+            <div class="row align-items-center g-3">
+                <div class="col-md-4 col-sm-12">
+                    <h5 class="mb-0 fw-bold text-dark text-uppercase tracking-wider" style="font-size: 16px;">
+                        <i class="bi bi-car-front-fill me-2" style="color: #112366;"></i>Administración de Vehículos
+                    </h5>
+                    <small class="text-muted">Control general del parque automotor y estados de rodamiento</small>
+                </div>
+                <div class="col-md-5 col-sm-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 text-muted">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                            </svg>
+                        </span>
+                        <input type="text" class="form-control bg-light border-start-0 ps-1" 
+                               @bind="buscarnit" placeholder="Escriba la placa a buscar..." style="font-size: 14px;" />
+                        <button type="button" @onclick="findbycedula" class="btn text-white px-4" style="background-color: #112366; font-size: 13px;">
+                            Buscar Placa
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-4 text-end">
+                    <button type="button" class="btn btn-success d-inline-flex align-items-center gap-2 px-3 shadow-sm"
+                            @onclick=@(args => MostrarModal(false)) style="font-size: 13px; font-weight: 500;">
+                        <i class="bi bi-plus-lg"></i> Registrar Vehículo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            @if (_isLoading)
+            {
+                <div class="d-flex flex-column align-items-center justify-content-center p-5 my-4">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 2.5rem; height: 2.5rem; color: #112366 !important;"></div>
+                    <span class="text-muted fw-medium">Cargando registros automotores...</span>
+                </div>
+            }
+            else if (ListVehiculos == null || !ListVehiculos.Any())
+            {
+                <div class="text-center p-5 my-4">
+                    <i class="bi bi-folder-x text-muted display-4"></i>
+                    <p class="mt-3 text-secondary fw-semibold mb-0">No se encontraron vehículos registrados en la plataforma.</p>
+                    <small class="text-muted">Use el botón superior para ingresar un nuevo automotor.</small>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0" style="font-size: 13px;">
+                        <thead class="table-light text-secondary uppercase border-bottom" style="font-size: 11px; font-weight: 700; background-color: #f8f9fa;">
+                            <tr>
+                                <th scope="col" class="ps-4 py-3 text-dark">ID</th>
+                                <th scope="col" class="py-3 text-dark">PLACA</th>
+                                <th scope="col" class="py-3 text-dark">MODELO</th>
+                                <th scope="col" class="py-3 text-dark">MARCA</th>
+                                <th scope="col" class="py-3 text-dark">LÍNEA</th>
+                                <th scope="col" class="py-3 text-dark">CLASE</th>
+                                <th scope="col" class="py-3 text-dark">ESTADO</th>
+                                <th scope="col" class="pe-4 py-3 text-end text-dark">ACCIONES</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in ListVehiculos)
+                            {
+                                <tr @onclick="() => SeleccionarFila(item)" class="cursor-pointer">
+                                    <td class="ps-4 fw-semibold text-secondary">#@item.Id</td>
+                                    <td>
+                                        <span class="badge bg-warning text-dark border border-dark border-opacity-10 font-monospace px-2 py-1.5 fs-7 rounded-sm fw-bold tracking-wider shadow-xs">
+                                            @item.Placa?.ToUpper()
+                                        </span>
+                                    </td>
+                                    <td class="fw-medium text-dark">@item.Modelo</td>
+                                    <td class="text-secondary">@item.Marca?.Nombre</td>
+                                    <td class="text-secondary">@item.Linea?.Nombre</td>
+                                    <td>
+                                        <span class="text-dark bg-light px-2 py-1 rounded border border-light-subtle">
+                                            @item.TipoVehiculo?.Nombre
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge rounded-pill px-2 py-1 @(item.EstadoProceso.GetDisplayName() == "Coactivo" ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle")">
+                                            @item.EstadoProceso.GetDisplayName()
+                                        </span>
+                                    </td>
+                                    <td class="pe-4 text-end">
+                                        <button class="btn btn-sm btn-outline-secondary btn-icon-only rounded-circle border-0 me-1" 
+                                                @onclick="() => GestionarEditar(item)" @onclick:stopPropagation="true" title="Editar">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="card-footer bg-white border-top p-3 d-flex align-items-center justify-content-between">
+                    <small class="text-muted fw-medium">Mostrando registros seleccionados del sistema</small>
+                    <div class="btn-group btn-group-sm shadow-xs" role="group">
+                        <button type="button" class="btn btn-outline-secondary px-3" disabled>Anterior</button>
+                        <button type="button" class="btn btn-outline-secondary px-3 active">1</button>
+                        <button type="button" class="btn btn-outline-secondary px-3" disabled>Siguiente</button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (_mostrarModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1050;">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header text-white border-0 py-3" style="background: linear-gradient(135deg, #112366, #1d3557);">
+                    <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2">
+                        <i class="bi @(esModoEditar ? "bi-pencil-square" : "bi-plus-circle")"></i>
+                        @(esModoEditar ? "Modificar Datos del Vehículo" : "Ingresar Nuevo Vehículo al Sistema")
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white shadow-none" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body bg-light p-4" style="max-height: 75vh; overflow-y: auto;">
+                    @if (vehiculo != null)
+                    {
+                        <div class="card card-body border-0 shadow-xs mb-3 p-3">
+                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">1. Datos de Identificación Físicos</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Placa del Vehículo</label>
+                                    <input type="text" class="form-control form-control-sm text-center fw-bold fs-6 border-secondary-subtle" 
+                                           maxlength="6" style="text-transform: uppercase; letter-spacing: 1px;" @bind="vehiculo.Placa" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Modelo (Año)</label>
+                                    <input type="number" class="form-control form-control-sm border-secondary-subtle font-monospace" @bind="vehiculo.Modelo" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Cilindraje (cc)</label>
+                                    <input type="number" class="form-control form-control-sm border-secondary-subtle" @bind="vehiculo.Cilindraje" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card-body border-0 shadow-xs mb-3 p-3">
+                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">2. Clasificación y Catálogos de Tránsito</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Marca</label>
+                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.MarcaId">
+                                        <option value="0">Seleccione Marca...</option>
+                                        @if (customers != null)
+                                        {
+                                            @foreach (var m in customers)
+                                            {
+                                                <option value="@m.Id">@m.Nombre</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Línea Homologada</label>
+                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.LineaId">
+                                        <option value="0">Seleccione Línea...</option>
+                                        @if (lines != null)
+                                        {
+                                            @foreach (var l in lines)
+                                            {
+                                                <option value="@l.Id">@l.Nombre</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Clase de Vehículo</label>
+                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.TipoVehiculoId">
+                                        <option value="0">Seleccione Clase...</option>
+                                        @if (Clasesveh != null)
+                                        {
+                                            @foreach (var c in Clasesveh)
+                                            {
+                                                <option value="@c.Id">@c.Nombre</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card-body border-0 shadow-xs mb-3 p-3">
+                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">3. Operación y Aspecto Técnico</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Tipo de Servicio</label>
+                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.TipoServicioVehiculo">
+                                        <option value="1">Oficial</option>
+                                        <option value="2">Público</option>
+                                        <option value="3">Particular</option>
+                                        <option value="4">Otro</option>
+                                        <option value="5">Diplomático</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Color Registrado</label>
+                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.ColorId">
+                                        <option value="0">Seleccione Color...</option>
+                                        @if (ClasesColores != null)
+                                        {
+                                            @foreach (var col in ClasesColores)
+                                            {
+                                                <option value="@col.Id">@col.Nombre</option>
+                                            }
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Estado Coactivo</label>
+                                    <input type="text" readonly class="form-control form-control-sm bg-body-secondary text-dark border-secondary-subtle fw-medium"
+                                           value="@(vehiculo.EstadoProceso.GetDisplayName() ?? "Coactivo")" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card-body border-0 shadow-xs mb-3 p-3">
+                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">4. Propietario o Poseedor Legal</h6>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Tipo de Documento</label>
+                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.TipoIdentificacionId">
+                                        <option value="1">Cédula Ciudadanía</option>
+                                        <option value="2">Tarjeta Identidad</option>
+                                        <option value="3">Cédula Extranjería</option>
+                                        <option value="4">Nit</option>
+                                        <option value="6">Pasaporte</option>
+                                        <option value="7">Carnet Diplomático</option>
+                                        <option value="9">Cédula Venezolana</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Número Documento</label>
+                                    <input type="text" maxlength="13" class="form-control form-control-sm border-secondary-subtle font-monospace fw-semibold" 
+                                           @bind="vehiculo.DocumentoPropietario" @onblur="@(async () => await BuscarNombreInfractor())" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Nombre Completo Titular</label>
+                                    <input type="text" readonly class="form-control form-control-sm bg-body-secondary border-secondary-subtle fw-medium" @bind="rnombre" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card card-body border-0 shadow-xs p-3">
+                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">5. Capacidades Oficiales RUNT</h6>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-medium">Capacidad de Carga (Kilos)</label>
+                                    <input type="number" class="form-control form-control-sm border-secondary-subtle" @bind="vehiculo.CapacidadCarga" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label text-secondary small fw-medium">Cupo Pasajeros</label>
+                                    <input type="number" class="form-control form-control-sm border-secondary-subtle" @bind="vehiculo.Pasajeros" />
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-top p-3 bg-white d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-3" @onclick="CerrarModal">
+                        <i class="bi bi-x-circle"></i> Cancelar Operación
+                    </button>
+                    <button type="button" class="btn btn-sm btn-light border border-secondary-subtle d-flex align-items-center gap-1 px-3 text-dark" @onclick="Recalcular">
+                        <i class="bi bi-calculator-fill text-secondary"></i> Recalcular Valores
+                    </button>
+                    <button type="button" class="btn btn-sm text-white d-flex align-items-center gap-1 px-4 shadow-sm" style="background-color: #112366;"
+                            @onclick="() => { if (esModoEditar) Actualizar(vehiculo); else Addveh(); }">
+                        <i class="bi bi-cloud-arrow-up-fill"></i> @(esModoEditar ? "Guardar Cambios" : "Efectuar Registro")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (_mostrarModal2)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 1060;">
+        <div class="modal-dialog modal-dialog-centered shadow-lg" style="max-width: 500px;">
+            <div class="modal-content border-0">
+                <div class="modal-header bg-dark text-white border-0 py-3">
+                    <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2">
+                        <i class="bi bi-person-plus-fill text-warning"></i> Vinculación de Propietario Nuevo
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white shadow-none" @onclick="CerrarModal2"></button>
+                </div>
+                <div class="modal-body bg-light p-4">
+                    @if (_propietario != null)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label text-secondary small fw-medium">Documento de Identidad</label>
+                            <input type="text" readonly class="form-control bg-body-secondary font-monospace fw-bold" 
+                                   style="width: 170px;" @bind="_propietario.Documento" />
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label text-secondary small fw-medium">Nombres y Apellidos Completos</label>
+                                <input type="text" class="form-control form-control-sm border-secondary-subtle" maxlength="40" @bind="_propietario.Nombre" />
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label text-secondary small fw-medium">Número Telefónico / Celular</label>
+                                <input type="text" class="form-control form-control-sm border-secondary-subtle" maxlength="15" @bind="_propietario.Telefono" />
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-12">
+                                <label class="form-label text-secondary small fw-medium">Dirección de Notificación Urbana</label>
+                                <input type="text" class="form-control form-control-sm border-secondary-subtle" maxlength="50" @bind="_propietario.Direccion" />
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer border-top p-3 bg-white d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" @onclick="CerrarModal2">Descartar</button>
+                    <button type="button" class="btn btn-sm btn-success px-4 shadow-sm" @onclick="Agregar_Prop">Vincular Ciudadano</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

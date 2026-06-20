@@ -1,0 +1,498 @@
+﻿@page "/Usuariospage"
+@inject NavigationManager NavigationManager
+@inject UserService UsuariosServices;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Domain.Models
+@using Domain.Responses.Users.Enums
+@using Infrastructure.Services.Users
+@using Npgsql
+
+<AuthorizeView>
+    <Authorized>
+        <meta name="viewport" content="width=device-width,inicial-scale=1.0">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-header p-0" style="background-color: #112366; height: 41px;">
+                            <div class="row ps-1 w-100 m-0 align-items-center h-100">
+                                <div class="col-6 p-0">
+                                    <h5 class="card-title ms-3 mb-0" style="color:white; font-size: 14px;">Usuarios del Sistema</h5>
+                                </div>
+                                <div class="col-md-4 p-0">
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control" @bind="textoBusqueda"
+                                               placeholder="Buscar por Nombre" />
+                                        <button type="button" @onclick="BuscarUsuarioPorFiltro" class="btn btn-light btn-sm border">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path>
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                                @if (tienePermisoEscritura)
+                                {
+                                    <div class="col-2 text-end p-0">
+                                        <button type="button" class="btn btn-primary btn-sm"
+                                                style="font-size:10px; padding: 2px 8px; background-color: #0d6efd;"
+                                                @onclick="() => AbrirModalFormulario(false)">
+                                            + Crear Usuario
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-body mt-1 p-0">
+                            <div class="table-responsive" style="position: relative; min-height: 180px;">
+                                @if (isLoading)
+                                {
+                                    <div class="table-loading-overlay">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                    </div>
+                                }
+
+                                <table class="table table-sm table-hover table-striped align-middle mb-0">
+                                    <thead style="background-color: #f8f9fa;">
+                                        <tr>
+                                            <th style="font-size: 13px; padding-left: 15px;">Login / Cuenta</th>
+                                            <th style="font-size: 13px;">Nombre Completo</th>
+                                            <th style="font-size: 13px;">Dirección</th>
+                                            <th style="font-size: 13px;">Teléfono</th>
+                                            <th style="font-size: 13px;">Rol Asignado</th>
+                                            <th style="font-size: 13px; width: 120px;">Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @if (listadoUsuarios == null || !listadoUsuarios.Any())
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4" style="font-size: 13px;">
+                                                    No se encontraron usuarios registrados.
+                                                </td>
+                                            </tr>
+                                        }
+                                        else
+                                        {
+                                            @foreach (var usr in ObtenerItemsPaginados())
+                                            {
+                                                <tr @onclick="() => OnRowSelect(usr)" style="cursor: pointer; font-size: 13px;">
+                                                    <td style="padding-left: 15px;" class="fw-bold text-primary">@usr.UserName</td>
+                                                    <td>@usr.Nombre</td>
+                                                    <td>@usr.Direccion</td>
+                                                    <td>@usr.Telefono</td>
+                                                    <td>
+                                                        <span class="badge bg-secondary" style="font-size: 11px;">@usr.Role.ToString()</span>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex align-items-center">
+                                                            <input type="checkbox" class="form-check-input me-1 shadow-none" checked="@usr.IsHabilitado" disabled style="width: 14px; height: 14px;" />
+                                                            <span style="font-size: 12px; color: @(usr.IsHabilitado ? "#198754" : "#dc3545")">
+                                                                @(usr.IsHabilitado ? "Activo" : "Inactivo")
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            }
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                            @if (TotalPaginas > 1)
+                            {
+                                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                                    <div class="ms-2">
+                                        Mostrando de @(((PaginaActual - 1) * TamanoPagina) + 1) a @(Math.Min(PaginaActual * TamanoPagina, listadoUsuarios.Count)) de @listadoUsuarios.Count registros
+                                    </div>
+                                    <nav aria-label="Paginacion">
+                                        <ul class="pagination pagination-sm m-0 me-2">
+                                            <li class="page-item @(PaginaActual == 1 ? "disabled" : "")">
+                                                <button type="button" class="page-link" @onclick="() => CambiarPagina(PaginaActual - 1)">Anterior</button>
+                                            </li>
+                                            @for (int i = 1; i <= TotalPaginas; i++)
+                                            {
+                                                var paginaAsignada = i;
+                                                <li class="page-item @(PaginaActual == paginaAsignada ? "active" : "")">
+                                                    <button type="button" class="page-link" @onclick="() => CambiarPagina(paginaAsignada)">@paginaAsignada</button>
+                                                </li>
+                                            }
+                                            <li class="page-item @(PaginaActual == TotalPaginas ? "disabled" : "")">
+                                                <button type="button" class="page-link" @onclick="() => CambiarPagina(PaginaActual + 1)">Siguiente</button>
+                                            </li>
+                                        </ul>
+                                    </nav>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </Authorized>
+</AuthorizeView>
+
+@if (mostrarModal)
+{
+    <div class="liq-overlay"></div>
+    <div class="liq-modal-wrap">
+        <div class="liq-modal">
+            <div class="liq-modal-head">
+                <span>@(esModoEditar ? "Modificar Ficha de Usuario" : "Registrar Nuevo Usuario del Sistema")</span>
+                <button class="liq-modal-close" @onclick="CerrarModal">×</button>
+            </div>
+            <div class="liq-modal-body">
+                <div class="modal-body bg-light bg-gradient p-3">
+                    @if (usuarioFormulario != null)
+                    {
+                        <div class="card border-0 bg-transparent">
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-4">
+                                    <label style="font-size:12px" class="form-label">Login / Usuario</label>
+                                    <input type="text" class="form-control" style="font-size:12px" maxlength="50" @bind="usuarioFormulario.UserName" disabled="@esModoEditar">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label style="font-size:12px" class="form-label">Nombre Completo</label>
+                                    <input type="text" class="form-control" style="font-size:12px" maxlength="150" @bind="usuarioFormulario.Nombre">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label style="font-size:12px" class="form-label">Dirección</label>
+                                    <input type="text" maxlength="250" style="font-size:12px" class="form-control" @bind="usuarioFormulario.Direccion">
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-4">
+                                    <label style="font-size:12px" class="form-label">Teléfono</label>
+                                    <input type="text" maxlength="20" style="font-size:12px" class="form-control" @bind="usuarioFormulario.Telefono">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label style="font-size:12px" class="form-label">Correo Electrónico</label>
+                                    <input type="email" maxlength="100" style="font-size:12px" class="form-control" @bind="usuarioFormulario.Correo">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label style="font-size:12px" class="form-label">Rol del Sistema</label>
+                                    <select style="font-size:12px;" class="form-select" @bind="usuarioFormulario.Role" disabled="@(!tienePermisoCambiarRol)">
+                                        @foreach (var rol in Enum.GetValues<Role>())
+                                        {
+                                            <option value="@rol">@rol.ToString()</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-sm-4">
+                                    <label style="font-size:12px" class="form-label">ID Proveedor Auth0</label>
+                                    <input type="text" maxlength="128" style="font-size:12px" class="form-control" @bind="usuarioFormulario.Auth0Id" placeholder="auth0|unique_id">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label style="font-size:12px" class="form-label">Contraseña Interna</label>
+                                    <input type="password" style="font-size:12px" class="form-control" @bind="usuarioFormulario.Password" placeholder="••••••••">
+                                </div>
+                                <div class="col-sm-4 d-flex align-items-end shadow-none">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input shadow-none" type="checkbox" id="chkHabilitado" @bind="usuarioFormulario.IsHabilitado">
+                                        <label style="font-size:12px" class="form-check-label" for="chkHabilitado">Usuario Habilitado</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            @if (esModoEditar)
+                            {
+                                <div class="row mt-2">
+                                    <div class="col-12 text-end">
+                                        <button type="button" style="font-size:11px;" class="btn btn-outline-danger btn-sm me-2" @onclick="ForzarResetContrasena">Resetear Clave</button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="liq-modal-foot">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" style="border-radius:15px;" @onclick="CerrarModal">Cancelar</button>
+                    <button type="button" class="btn btn-success btn-sm px-4" style="border-radius:15px;" @onclick="ProcesarGuardado">
+                        <span>@(esModoEditar ? "Actualizar" : "Guardar")</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    :root {
+        --c-bg: #f4f5f7;
+        --c-surface: #ffffff;
+        --c-border: #e3e6ea;
+        --c-accent: #112366;
+    }
+
+    .liq-overlay {
+        position: fixed; inset: 0;
+        background: rgba(10,18,30,.35);
+        backdrop-filter: blur(2px);
+        z-index: 1040;
+    }
+
+    .liq-modal-wrap {
+        position: fixed; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        z-index: 1050; padding: 20px;
+    }
+
+    .liq-modal {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border);
+        border-radius: 8px;
+        box-shadow: 0 20px 60px rgba(0,0,0,.18);
+        width: 100%; max-width: 720px;
+        display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    .liq-modal-head {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 18px;
+        background: var(--c-accent); color: #fff;
+        font-size: 14px; font-weight: 600;
+    }
+
+    .liq-modal-close {
+        background: transparent; border: none;
+        color: rgba(255,255,255,.8); font-size: 20px; cursor: pointer;
+    }
+
+    .liq-modal-close:hover { color: #fff; }
+
+    .liq-modal-body {
+        padding: 0; overflow-y: auto;
+        background: var(--c-bg);
+    }
+
+    .liq-modal-foot {
+        display: flex; justify-content: flex-end; gap: 8px;
+        padding: 12px 18px; border-top: 1px solid var(--c-border);
+        background: var(--c-surface);
+    }
+
+    .table-loading-overlay {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(255,255,255,0.7); z-index: 5; display: flex;
+        justify-content: center; align-items: center;
+    }
+</style>
+
+@code {
+    private bool mostrarModal = false;
+    private string textoBusqueda = string.Empty;
+    private Usuario usuarioFormulario = new();
+    private List<Usuario> listadoUsuarios = new();
+    private bool esModoEditar;
+    
+    private IList<Usuario>? usuariosSeleccionados;
+    private bool isLoading = false;
+    private bool tienePermisoCambiarRol = false; 
+    private bool tienePermisoEscritura = false;
+    private const string ROL_ADMINISTRADOR_VALOR = "2";
+
+    // Paginación manual en memoria para el listado nativo
+    private int PaginaActual { get; set; } = 1;
+    private int TamanoPagina { get; set; } = 8;
+    private int TotalPaginas => (int)Math.Ceiling((double)listadoUsuarios.Count / TamanoPagina);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await EvaluarPermisosUsuario();
+        await CargarUsuariosSistema();
+    }
+
+    private async Task EvaluarPermisosUsuario()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            var esAdmin = user.Claims.Any(c => c.Type == ClaimTypes.Role && c.Value == ROL_ADMINISTRADOR_VALOR);
+            tienePermisoCambiarRol = esAdmin;
+            tienePermisoEscritura = esAdmin;
+        }
+    }
+
+    private async Task CargarUsuariosSistema()
+    {
+        isLoading = true;
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                if (tienePermisoEscritura)
+                {
+                    var respuesta = await UsuariosServices.GetAll();
+                    listadoUsuarios = respuesta ?? new List<Usuario>();
+                }
+                else
+                {
+                    var userIdClaim = user.FindFirst("UserId")?.Value;
+                    if (int.TryParse(userIdClaim, out int userId))
+                    {
+                        var autoUsuario = await UsuariosServices.GetUserById(userId);
+                        listadoUsuarios = autoUsuario != null ? new List<Usuario> { autoUsuario } : new List<Usuario>();
+                    }
+                }
+            }
+            PaginaActual = 1;
+        }
+        catch (PostgresException pgEx)
+        {
+            Console.WriteLine($"Error de PostgreSQL al listar usuarios: {pgEx.Message}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error general en el catálogo de usuarios: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OnRowSelect(Usuario usuarioSeleccionado)
+    {
+        if (usuarioSeleccionado == null) return;
+        
+        usuarioFormulario = usuarioSeleccionado;
+        esModoEditar = true;
+        mostrarModal = true;
+    }
+
+    private async Task BuscarUsuarioPorFiltro()
+    {
+        if (string.IsNullOrWhiteSpace(textoBusqueda))
+        {
+            await CargarUsuariosSistema();
+            return;
+        }
+
+        isLoading = true;
+        try
+        {
+            var filtrados = await UsuariosServices.GetUserByName(textoBusqueda.Trim());
+            listadoUsuarios = filtrados ?? new List<Usuario>();
+            PaginaActual = 1;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error ejecutando búsqueda de usuarios: {ex.Message}");
+            listadoUsuarios = new List<Usuario>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ProcesarGuardado()
+    {
+        if (string.IsNullOrWhiteSpace(usuarioFormulario.UserName) || string.IsNullOrWhiteSpace(usuarioFormulario.Nombre))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", new object[] { "Los campos Cuenta (Login) y Nombre son estrictamente obligatorios." });
+            return;
+        }
+
+        if (esModoEditar)
+            await EjecutarModificacion();
+        else
+            await EjecutarCreacion();
+    }
+
+    private async Task EjecutarCreacion()
+    {
+        try
+        {
+            var resultado = await UsuariosServices.Add(usuarioFormulario);
+            mostrarModal = false;
+            await JSRuntime.InvokeVoidAsync("alert", new object[] { "Usuario registrado exitosamente en el ERP." });
+            await CargarUsuariosSistema();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al insertar el usuario: {ex.Message}");
+        }
+    }
+
+    private async Task EjecutarModificacion()
+    {
+        try
+        {
+            var filasAfectadas = await UsuariosServices.EditUsuarios(usuarioFormulario);
+            if (filasAfectadas > 0)
+            {
+                mostrarModal = false;
+                await JSRuntime.InvokeVoidAsync("alert", new object[] { "Ficha de usuario actualizada con éxito." });
+                await CargarUsuariosSistema();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al actualizar el usuario: {ex.Message}");
+        }
+    }
+
+    private async Task ForzarResetContrasena()
+    {
+        // Uso de confirm nativo de JavaScript para evitar depender de Radzen DialogService
+        var confirmacion = await JSRuntime.InvokeAsync<bool>("confirm", new object[] { "¿Está seguro de restablecer la credencial de acceso del usuario?" });
+        if (confirmacion)
+        {
+            var exito = await UsuariosServices.ResetKey(usuarioFormulario.Id);
+            if (exito)
+            {
+                mostrarModal = false;
+                await JSRuntime.InvokeVoidAsync("alert", new object[] { "La contraseña del usuario ha sido restablecida al valor por defecto." });
+                await CargarUsuariosSistema();
+            }
+        }
+    }
+
+    public void AbrirModalFormulario(bool modoEditar)
+    {
+        esModoEditar = modoEditar;
+
+        if (!esModoEditar)
+        {
+            usuarioFormulario = new Usuario
+            {
+                IsHabilitado = true,
+                Role = Role.Administrador,
+                Auth0Id = string.Empty,
+                Password = string.Empty
+            };
+        }
+        
+        mostrarModal = true;
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+
+    // Funciones helper de paginación
+    private IEnumerable<Usuario> ObtenerItemsPaginados()
+    {
+        return listadoUsuarios.Skip((PaginaActual - 1) * TamanoPagina).Take(TamanoPagina);
+    }
+
+    private void CambiarPagina(int nuevaPagina)
+    {
+        if (nuevaPagina >= 1 && nuevaPagina <= TotalPaginas)
+        {
+            PaginaActual = nuevaPagina;
+        }
+    }
+}

@@ -1,0 +1,461 @@
+﻿@page "/Intereses"
+@using Domain.Models
+@using Infrastructure.Services.Intereses
+@rendermode InteractiveServer
+@inject InteresService InteresServices;
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-11">
+            <div class="card main-card shadow-sm border-0">
+                
+                <div class="card-header main-header text-white d-flex flex-column flex-md-row align-items-center justify-content-between gap-3 p-3">
+                    <div class="d-flex align-items-center">
+                        <div class="badge-icon me-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-percent" viewBox="0 0 16 16">
+                                <path d="M13.442 2.558a.625.625 0 0 1 0 .884l-10 10a.625.625 0 1 1-.884-.884l10-10a.625.625 0 0 1 .884 0M4.5 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m0 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5m7 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m0 1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h4 class="h5 fw-bold mb-0">Intereses de Mora</h4>
+                            <p class="opacity-75 mb-0 small">Tasas registradas para la liquidación de comparendos</p>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 w-100 w-md-auto justify-content-end">
+                        <div class="input-group input-group-sm search-container" style="max-width: 260px;">
+                            <input type="date" id="buscarnit" name="searchString" class="form-control" @bind="buscarnit" />
+                            <button @onclick="findbyplaca" class="btn btn-search-trigger" type="button">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <button type="button" class="btn btn-create btn-sm fw-semibold px-3 d-inline-flex align-items-center gap-1" @onclick=@(args => MostrarModal(false))>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                                <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5a.5.5 0 0 1 .5-.5"/>
+                            </svg>
+                            Crear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    @if (isLoading)
+                    {
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                            <p class="text-muted small mt-2">Consultando matriz de tasas...</p>
+                        </div>
+                    }
+                    else if (interes_obj == null || !interes_obj.Any())
+                    {
+                        <div class="text-center py-5 text-muted">
+                            <p class="mb-0 small">No se encontraron rangos de interés registrados.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-custom align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 100px;">Id</th>
+                                        <th>Desde Fecha</th>
+                                        <th>Hasta Fecha</th>
+                                        <th class="text-end" style="width: 180px;">Porcentaje</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in interes_obj)
+                                    {
+                                        <tr @onclick="() => OnRowSelect(item)" class="clickable-row">
+                                            <td class="fw-bold text-secondary">#@item.Id</td>
+                                            <td>@item.Desde.ToString("dd/MM/yyyy")</td>
+                                            <td>@item.Hasta.ToString("dd/MM/yyyy")</td>
+                                            <td class="text-end fw-bold text-primary">@item.Porcentaje.ToString("P2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+                
+                <div class="card-footer bg-light border-0 py-2 px-3 text-end">
+                    <span class="text-secondary style-summary">Registros cargados: @(interes_obj?.Count ?? 0)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="liq-overlay" @onclick="CerrarModal"></div>
+    <div class="liq-modal-wrap">
+        <div class="liq-modal border-0 dynamic-fade-in">
+            <div class="liq-modal-head">
+                <span class="fs-6 fw-bold">@(esModoEditar ? "Modificar Historial de Interés" : "Registrar Nueva Tasa Diaria")</span>
+                <button class="liq-modal-close" @onclick="CerrarModal">×</button>
+            </div>
+            
+            <div class="liq-modal-body p-4">
+                @if (interesobj != null)
+                {
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-group-custom">
+                                <label class="form-label-small">Identificador único</label>
+                                <input type="text" class="form-control form-control-disabled" value="@interesobj.Id" readonly placeholder="Auto">
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="form-group-custom">
+                                <label class="form-label-small">Vigencia Desde</label>
+                                <input type="date" class="form-control" @bind="@interesobj.Desde">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-small">Vigencia Hasta</label>
+                                <input type="date" class="form-control" @bind="interesobj.Hasta">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group-custom">
+                                <label class="form-label-small">Tasa Efectiva (% Anual o Diario)</label>
+                                <div class="input-group input-group-sm">
+                                    <input type="number" step="0.00001" class="form-control fw-bold" placeholder="0.0000" @bind="interesobj.Porcentaje">
+                                    <span class="input-group-text bg-white text-secondary fw-bold">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            <div class="liq-modal-foot border-top p-3 d-flex justify-content-end gap-2 bg-light">
+                <button type="button" class="btn btn-secondary-custom btn-sm px-4 fw-semibold" @onclick="CerrarModal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-save-custom btn-sm px-4 fw-semibold" @onclick="() => esModoEditar ? Actualizar(interesobj!) : Agregar()">
+                    @(esModoEditar ? "Guardar Cambios" : "Confirmar Registro")
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    /* Variables de Paleta Limpia/Institucional */
+    :root {
+        --c-main-dark: #112366;
+        --c-header-gradient: linear-gradient(135deg, #1a2b4c 0%, #0f1a2f 100%);
+        --c-bg-hover: #f1f5f9;
+        --c-border-soft: #e2e8f0;
+        --c-text-main: #1e293b;
+        --c-text-muted: #64748b;
+        --c-btn-success: #10b981;
+        --c-btn-success-hover: #059669;
+    }
+
+    /* Estilos de la Tarjeta */
+    .main-card {
+        border-radius: 16px;
+        overflow: hidden;
+    }
+    .main-header {
+        background: var(--c-header-gradient);
+    }
+    .badge-icon {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 0.5rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Buscador e Inputs */
+    .search-container input {
+        border-radius: 8px 0 0 8px !important;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--c-text-main);
+    }
+    .btn-search-trigger {
+        background: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-left: none;
+        color: var(--c-main-dark);
+        border-radius: 0 8px 8px 0 !important;
+    }
+    .btn-search-trigger:hover {
+        background: #f8fafc;
+    }
+
+    /* Botón de Creación */
+    .btn-create {
+        background: #ffffff;
+        color: var(--c-main-dark);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        transition: all 0.2s;
+    }
+    .btn-create:hover {
+        background: rgba(255, 255, 255, 0.15);
+        color: #ffffff;
+        transform: translateY(-1px);
+    }
+
+    /* Tabla Nativa Limpia */
+    .table-custom th {
+        background-color: #f8fafc !important;
+        color: var(--c-text-muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-weight: 700;
+        padding: 12px 16px;
+        border-bottom: 2px solid var(--c-border-soft);
+    }
+    .table-custom td {
+        padding: 14px 16px;
+        font-size: 13px;
+        color: var(--c-text-main);
+        border-bottom: 1px solid var(--c-border-soft);
+    }
+    .clickable-row {
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+    }
+    .clickable-row:hover {
+        background-color: var(--c-bg-hover);
+    }
+    .style-summary {
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--c-text-muted);
+    }
+
+    /* Estructura del Modal */
+    .liq-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.4);
+        backdrop-filter: blur(4px);
+        z-index: 1040;
+    }
+    .liq-modal-wrap {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+        padding: 24px;
+    }
+    .liq-modal {
+        background: #ffffff;
+        border-radius: 14px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        width: 100%;
+        max-width: 550px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    .liq-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        background: var(--c-main-dark);
+        color: #ffffff;
+    }
+    .liq-modal-close {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, 0.7);
+        font-size: 24px;
+        cursor: pointer;
+        line-height: 1;
+        transition: color 0.15s;
+    }
+    .liq-modal-close:hover {
+        color: #ffffff;
+    }
+
+    /* Estilos de Elementos del Formulario */
+    .form-group-custom {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+    .form-label-small {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--c-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+    }
+    .form-control {
+        font-size: 13px;
+        border-radius: 8px;
+        border: 1px solid #cbd5e1;
+        padding: 0.45rem 0.75rem;
+    }
+    .form-control:focus {
+        border-color: #94a3b8;
+        box-shadow: none;
+    }
+    .form-control-disabled {
+        background-color: #f1f5f9;
+        color: #64748b;
+        font-weight: 600;
+    }
+
+    /* Botonera de Modales */
+    .btn-secondary-custom {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        font-size: 13px;
+        transition: background 0.15s;
+    }
+    .btn-secondary-custom:hover {
+        background: #e2e8f0;
+    }
+    .btn-save-custom {
+        background: var(--c-btn-success);
+        color: #ffffff;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        transition: background 0.15s;
+    }
+    .btn-save-custom:hover {
+        background: var(--c-btn-success-hover);
+    }
+
+    /* Animación de Entrada Suave */
+    .dynamic-fade-in {
+        animation: modalSlideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    @@keyframes modalSlideUp {
+        from { transform: translateY(12px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+</style>
+
+@code {
+    private bool mostrarModal = false;
+    private DateTime buscarnit = DateTime.Today; // Inicializado para evitar null-reference bindings
+    private Interes interesobj = new Interes();
+    private List<Interes> interes_obj = new();
+    private bool esModoEditar;
+    bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        try
+        {
+            const int cantidadInicial = 15;
+            var todosLosIntereses = await InteresServices.GetAll();
+
+            if (todosLosIntereses != null && todosLosIntereses.Any())
+            {
+                // Corregido el mapeo nativo a tu lista
+                interes_obj = todosLosIntereses.Take(cantidadInicial).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar intereses: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OnRowSelect(Interes item)
+    {
+        interesobj = item;
+        esModoEditar = true;
+        mostrarModal = true;
+    }
+
+    private async Task findbyplaca()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await InteresServices.GetInteresesByFecha(buscarnit);
+            interes_obj = result ?? new List<Interes>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en la consulta por fecha: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task Agregar()
+    {
+        var result = await InteresServices.Add(interesobj);
+        mostrarModal = false;
+        
+        // Refrescar la grilla de inmediato
+        var todos = await InteresServices.GetAll();
+        interes_obj = todos?.Take(15).ToList() ?? new List<Interes>();
+        StateHasChanged();
+    }
+
+    private async Task Actualizar(Interes interes)
+    {
+        var count = await InteresServices.EditIntereses(interes);
+
+        if (count > 0)
+        {
+            mostrarModal = false;
+            var todos = await InteresServices.GetAll();
+            interes_obj = todos?.Take(15).ToList() ?? new List<Interes>();
+            StateHasChanged();
+        }
+        else
+        {
+            Console.WriteLine("Error al actualizar la tasa de interés.");
+        }
+    }
+
+    public void MostrarModal(bool nkey)
+    {
+        mostrarModal = true;
+        esModoEditar = nkey;
+
+        if (!esModoEditar)
+        {
+            interesobj = new Interes
+            {
+                Desde = DateTime.Today,
+                Hasta = DateTime.Today
+            };
+        }
+    }
+
+    private void CerrarModal() => mostrarModal = false;
+}

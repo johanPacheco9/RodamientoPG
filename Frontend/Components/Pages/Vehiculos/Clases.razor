@@ -1,0 +1,360 @@
+﻿@page "/Clasespage"
+@using Domain.Models.Vehiculos
+@using Infrastructure.Services.TiposVehiculos
+@inject NavigationManager NavigationManager
+@inject TiposService TiposService
+@inject IJSRuntime JSRuntime
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header p-0" style="background-color: #112366; height: 34px;">
+                    <div class="row ps-1 align-items-center w-100 m-0">
+                        <div class="col-6 p-0">
+                            <h5 class="card-title ms-3 mb-0" style="color:white; font-size: 14px; line-height: 34px;">Clases De Vehículos</h5>
+                        </div>
+                        <div class="col-md-4 p-0">
+                            <div class="input-group input-group-sm" style="margin-top: 3px;">
+                                <input type="text" id="buscarTexto" name="searchString"
+                                       class="form-control" @bind="_textoBusqueda"
+                                       placeholder="Buscar por código o nombre..."/>
+                                <button type="button" @onclick="BuscarClaseVehiculo" class="btn btn-light btn-sm border">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-2 text-end p-0">
+                            <button type="button" class="btn btn-primary btn-sm" 
+                                    style="font-size: 10px; padding: 2px 8px; margin-top: 3px; background-color: #0d6efd;"
+                                    @onclick="() => MostrarModal(false)">
+                                <span class="oi oi-plus"></span> + Crear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body mt-1 p-0">
+                    <div class="table-responsive" style="position: relative; min-height: 200px;">
+                        @if (_isLoading)
+                        {
+                            <div class="table-loading-overlay">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                            </div>
+                        }
+
+                        <table class="table table-sm table-hover table-striped align-middle mb-0">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th style="width: 80px; font-size: 13px;">Id</th>
+                                    <th style="width: 100px; font-size: 13px;">Código</th>
+                                    <th style="font-size: 13px;">Clase Vehículo</th>
+                                    <th style="width: 80px; text-align: center; font-size: 13px;">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (_listTipoVehiculos == null || !_listTipoVehiculos.Any())
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4" style="font-size: 13px;">
+                                            No se encontraron registros.
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var clase in ObtenerItemsPaginados())
+                                    {
+                                        <tr @onclick="() => SeleccionarFila(clase)" 
+                                            style="cursor: pointer; font-size: 13px;" 
+                                            class="@((_claseSeleccionada?.Id == clase.Id) ? "table-primary" : "")">
+                                            <td>@clase.Id</td>
+                                            <td class="fw-bold">@clase.Codigo</td>
+                                            <td>@clase.Nombre</td>
+                                            <td class="text-center" @onclick:stopPropagation="true">
+                                                <button type="button" class="btn btn-danger btn-sm p-1 line-height-1" 
+                                                        style="padding: 1px 5px !important; font-size: 11px;"
+                                                        @onclick="() => Elimi_Clas(clase.Id)">
+                                                    🗑️
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (TotalPaginas > 1)
+                    {
+                        <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                            <div>
+                                Mostrando de @(((PaginaActual - 1) * TamanoPagina) + 1) a @(Math.Min(PaginaActual * TamanoPagina, _listTipoVehiculos.Count)) de @_listTipoVehiculos.Count registros
+                            </div>
+                            <nav aria-label="Paginacion">
+                                <ul class="pagination pagination-sm m-0">
+                                    <li class="page-item @(PaginaActual == 1 ? "disabled" : "")">
+                                        <button class="page-item page-link" @onclick="() => CambiarPagina(PaginaActual - 1)">Anterior</button>
+                                    </li>
+                                    @for (int i = 1; i <= TotalPaginas; i++)
+                                    {
+                                        var paginaAsignada = i;
+                                        <li class="page-item @(PaginaActual == paginaAsignada ? "active" : "")">
+                                            <button class="page-item page-link" @onclick="() => CambiarPagina(paginaAsignada)">@paginaAsignada</button>
+                                        </li>
+                                    }
+                                    <li class="page-item @(PaginaActual == TotalPaginas ? "disabled" : "")">
+                                        <button class="page-item page-link" @onclick="() => CambiarPagina(PaginaActual + 1)">Siguiente</button>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (_mostrarModal)
+{
+    <div class="liq-overlay"></div>
+    <div class="liq-modal-wrap">
+        <div class="liq-modal">
+            <div class="liq-modal-head">
+                <span>@( _esModoEditar ? "Editar Clase de Vehículo" : "Agregar Clase de Vehículo" )</span>
+                <button class="liq-modal-close" @onclick="CerrarModal">×</button>
+            </div>
+            <div class="liq-modal-body">
+                <div class="modal-body bg-light bg-gradient">
+                    @if (_tipoVehiculo != null)
+                    {
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <div>
+                                    <label style="font-size:12px; color: #64748b;">Id</label>
+                                    <input type="text" class="form-control" @bind="_tipoVehiculo.Id" readonly placeholder="Auto">
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3">
+                                <div>
+                                    <label style="font-size:12px; color: #64748b;">Código</label>
+                                    <input type="number" class="form-control" style="font-weight: bold;" @bind="_tipoVehiculo.Codigo" readonly="@_esModoEditar">
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div>
+                                    <label style="font-size:12px; color: #64748b;">Nombre Clase</label>
+                                    <input type="text" maxlength="40" class="form-control" style="font-weight: bold;" @bind="_tipoVehiculo.Nombre">
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer mt-3">
+                    <div class="row w-100">
+                        <div class="col-6 text-start">
+                            <button type="button" style="font-size:12px; height:30px;" class="btn btn-secondary" @onclick="CerrarModal">Cerrar</button>
+                        </div>
+                        <div class="col-6 text-end">
+                            <button type="button" style="font-size:12px; height:30px;" class="btn btn-success text-white"
+                                    @onclick="() => _esModoEditar ? Actualizar(_tipoVehiculo) : Agregar()">
+                                <span>@(_esModoEditar ? "Guardar Cambios" : "Registrar Clase")</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .liq-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); z-index: 1000; }
+    .liq-modal-wrap { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1001; width: 100%; max-width: 600px; padding: 10px; }
+    .liq-modal { background: white; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); overflow: hidden; }
+    .liq-modal-head { background: #112366; color: white; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+    .liq-modal-close { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+    .liq-modal-body { padding: 15px; }
+    
+    /* Overlay CSS para bloquear interacciones mientras carga la tabla nativa */
+    .table-loading-overlay {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(255,255,255,0.7); z-index: 5; display: flex;
+        justify-content: center; align-items: center;
+    }
+</style>
+
+@code {
+    private bool _mostrarModal = false;
+    private string? _textoBusqueda; 
+    private TipoVehiculo _tipoVehiculo = new();
+    private List<TipoVehiculo> _listTipoVehiculos = [];
+    private bool _esModoEditar = false;
+    private TipoVehiculo? _claseSeleccionada;
+    private bool _isLoading = false;
+
+    // Control de paginación manual
+    private int PaginaActual { get; set; } = 1;
+    private int TamanoPagina { get; set; } = 15;
+    private int TotalPaginas => (int)Math.Ceiling((double)_listTipoVehiculos.Count / TamanoPagina);
+
+    protected async override Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        _isLoading = true;
+        try
+        {
+            var clases = await TiposService.GetAll();
+            _listTipoVehiculos = clases?.ToList() ?? new List<TipoVehiculo>();
+            PaginaActual = 1; // Resetea a la primera página tras recargar
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar clases de vehículos: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void SeleccionarFila(TipoVehiculo item)
+    {
+        _claseSeleccionada = item;
+        _tipoVehiculo = item;
+        _esModoEditar = true;
+        _mostrarModal = true;
+    }
+
+    private async Task BuscarClaseVehiculo()
+    {
+        if (string.IsNullOrWhiteSpace(_textoBusqueda))
+        {
+            await CargarDatos();
+            return;
+        }
+
+        if (int.TryParse(_textoBusqueda.Trim(), out int codigoNumerico))
+        {
+            _isLoading = true;
+            
+            string? nombreClase = await TiposService.GetNameByCode(codigoNumerico);
+
+            if (nombreClase != null)
+            {
+                _listTipoVehiculos = new List<TipoVehiculo>
+                {
+                    new TipoVehiculo 
+                    { 
+                        Id = codigoNumerico, 
+                        Codigo = codigoNumerico, 
+                        Nombre = nombreClase 
+                    }
+                };
+            }
+            else
+            {
+                _listTipoVehiculos = new List<TipoVehiculo>();
+            }
+            
+            PaginaActual = 1;
+            _isLoading = false;
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", new object[] { "Por favor, ingresa un código numérico válido para buscar." });
+        }
+    }
+
+    private async Task Agregar()
+    {
+        if (string.IsNullOrWhiteSpace(_tipoVehiculo.Nombre))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", new object[] { "El nombre de la clase es obligatorio." });
+            return;
+        }
+
+        var result = await TiposService.Add(_tipoVehiculo);
+        await CerrarModal();
+        await CargarDatos();
+    }
+
+    private async Task Elimi_Clas(int id)
+    {
+        bool confirmationResult = await JSRuntime.InvokeAsync<bool>("confirm", new object[] { "¿Está seguro de eliminar esta clase de vehículo permanentemente?" });
+        
+        if (confirmationResult)
+        {
+            await TiposService.Delete(id); 
+            await CargarDatos();
+        }
+    }
+
+    private async Task Actualizar(TipoVehiculo claseVehiculo)
+    {
+        if (string.IsNullOrWhiteSpace(claseVehiculo.Nombre))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", new object[] { "El nombre de la clase no puede estar vacío." });
+            return;
+        }
+
+        var count = await TiposService.Update(claseVehiculo);
+
+        if (count > 0)
+        {
+            await CerrarModal();
+            await CargarDatos();
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("alert", new object[] { "No se pudieron guardar los cambios de la clase." });
+        }
+    }
+
+    public void MostrarModal(bool modoEditar)
+    {
+        _esModoEditar = modoEditar;
+        
+        if (_esModoEditar && _claseSeleccionada != null)
+        {
+            _tipoVehiculo = _claseSeleccionada;
+        }
+        else
+        {
+            _tipoVehiculo = new TipoVehiculo { Codigo = 0 }; 
+        }
+        
+        _mostrarModal = true;
+    }
+
+    private async Task CerrarModal()
+    {
+        _mostrarModal = false;
+        _claseSeleccionada = null; 
+        await InvokeAsync(StateHasChanged);
+    }
+
+    // Métodos auxiliares de paginación
+    private IEnumerable<TipoVehiculo> ObtenerItemsPaginados()
+    {
+        return _listTipoVehiculos.Skip((PaginaActual - 1) * TamanoPagina).Take(TamanoPagina);
+    }
+
+    private void CambiarPagina(int nuevaPagina)
+    {
+        if (nuevaPagina >= 1 && nuevaPagina <= TotalPaginas)
+        {
+            PaginaActual = nuevaPagina;
+        }
+    }
+}

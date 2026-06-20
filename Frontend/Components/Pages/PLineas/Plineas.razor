@@ -1,0 +1,280 @@
+﻿@page "/Lineas"
+@using Domain.Models.Vehiculos
+@using Infrastructure.Services.Lineas
+@using Infrastructure.Services.Marcas
+@using Microsoft.AspNetCore.Components.Web
+
+@inject NavigationManager NavigationManager
+@inject MarcaService gruposService;
+@inject LineasService AgentesServices;
+@inject IJSRuntime JSRuntime
+
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<div class="container-fluid py-3">
+    <div class="card shadow-sm position-relative">
+        
+        <div class="card-header text-white py-2" style="background-color: #112366;">
+            <div class="row align-items-center g-2 px-1">
+                <div class="col-12 col-md-6">
+                    <h5 class="card-title mb-0 fs-6">Líneas De Vehículos</h5>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" @bind="buscarnit" placeholder="Buscar..." />
+                        <button type="button" class="btn btn-light" @onclick="findbyplaca">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-12 col-md-2 text-md-end">
+                    <button type="button" class="btn btn-primary btn-sm px-3 font-monospace text-uppercase" style="font-size: 11px;" @onclick="() => MostrarModal(false)">
+                        ＋ Crear
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            @if (isLoading)
+            {
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 5;">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+            }
+
+            <div class="table-responsive" style="min-height: 250px;">
+                <table class="table table-sm table-hover table-striped align-middle mb-0 text-nowrap">
+                    <thead class="table-light" style="font-size: 13px;">
+                        <tr>
+                            <th class="ps-3" style="width: 80px;">Id</th>
+                            <th>Nombre Línea</th>
+                            <th>Marca</th>
+                            <th class="pe-3 text-center" style="width: 100px;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody style="font-size: 13px;">
+                        @if (agentes_obj == null || !agentes_obj.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">No se encontraron líneas de vehículos cargadas.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in ObtenerPaginado(agentes_obj, paginaActual))
+                            {
+                                <tr style="cursor: pointer;" @onclick="() => OnRowSelect(item)">
+                                    <td class="ps-3 fw-bold text-secondary">@item.Id</td>
+                                    <td class="fw-semibold text-dark">@item.Nombre</td>
+                                    <td>@item.Marca</td>
+                                    <td class="pe-3 text-center" @onclick:stopPropagation="true">
+                                        <button type="button" class="btn btn-outline-danger btn-xs px-2 py-0" style="font-size: 11px;" @onclick="() => EliminaAgentes(item.Id)">
+                                            Eliminar
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (CalcularTotalPaginas(agentes_obj?.Count ?? 0) > 1)
+            {
+                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                    <span class="text-muted ms-2">Página @paginaActual de @CalcularTotalPaginas(agentes_obj.Count)</span>
+                    <ul class="pagination pagination-sm m-0 me-2">
+                        <li class="page-item @(paginaActual == 1 ? "disabled" : "")">
+                            <button type="button" class="page-link" @onclick="() => paginaActual--">Anterior</button>
+                        </li>
+                        <li class="page-item @(paginaActual == CalcularTotalPaginas(agentes_obj.Count) ? "disabled" : "")">
+                            <button type="button" class="page-link" @onclick="() => paginaActual++">Siguiente</button>
+                        </li>
+                    </ul>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal)
+{
+    <div class="modal-backdrop fade show" style="z-index: 1040;"></div>
+    <div class="modal fade show d-block" tabindex="-1" role="dialog" style="z-index: 1050;">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content shadow border-0">
+                
+                <div class="modal-header text-white py-2" style="background-color: #112366;">
+                    <h6 class="modal-title fs-6">@(esModoEditar ? "Editar Línea de Vehículo" : "Crear Nueva Línea")</h6>
+                    <button type="button" class="btn-close btn-close-white" aria-label="Close" @onclick="CerrarModal"></button>
+                </div>
+
+                <div class="modal-body bg-light">
+                    @if (agentesobj != null)
+                    {
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label text-muted mb-1" style="font-size:12px;">Id</label>
+                                <input type="text" class="form-control form-control-sm bg-white" @bind="agentesobj.Id" readonly />
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label text-muted mb-1" style="font-size:12px;">Nombre Línea</label>
+                                <input type="text" maxlength="40" class="form-control form-control-sm fw-bold" @bind="agentesobj.Nombre" />
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label text-muted mb-1" style="font-size:12px;">Marca Relacionada</label>
+                                
+                                <select class="form-select form-select-sm" @bind="agentesobj.Marca">
+                                    <option value="0">-- Seleccione una marca --</option>
+                                    @if (customers != null)
+                                    {
+                                        @foreach (var marca in customers)
+                                        {
+                                            <option value="@marca.Id">@marca.Nombre</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="modal-footer bg-white border-top py-2">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" style="font-size:12px;" @onclick="CerrarModal">Cerrar</button>
+                    <button type="button" class="btn btn-success btn-sm px-4" style="font-size:12px;" 
+                            @onclick="() => esModoEditar ? Actualizar(agentesobj) : Agregar()">
+                        @(esModoEditar ? "Actualizar" : "Agregar")
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private bool mostrarModal = false;
+    private string buscarnit;
+    private Linea agentesobj = new Linea();
+    private List<Linea> agentes_obj { get; set; } = new List<Linea>();
+    private bool esModoEditar = false;
+    IEnumerable<Marca> customers = new List<Marca>();
+
+    IQueryable<Linea> data;
+    bool isLoading = false;
+
+    // Control de paginación interna en memoria
+    private int paginaActual { get; set; } = 1;
+    private const int TamanoPagina = 15;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ShowLoading();
+        const int cantidadInicial = 11;
+
+        var todosLasInfracciones = await AgentesServices.GetAll();
+
+        if (todosLasInfracciones != null && todosLasInfracciones.Any())
+        {
+            agentes_obj = todosLasInfracciones.Take(cantidadInicial).ToList();
+            data = agentes_obj.AsQueryable();
+        }
+        customers = await gruposService.GetAll();
+    }
+
+    private void OnRowSelect(Linea item)
+    {
+        agentesobj = item;
+        esModoEditar = true;
+        mostrarModal = true;
+    }
+
+    async Task ShowLoading()
+    {
+        isLoading = true;
+        await Task.Yield();
+        isLoading = false;
+    }
+
+    private async Task findbyplaca()
+    {
+        await ShowLoading();
+        var infraccionesList = await AgentesServices.GetByPlacaOrNombre(buscarnit);
+        agentes_obj = infraccionesList ?? new List<Linea>();
+        paginaActual = 1;
+    }
+
+    private async Task Agregar()
+    {
+        var result = await AgentesServices.Add(agentesobj);
+        mostrarModal = false;
+        // Opcional: recargar lista completa o insertar en local
+        var todos = await AgentesServices.GetAll();
+        if (todos != null) agentes_obj = todos.ToList();
+    }
+
+    void EditarAgentes(Linea agentes)
+    {
+        agentesobj = agentes;
+        esModoEditar = true;
+        mostrarModal = true;
+    }
+
+    private async Task EliminaAgentes(int id)
+    {
+        bool confirmar = await JSRuntime.InvokeAsync<bool>("confirm", "¿Está seguro de eliminar la línea vehicular seleccionada?");
+        if (confirmar)
+        {
+            var count = AgentesServices.Delete(id);
+            agentes_obj.RemoveAll(x => x.Id == id);
+            StateHasChanged();
+        }
+    }
+
+    private async Task Actualizar(Linea agentes)
+    {
+        var count = await AgentesServices.Edit(agentes);
+
+        if (count > 0)
+        {
+            mostrarModal = false;
+            var todos = await AgentesServices.GetAll();
+            if (todos != null) agentes_obj = todos.ToList();
+            StateHasChanged();
+        }
+        else
+        {
+            Console.WriteLine("Error al actualizar el infractor.");
+        }
+    }
+
+    public void MostrarModal(bool nkey)
+    {
+        mostrarModal = true;
+        esModoEditar = nkey;
+
+        if (!esModoEditar)
+        {
+            agentesobj = new Linea();
+        }
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+
+    // Métodos lógicos para control de paginación local en memoria
+    private int CalcularTotalPaginas(int cantidadItems)
+    {
+        return (int)Math.Ceiling((double)cantidadItems / TamanoPagina);
+    }
+
+    private IEnumerable<T> ObtenerPaginado<T>(List<T> lista, int pagina)
+    {
+        return lista.Skip((pagina - 1) * TamanoPagina).Take(TamanoPagina);
+    }
+}

@@ -1,0 +1,214 @@
+﻿@page "/ImportacionPage"
+@using Domain.Models.BaseGravable
+@using Infrastructure.Services.Tarifas
+@using Microsoft.AspNetCore.Components.Web
+
+@inject NavigationManager NavigationManager
+@inject TarifaService AgentesServices;
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime js
+
+<div class="tab-pane @(tab1 ? "show active" : "")" id="pestañaComp" role="tabpanel" aria-labelledby="pestañaResoluciones">
+    <section class="container-fluid py-3">
+        
+        <div class="row align-items-end g-3 mb-4">
+            <div class="col-auto">
+                <label class="form-label text-muted mb-1" style="font-size:12px">Periodo</label>
+                <input type="number" class="form-control form-control-sm fw-bold text-center" style="width:90px" @bind="pdesde">
+            </div>
+            <div class="col-auto">
+                <label class="form-label text-muted mb-1" style="font-size:12px">Hasta</label>
+                <input type="number" class="form-control form-control-sm fw-bold text-center" style="width:90px" @bind="phasta">
+            </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-danger btn-sm px-4" style="height:31px; font-size:12px;" @onclick="Procesar">
+                    Procesar
+                </button>
+            </div>
+            
+            <div class="col-12 col-sm-3 ms-auto">
+                @if (bot && totalLineas > 0)
+                {
+                    <div class="w-100">
+                        <div class="d-flex justify-content-between small text-muted mb-1" style="font-size: 11px;">
+                            <span>Progreso de líneas:</span>
+                            <span>@((int)CalcularPorcentajeProgreso())%</span>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-success progress-bar-striped" role="progressbar" 
+                                 style="width: @CalcularPorcentajeProgreso()%"></div>
+                        </div>
+                    </div>
+                }
+                @if (bot2)
+                {
+                    <div class="w-100">
+                        <div class="text-muted small mb-1 text-center" style="font-size: 11px;">Procesando deudas, espere...</div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated w-100 bg-primary" role="progressbar"></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card shadow-sm position-relative">
+            <div class="card-header text-white py-2" style="background-color: #112366;">
+                <h6 class="card-title mb-0 fs-6">Generar Impuestos Por Vigencias</h6>
+            </div>
+            <div class="card-body p-0">
+                
+                @if (isLoading)
+                {
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 5;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                }
+
+                <div class="table-responsive" style="min-height: 200px;">
+                    <table class="table table-sm table-hover table-striped align-middle mb-0 text-nowrap">
+                        <thead class="table-light">
+                            <tr style="font-size: 13px;">
+                                <th class="ps-3">Id</th>
+                                <th>Clase Vehículo</th>
+                                <th>Marca</th>
+                                <th>Línea</th>
+                                <th>Cilindraje</th>
+                                <th>Capacidad</th>
+                                <th class="pe-3">Pasajeros</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Itemlist == null || !Itemlist.Any())
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4" style="font-size: 13px;">No se encontraron registros de bases gravables.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var item in ObtenerPaginado(Itemlist, paginaActual))
+                                {
+                                    <tr style="font-size: 13px;">
+                                        <td class="ps-3 fw-bold text-dark">@item.Codigo</td>
+                                        <td>@item.ClaseVehiculo</td>
+                                        <td>@item.Marca</td>
+                                        <td>@item.Linea</td>
+                                        <td>@item.Cilindraje</td>
+                                        <td>@item.Capacidad</td>
+                                        <td class="pe-3">@item.Pasajeros</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                @if (CalcularTotalPaginas(Itemlist.Count) > 1)
+                {
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                        <span class="text-muted ms-2">Mostrando registros en la página @paginaActual de @CalcularTotalPaginas(Itemlist.Count)</span>
+                        <ul class="pagination pagination-sm m-0 me-2">
+                            <li class="page-item @(paginaActual == 1 ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => paginaActual--">Anterior</button>
+                            </li>
+                            <li class="page-item @(paginaActual == CalcularTotalPaginas(Itemlist.Count) ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => paginaActual++">Siguiente</button>
+                            </li>
+                        </ul>
+                    </div>
+                }
+
+            </div>
+        </div>
+    </section>
+</div>
+
+@code
+{
+    public List<BaseGravableVehiculo> Itemlist { get; set; } = new List<BaseGravableVehiculo>();
+    bool isLoading = false;
+    private bool tab1 = true;
+    private bool tab2 = false;
+    private bool bot = true;
+    private bool bot2 = false;
+    
+    double value = 0;
+    int totalLineas = 0;
+    private int pdesde = 0;
+    private int phasta = 0;
+    private bool userHasAccess = false;
+    private string requiredRole = "2";
+
+    // Índices y propiedades de control para la paginación nativa
+    private int paginaActual { get; set; } = 1;
+    private const int TamanoPagina = 8;
+
+    protected override async Task OnInitializedAsync()
+    {
+        pdesde = DateTime.UtcNow.Year;
+        phasta = DateTime.UtcNow.Year;
+    }
+
+    public void displayTabs(int TabNumber)
+    {
+        switch (TabNumber)
+        {
+            case 1:
+                this.tab1 = true;
+                this.tab2 = false;
+                break;
+        }
+    }
+
+    private double CalcularPorcentajeProgreso()
+    {
+        if (totalLineas <= 0) return 0;
+        return (value / totalLineas) * 100;
+    }
+
+    private async Task Procesar()
+    {
+        bool confirmar = await js.InvokeAsync<bool>("confirm", "¿Está seguro de ejecutar el procesamiento?");
+        if (confirmar)
+        {
+            bot2 = true;
+            bot = false;
+            StateHasChanged();
+            
+            try 
+            {
+                await AgentesServices.CargaImpuestos(pdesde, phasta);
+                await js.InvokeVoidAsync("alert", "Deudas Generadas de manera exitosa.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al procesar impuestos: {ex.Message}");
+            }
+            finally 
+            {
+                bot = true;
+                bot2 = false;
+                StateHasChanged();
+            }
+        }
+    }
+
+    async Task ShowLoading()
+    {
+        isLoading = true;
+        await Task.Yield();
+        isLoading = false;
+    }
+
+    // Métodos lógicos genéricos de control de paginación sobre colecciones en memoria
+    private int CalcularTotalPaginas(int cantidadItems)
+    {
+        return (int)Math.Ceiling((double)cantidadItems / TamanoPagina);
+    }
+
+    private IEnumerable<T> ObtenerPaginado<T>(List<T> lista, int paginaActual)
+    {
+        return lista.Skip((paginaActual - 1) * TamanoPagina).Take(TamanoPagina);
+    }
+}

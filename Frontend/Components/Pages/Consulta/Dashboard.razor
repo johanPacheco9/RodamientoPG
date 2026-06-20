@@ -1,0 +1,576 @@
+﻿@page "/Consulta"
+@using Domain.Generics
+@using Domain.Models
+@using Domain.Responses.Liquidacion
+@using Domain.Responses.Recibo
+@using Infrastructure.Services.Importados
+@using Infrastructure.Services.Liquidaciones
+@using Infrastructure.Services.Pagos
+@using Infrastructure.Services.Parametros
+@using Infrastructure.Services.Procesos.Coactivo
+@using Infrastructure.Services.Procesos.Persuasivo
+@using Infrastructure.Services.Vehiculos
+@rendermode InteractiveServer
+
+<!-- ─── Encabezado de página ─────────────────────────────────── -->
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h5 class="mb-0 fw-medium">Estado de cuenta vehicular</h5>
+        <small class="text-muted">Consulta de deuda, recibos y procesos activos</small>
+    </div>
+    <button class="btn btn-primary btn-sm" @onclick="ShowBusqueda">
+        <i class="bi bi-person-vcard"></i> Buscar por documento
+    </button>
+</div>
+
+<!-- ─── Card: Propietario + Vehículo ─────────────────────────── -->
+@if (!string.IsNullOrEmpty(_estadoCuenta?.Documento))
+{
+    <div class="card mb-3">
+        <div class="card-body py-3">
+
+            <!-- Fila propietario -->
+            <p class="text-muted mb-2"
+               style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.04em;">
+                <i class="bi bi-person"></i> Propietario
+            </p>
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <div
+                    class="rounded-circle bg-primary bg-opacity-10 text-primary fw-medium d-flex align-items-center justify-content-center"
+                    style="width:40px; height:40px; font-size:14px; flex-shrink:0;">
+                    @Iniciales(_estadoCuenta.NombrePropietario)
+                </div>
+                <div>
+                    <div class="fw-medium">@_estadoCuenta.NombrePropietario</div>
+                    <small class="text-muted">@_estadoCuenta.TipoDocumento · @_estadoCuenta.Documento</small>
+                </div>
+                <div class="ms-auto">
+                    <span class="badge @BadgeEstado(_estadoCuenta.EstadoId)">
+                        @_estadoCuenta.EstadoNombre
+                    </span>
+                </div>
+            </div>
+
+            <hr class="my-2">
+
+            <!-- Fila vehículo -->
+            <p class="text-muted mb-2"
+               style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.04em;">
+                <i class="bi bi-car-front"></i> Vehículo · <strong>@_estadoCuenta.Placa</strong>
+            </p>
+            <div class="row g-2">
+                <div class="col-6 col-md-2">
+                    <small class="text-muted d-block">Marca</small>
+                    <span class="fw-medium small">@_estadoCuenta.Marca</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <small class="text-muted d-block">Línea</small>
+                    <span class="fw-medium small">@_estadoCuenta.Linea</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <small class="text-muted d-block">Modelo</small>
+                    <span class="fw-medium small">@_estadoCuenta.Modelo</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <small class="text-muted d-block">Clase</small>
+                    <span class="fw-medium small">@_estadoCuenta.Clase</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <small class="text-muted d-block">Tipo servicio</small>
+                    <span class="fw-medium small">@_estadoCuenta.TipoServicio</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <small class="text-muted d-block">Cilindraje</small>
+                    <span class="fw-medium small">@_estadoCuenta.Cilindraje</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <small class="text-muted d-block">Color</small>
+                    <span class="fw-medium small">@_estadoCuenta.Color</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <small class="text-muted d-block">Carrocería</small>
+                    <span class="fw-medium small">@_estadoCuenta.Carroceria</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <small class="text-muted d-block">Vigencia desde</small>
+                    <span class="fw-medium small">@_estadoCuenta.VigenciaDesde</span>
+                </div>
+                <div class="col-6 col-md-2">
+                    <small class="text-muted d-block">Vigencia hasta</small>
+                    <span class="fw-medium small">@_estadoCuenta.VigenciaHasta</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Métricas resumen ──────────────────────────────────── -->
+    <div class="row g-3 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body py-2 px-3">
+                    <small class="text-muted d-block">Total deuda</small>
+                    <span class="fw-medium text-danger fs-5">@_estadoCuenta.TotalDeuda.ToString("C")</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body py-2 px-3">
+                    <small class="text-muted d-block">Vigencias pendientes</small>
+                    <span class="fw-medium fs-5">@_vigencias.Count año(s)</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body py-2 px-3">
+                    <small class="text-muted d-block">Último pago</small>
+                    <span
+                        class="fw-medium fs-5">@(_estadoCuenta.UltimoPago.HasValue ? _estadoCuenta.UltimoPago.Value.ToString("MMM yyyy") : "—")</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card h-100">
+                <div class="card-body py-2 px-3">
+                    <small class="text-muted d-block">Proceso activo</small>
+                    @if (coactivosList.Any(p => p.EstadoProceso.GetDisplayName().ToLower() == "coactivo"))
+                    {
+                        <span class="badge bg-danger">Coactivo</span>
+                    }
+                    else if (coactivosList.Any(p => p.EstadoProceso.GetDisplayName().ToLower() == "persuasivo"))
+                    {
+                        <span class="badge bg-warning text-dark">Persuasivo</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Ninguno</span>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ─── Panel de pestañas ─────────────────────────────────── -->
+    <div class="card">
+        <div class="card-header p-0">
+            <ul class="nav nav-tabs card-header-tabs px-3">
+                <li class="nav-item">
+                    <button class="nav-link @(tab == 1 ? "active" : "")" @onclick="() => SetTab(1)">
+                        <i class="bi bi-receipt"></i> Estado de cuenta
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(tab == 2 ? "active" : "")" @onclick="() => SetTab(2)">
+                        <i class="bi bi-file-earmark-text"></i> Recibos
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(tab == 3 ? "active" : "")" @onclick="() => SetTab(3)">
+                        <i class="bi bi-bar-chart"></i> Resumen conceptos
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(tab == 4 ? "active" : "")" @onclick="() => SetTab(4)">
+                        <i class="bi bi-journal-text"></i> Resoluciones
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link @(tab == 5 ? "active" : "")" @onclick="() => SetTab(5)">
+                        <i class="bi bi-gavel"></i> Procesos
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="card-body p-3">
+
+            <!-- Tab 1: Estado de cuenta / Selección de vigencias -->
+            @if (tab == 1)
+            {
+                <p class="text-muted mb-2"
+                   style="font-size:11px; text-transform:uppercase; letter-spacing:.04em; font-weight:500;">
+                    Seleccione las vigencias a pagar
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th style="width:44px;" class="text-center">Pagar</th>
+                            <th>Vigencia</th>
+                            <th>Conceptos</th>
+                            <th class="text-end">Impuesto</th>
+                            <th class="text-end">Interés mora</th>
+                            <th class="text-end">Descuento</th>
+                            <th class="text-end">Total vigencia</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var grupo in _vigencias)
+                        {
+                            <tr class="@(grupo.Seleccionado ? "table-primary" : "") fw-medium">
+                                <td class="text-center">
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           @bind="grupo.Seleccionado"
+                                           @bind:after="RecalcularTotal"/>
+                                </td>
+                                <td><strong>@grupo.Vigencia</strong></td>
+                                <td>
+                                    @foreach (var c in grupo.Conceptos)
+                                    {
+                                        <span class="badge bg-secondary me-1">@c.Concepto</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @grupo.Conceptos.Sum(c => c.Valor).ToString("C")
+                                </td>
+                                <td class="text-end">
+                                    @grupo.Conceptos.Sum(c => c.ValorInteres).ToString("C")
+                                </td>
+                                <td class="text-end">
+                                    @if (grupo.Conceptos.Sum(c => c.Descuento) > 0)
+                                    {
+                                        <span class="badge bg-success-subtle text-success-emphasis">
+                                -@grupo.Conceptos.Sum(c => c.Descuento).ToString("C")
+                            </span>
+                                    }
+                                    else
+                                    {
+                                        <span>$0</span>
+                                    }
+                                </td>
+                                <td class="text-end fw-medium">@grupo.TotalVigencia.ToString("C")</td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot class="table-light">
+                        <tr>
+                            <td colspan="6" class="text-end text-muted small">
+                                Total seleccionado (@vigenciasSeleccionadas.Count vigencia(s)):
+                            </td>
+                            <td class="text-end fw-medium text-danger">@totalSeleccionado.ToString("C")</td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Barra de acciones -->
+                <div class="d-flex align-items-center justify-content-between mt-2 gap-2 flex-wrap
+                            bg-light rounded p-2">
+                    <div class="d-flex gap-2 flex-wrap">
+                        <button class="btn btn-primary btn-sm" @onclick="GenerarRecibo"
+                                disabled="@(!vigenciasSeleccionadas.Any())">
+                            <i class="bi bi-printer"></i> Generar recibo
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="GenerarPazYSalvo">
+                            <i class="bi bi-file-earmark-check"></i> Paz y salvo
+                        </button>
+                    </div>
+                    <div class="text-end">
+                        <small class="text-muted d-block">Total a pagar</small>
+                        <span class="fw-medium text-danger fs-5">@totalSeleccionado.ToString("C")</span>
+                    </div>
+                </div>
+            }
+
+            <!-- Tab 2: Recibos -->
+            @if (tab == 2)
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>No. recibo</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Fecha pago</th>
+                            <th>Rango vigencias</th>
+                            <th class="text-end">Capital</th>
+                            <th class="text-end">Interés</th>
+                            <th class="text-end">Descuento</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var r in reciboslist)
+                        {
+                            <tr>
+                                <td><strong>#@r.Id</strong></td>
+                                <td>@r.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td><span class="badge @BadgeRecibo(r.Estado.GetDisplayName())">@r.Estado</span></td>
+                                <td>@(r.FechaPago?.ToString("dd/MM/yyyy") ?? "—")</td>
+                                <td>@r.Desde – @r.Hasta</td>
+                                <td class="text-end">@r.ValorCapital.ToString("C")</td>
+                                <td class="text-end">@r.InteresMora.ToString("C")</td>
+                                <td class="text-end">@r.Descuento.ToString("C")</td>
+                                <td class="text-end fw-medium">@r.ValorTotalCalculado.ToString("C")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <!-- Tab 3: Resumen por conceptos -->
+            @if (tab == 3)
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Id</th>
+                            <th>Concepto</th>
+                            <th class="text-end">Valor base</th>
+                            <th class="text-end">Interés mora</th>
+                            <th class="text-end">Descuento</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var c in resumenConceptoslist)
+                        {
+                            <tr>
+                                <td>@c.Id</td>
+                                <td>@c.Nombre</td>
+                                <td class="text-end">@c.Valor.ToString("C")</td>
+                                <td class="text-end">@c.ValorIntereses.ToString("C")</td>
+                                <td class="text-end">@c.Descuento.ToString("C")</td>
+                                <td class="text-end fw-medium">@c.Total.ToString("C")</td>
+                            </tr>
+                        }
+                        </tbody>
+                        <tfoot class="table-light">
+                        <tr>
+                            <td colspan="5" class="text-end fw-medium text-muted">Total deuda:</td>
+                            <td class="text-end fw-medium text-danger">
+                                @resumenConceptoslist.Sum(c => c.Total).ToString("C")
+                            </td>
+                        </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+
+            <!-- Tab 4: Resoluciones -->
+            @if (tab == 4)
+            {
+                <div class="d-flex justify-content-end mb-2">
+                    <button class="btn btn-warning btn-sm" @onclick="MostrarModal_R">
+                        <i class="bi bi-plus"></i> Crear resolución
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Id</th>
+                            <th>Fecha</th>
+                            <th>No. resolución</th>
+                            <th>Tipo</th>
+                            <th>Período</th>
+                            <th>Observaciones</th>
+                            <th>Estado</th>
+                            <th class="text-end">Valor</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var r in resolucioneslist)
+                        {
+                            <tr>
+                                <td>@r.Id</td>
+                                <td>@r.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td><strong>@r.NumeroResolucion</strong></td>
+                                <td>
+                                        <span class="badge bg-info-subtle text-info-emphasis">
+                                            @r.TipoResolucionId
+                                        </span>
+                                </td>
+                                <td>@r.PeriodoDesde – @r.PeriodoHasta</td>
+                                <td class="text-muted small">@r.Observaciones</td>
+                                <td><span class="badge @BadgeEstadoProceso(r.Estado)">@r.Estado</span></td>
+                                <td class="text-end">@r.Valor.ToString("C")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+            <!-- Tab 5: Procesos (Persuasivo / Coactivo) -->
+            @if (tab == 5)
+            {
+                <div class="d-flex justify-content-end mb-2">
+                    <button class="btn btn-success btn-sm" @onclick="MostrarModal">
+                        <i class="bi bi-plus"></i> Iniciar cobro persuasivo
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Id</th>
+                            <th>Fecha</th>
+                            <th>No. proceso</th>
+                            <th>Tipo</th>
+                            <th>Resolución</th>
+                            <th>Período</th>
+                            <th>Estado</th>
+                            <th class="text-end">Valor</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var p in coactivosList)
+                        {
+                            <tr>
+                                <td>@p.Id</td>
+                                <td>@p.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td><strong>@p.NumeroProceso</strong></td>
+                                <td>
+                                    <span
+                                        class="badge @BadgeProceso(p.EstadoProceso.GetDisplayName())">@p.EstadoProceso.GetDisplayName()</span>
+                                </td>
+                                <td>@p.Resolucion</td>
+                                <td>@p.Desde – @p.Hasta</td>
+                                <td>
+                                        <span class="badge @BadgeEstadoProceso(p.EstadoProceso)">
+                                            @p.EstadoProceso.GetDisplayName()
+                                        </span>
+                                </td>
+                                <td class="text-end">@p.Valor.ToString("C")</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
+        </div>
+    </div>
+}
+else
+{
+    <!-- Estado vacío inicial -->
+    <div class="card">
+        <div class="card-body text-center py-5 text-muted">
+            <i class="bi bi-search fs-1 d-block mb-2 opacity-50"></i>
+            <p class="mb-1">Ningún vehículo seleccionado</p>
+            <small>Use el botón <strong>Buscar por documento</strong> para iniciar una consulta.</small>
+        </div>
+    </div>
+}
+
+<!-- ─── Modal: Búsqueda por cédula ───────────────────────────── -->
+@if (MostrarBusquedaCedula)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5);">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="bi bi-person-vcard"></i> Buscar vehículo por documento
+                    </h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body" style="min-height: 400px;">
+                    @if (MostrarBusquedaCedula)
+                    {
+                        <Busqueda/>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ─── Modal: Iniciar persuasivo / deuda ────────────────────── -->
+@if (_mostrarModal)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5);">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Iniciar cobro persuasivo</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label">Vigencia desde</label>
+                            <input class="form-control" type="number" @bind="vigenciaDesde"/>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label">Vigencia hasta</label>
+                            <input class="form-control" type="number" @bind="vigenciaHasta"/>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @onclick="CerrarModal">Cancelar</button>
+                    <button class="btn btn-success btn-sm" @onclick="Agregar">
+                        <i class="bi bi-check"></i> Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ─── Modal: Crear resolución ──────────────────────────────── -->
+@if (_mostrarModalr)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Crear resolución</h5>
+                    <button type="button" class="btn-close" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">No. resolución</label>
+                            <input class="form-control" @bind="resolObj.NumeroResolucion"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" @onchange="capturar">
+                                <option value="1">Tipo 1</option>
+                                <option value="2">Tipo 2</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Fecha</label>
+                            <input class="form-control" type="date"
+                                   @bind="resolObj.Fecha"/>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Período hasta</label>
+                            <input class="form-control" type="number"
+                                   @bind="resolObj.PeriodoHasta"/>
+                        </div>
+                        @if (!_islic)
+                        {
+                            <div class="col-md-4">
+                                <label class="form-label">Valor</label>
+                                <input class="form-control" type="number"
+                                       @bind="novTotal"/>
+                            </div>
+                        }
+                        <div class="col-12">
+                            <label class="form-label">Observaciones</label>
+                            <textarea class="form-control" rows="2"
+                                      @bind="resolObj.Observaciones"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary btn-sm" @onclick="CerrarModal">Cancelar</button>
+                    <button class="btn btn-warning btn-sm" @onclick="Agregar_resol">
+                        <i class="bi bi-check"></i> Guardar resolución
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

@@ -1,0 +1,167 @@
+﻿@page "/Propietarios"
+
+@using Domain.Generics
+@using Domain.Responses.Users.Enums
+@using Domain.Models.Vehiculos
+@using Microsoft.AspNetCore.Components.Web
+
+@inject Infrastructure.Services.Propietarios.PropietarioService InfractoresService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime js
+
+<div class="container-fluid py-3">
+    <div class="card shadow-sm">
+        <div class="card-header text-white d-flex align-items-center justify-content-between py-2" style="background-color: #112366;">
+            <h5 class="card-title mb-0 fs-6">Propietarios</h5>
+            
+            <div class="d-flex align-items-center gap-2">
+                <div class="input-group input-group-sm" style="max-width: 250px;">
+                    <input type="text" id="buscarnit" name="searchString" class="form-control" 
+                           @bind="_buscarnit" placeholder="Buscar por cédula" />
+                    <button type="button" @onclick="Findbycedula" class="btn btn-light btn-sm border-start-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search text-primary" viewBox="0 0 16 16">
+                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold" style="font-size: 11px;" @onclick="() => MostrarModal(false)">
+                    + Crear
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-0 position-relative">
+            @if (isLoading)
+            {
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            }
+
+            <div class="table-responsive" style="min-height: 200px;">
+                <table class="table table-sm table-hover table-striped align-middle mb-0 text-nowrap">
+                    <thead class="table-light">
+                        <tr style="font-size: 13px;">
+                            <th class="ps-3" style="width: 150px;">Documento</th>
+                            <th>Nombre</th>
+                            <th>Dirección</th>
+                            <th style="width: 140px;">Teléfono</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (infractores == null || !infractores.Any())
+                        {
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4 fs-7">
+                                    No se encontraron registros de propietarios.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var propietario in ObtenerItemsPaginados())
+                            {
+                                <tr @onclick="() => OnRowSelect(propietario)" style="cursor: pointer; font-size: 13px;">
+                                    <td class="ps-3 fw-bold text-primary">@propietario.Documento</td>
+                                    <td>@propietario.Nombre</td>
+                                    <td>@propietario.Direccion</td>
+                                    <td>@propietario.Telefono</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (TotalPaginas > 1)
+            {
+                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                    <div class="ms-2 text-muted">
+                        Mostrando de @(((PaginaActual - 1) * TamanoPagina) + 1) a @(Math.Min(PaginaActual * TamanoPagina, infractores.Count)) de @infractores.Count registros
+                    </div>
+                    <nav>
+                        <ul class="pagination pagination-sm m-0 me-2">
+                            <li class="page-item @(PaginaActual == 1 ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => CambiarPagina(PaginaActual - 1)">Anterior</button>
+                            </li>
+                            @for (int i = 1; i <= TotalPaginas; i++)
+                            {
+                                var paginaAsignada = i;
+                                <li class="page-item @(PaginaActual == paginaAsignada ? "active" : "")">
+                                    <button type="button" class="page-link" @onclick="() => CambiarPagina(paginaAsignada)">@paginaAsignada</button>
+                                </li>
+                            }
+                            <li class="page-item @(PaginaActual == TotalPaginas ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => CambiarPagina(PaginaActual + 1)">Siguiente</button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@if (_mostrarModal)
+{
+    <div class="modal-backdrop fade show" style="z-index: 1040;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1050; overflow-y: auto;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow border-0">
+                <div class="modal-header text-white" style="background-color: #112366;">
+                    <h6 class="modal-title fw-bold m-0" style="font-size: 14px;">
+                        @(esModoEditar ? "Editar Propietario" : "Registrar Propietario")
+                    </h6>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body bg-light p-3">
+                    @if (infractoresobj != null)
+                    {
+                        <div class="row g-3">
+                            <div class="col-sm-5">
+                                <label class="form-label mb-1 text-secondary" style="font-size: 12px;">Tipo Identificación</label>
+                                <select class="form-select form-select-sm fw-bold text-dark" style="font-size: 12px;" @bind="infractoresobj.TipoDocumento">
+                                    @foreach (TipoDocumento tipo in Enum.GetValues(typeof(TipoDocumento)))
+                                    {
+                                        <option value="@tipo">@tipo.GetDisplayName()</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <div class="col-sm-7">
+                                <label class="form-label mb-1 text-secondary" style="font-size: 12px;">Cédula Infractor</label>
+                                <input type="text" class="form-select form-select-sm fw-bold" maxlength="13" style="font-size: 12px;"
+                                       @bind-value="infractoresobj.Documento" disabled="@esModoEditar" />
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label mb-1 text-secondary" style="font-size: 12px;">Nombre Infractor</label>
+                                <input type="text" class="form-control form-control-sm" maxlength="65" style="font-size: 12px;" @bind="infractoresobj.Nombre" />
+                            </div>
+
+                            <div class="col-sm-6">
+                                <label class="form-label mb-1 text-secondary" style="font-size: 12px;">Teléfono</label>
+                                <input type="text" class="form-control form-control-sm" maxlength="15" style="font-size: 12px;" @bind="infractoresobj.Telefono" />
+                            </div>
+
+                            <div class="col-sm-6">
+                                <label class="form-label mb-1 text-secondary" style="font-size: 12px;">Dirección</label>
+                                <input type="text" class="form-control form-control-sm" maxlength="40" style="font-size: 12px;" @bind="infractoresobj.Direccion" />
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer bg-white border-top-0 pt-0">
+                    <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" style="font-size: 12px;" @onclick="CerrarModal">Cerrar</button>
+                    <button type="button" class="btn btn-success btn-sm px-4 text-white rounded-pill" style="font-size: 12px;"
+                            @onclick="() => esModoEditar ? Actualizar(infractoresobj) : Agregar()">
+                        <span>@(esModoEditar ? "Actualizar" : "Agregar")</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

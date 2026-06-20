@@ -1,0 +1,36 @@
+﻿@page "/Register"
+@model Rodamiento.Pages.PLogin.RegisterModel;
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Register</title>
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css">
+    <link rel="stylesheet" href="_content/Radzen.Blazor/css/standard-base.css">
+</head>
+
+<body>
+    <form method="post" asp-page="/Register">
+        <legend>User Registration</legend>
+        <div class="mb-3">
+            <label for="txtEmail" class="form-label">Usuario:</label>
+            <input asp-for="email" type="text" class="form-control" id="txtEmail" name="email" />
+        </div>
+        <div class="mb-3">
+            <label for="txtFirstName" class="form-label">Nombre:</label>
+            <input type="text" class="form-control" id="txtFirstName" asp-for="firstName" name="firstName" />
+        </div>
+
+        <div class="mb-3">
+            <label for="txtPassword" class="form-label">Password</label>
+            <input asp-for="password" name="password" type="password" class="form-control" id="txtPassword" />
+        </div>
+        <button type="submit" class="btn btn-primary">Register</button>
+    </form>
+
+</body>
+
+</html>

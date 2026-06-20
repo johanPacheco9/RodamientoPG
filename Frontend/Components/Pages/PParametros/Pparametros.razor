@@ -1,0 +1,741 @@
+﻿<!--
+@page "/Parametrospage"
+
+@using System.Reflection;
+@using Domain.Models
+@using Domain.Models.ProcesoLiquidacion
+@using Infrastructure.Services.Parametros
+
+@inject IJSRuntime JSRuntime
+@inject DialogService DialogService
+@inject ParametroService ParametroService;
+
+
+
+<div class="container-fluid">
+    <div class="row">
+
+        <div class="col-md-12">
+            <div class="card card-primary">
+                <div class="card-header p-0" style="background-color:#112366; height: 27px ">
+                    <h5 class="card-title ms-3 pt-1" style="font-size:17px; color:white">Parámetros Del Sistema</h5>
+                </div>
+               
+                <EditForm Model="@param_obj">
+                    <ul class="nav nav-tabs" id="custom-content-below-tab" role="tablist">
+                        <li class="nav-item">
+                            <button type="button" class="nav-link @(tab1 ? "active" : "")" id="pestañaLiquidacion"
+                                    data-toggle="pill" href="#contenidoLiquidacion" role="tab"
+                                    aria-controls="contenidoLiquidacion" aria-selected="true"
+                                    @onclick="() => displayTabs(1)">Liquidación
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button type="button" class="nav-link @(tab2 ? "active" : "")" id="pestañaLiquidacion"
+                                    data-toggle="pill" href="#contenidoLiquidacion" role="tab"
+                                    aria-controls="contenidoLiquidacion" aria-selected="true"
+                                    @onclick="() => displayTabs(2)">Valor Adicional
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button type="button" class="nav-link @(tab3 ? "active" : "")" id="pestañaLiquidacion"
+                                    data-toggle="pill" href="#contenidoLiquidacion" role="tab"
+                                    aria-controls="contenidoLiquidacion" aria-selected="true"
+                                    @onclick="() => displayTabs(3)">Descuentos
+                            </button>
+                        </li>
+                    </ul>
+
+
+                    @if (tab1)
+                    {
+                        <div class="tab-content" id="custom-content-below-tabContent">
+                            <div class="tab-pane fade show active" id="contenidoLiquidacion" role="tabpanel"
+                                 aria-labelledby="pestañaLiquidacion">
+                                <div class="card-body">
+                                    <hr color="lightgray" style="background-color:ghostwhite" size=3>
+                                    <div class="row">
+                                        <div class="col-sm-5">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Secretaria</label>
+                                                <input type="text" maxlength="80" class="form-control col-md-7 col-auto"
+                                                       style="font-weight: bold;" @bind="param_obj.Nombre">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-5">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Ciudad</label>
+                                                <input type="text" maxlength="40" class="form-control"
+                                                       @bind="param_obj.Ciudad">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Dirección</label>
+                                                <input type="text" maxlength="60" @bind="param_obj.Direccion"
+                                                       class="form-control col-auto">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Nit</label>
+                                                <input type="text" maxlength="15" @bind="param_obj.Nit"
+                                                       class="form-control col-auto">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Correo</label>
+                                                <input type="text" maxlength="60" @bind="param_obj.Correo"
+                                                       class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Teléfono</label>
+                                                <input type="text" maxlength="15" @bind="param_obj.Telefono"
+                                                       class="form-control">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label style="font-size:12px" for="lTipoServicio">Metodo
+                                                    Impuestos</label>
+                                                <select id="lTipoServicio" class="form-control col-auto"
+                                                        style="font-size:12px; width:250px;"
+                                                        @bind="param_obj.MetodoImpuesto">
+                                                    <option value="1">Standar - carga y pasajeros</option>
+                                                    <option value="2">Por Clase vehiculo y Cilindraje</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Fecha Limite Sancion</label>
+                                                <input type="date" style="width:140px"
+                                                       @bind="param_obj.FechaLimiteSancion" class="form-control">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Porcentaje Sancion</label>
+                                                <input type="text" maxlength="7" @bind="param_obj.PorcentajeSancion"
+                                                       style="width:80px" class="form-control">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Valor Sistematizacion</label>
+                                                <input type="text" maxlength="7" @bind="param_obj.ValorSistema"
+                                                       style="width:80px" class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-sm-5">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Nombre Secretario</label>
+                                                <input type="text" maxlength="80" class="form-control col-md-7 col-auto"
+                                                       style="font-weight: bold;" @bind="param_obj.NombreSecretario">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-5">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Cargo Secretario</label>
+                                                <input type="text" maxlength="60" class="form-control"
+                                                       @bind="param_obj.CargoSecretario">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-sm-3">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">No. Cuenta Transito</label>
+                                                <input type="text" maxlength="20" @bind="param_obj.CuentaTransito"
+                                                       class="form-control">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Banco</label>
+                                                <input type="text" maxlength="40" @bind="param_obj.BancoTransito"
+                                                       class="form-control">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-sm-3">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">No. Cuenta Tercero</label>
+                                                <input type="text" maxlength="20" @bind="param_obj.CuentaTercero"
+                                                       class="form-control">
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-3">
+                                            <div class="form-group">
+                                                <label style="font-size:12px">Banco</label>
+                                                <input type="text" maxlength="40" @bind="param_obj.BancoTercero"
+                                                       class="form-control">
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+
+                            <div class="row bg-transparent">
+                                <div class="col-sm-1">
+                                    <button type="button" Style="font-size:12px; height:30px;" @onclick="Editparm"
+                                            class="btn btn-primary">Guardar
+                                    </button>
+                                    <input type="hidden" @bind="param_obj.Id" id="lId"/>
+                                </div>
+                                <div class="col-sm-3 ms-2">
+                                    <a href="/Consultapage" Style="font-size:12px; height:30px;"
+                                       class="btn btn-primary pull-right">Cerrar</a>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+                    @if (tab2)
+                    {
+                        <div class="tab-pane" id="custom-content-below-messages" role="tabpanel"
+                             aria-labelledby="pestañaResoluciones">
+                            <div class="card-body">
+                                <hr color="lightgray" style="background-color:ghostwhite" size=3>
+                                <div class="row">
+                                    <div class="col-sm-4">
+                                        <div class="form-check">
+                                            <input class="form-check-input" @bind="param_obj.CobraAdicional"
+                                                   type="checkbox">
+                                            <label style="font-size:12px" class="form-check-label">Cobra Valor
+                                                Adicional</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <br>
+
+                                <div class="card-body  mt-1">
+                                    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true"
+                                                    AllowAlternatingRows="false" FilterMode="FilterMode.Advanced"
+                                                    AllowGrouping="false" AllowSorting="true" PageSize="11"
+                                                    AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left"
+                                                    Data="@estados_list" TItem="EstadoProceso" ColumnWidth="350px"
+                                                    LogicalFilterOperator="LogicalFilterOperator.Or"
+                                                    ShowPagingSummary="true"
+                                                    IsLoading="@isLoading" SelectionMode="DataGridSelectionMode.Single"
+                                                    @bind-Value=@selectedEmployees RowSelect="@OnRowSelect">
+                                        <Columns>
+                                            <RadzenDataGridColumn TItem="EstadoProceso" Property="id" Title="Id"
+                                                                  Width="70px" Filterable="false"
+                                                                  HeaderCssClass="rz-background-color-primary-lighter"/>
+                                            <RadzenDataGridColumn TItem="EstadoProceso" Property="Nombre"
+                                                                  Title="Estado Del Proceso" Width="160px"
+                                                                  Filterable="false"
+                                                                  HeaderCssClass="rz-background-color-primary-lighter"/>
+                                            <RadzenDataGridColumn TItem="EstadoProceso" Property="Costas"
+                                                                  Title="Valor Costas" Width="100px" Filterable="false"
+                                                                  TextAlign="TextAlign.Center"
+                                                                  HeaderCssClass="rz-background-color-primary-lighter">
+                                                <Template Context="data">
+                                                    <span>@data.Costas.ToString("C")</span>
+                                                </Template>
+                                            </RadzenDataGridColumn>
+                                        </Columns>
+                                    </RadzenDataGrid>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    @if (tab3)
+                    {
+                        <div class="tab-pane" id="custom-content-below-messages" role="tabpanel"
+                             aria-labelledby="pestañaResoluciones">
+                            <div class="card-body">
+                                <div class="card-header p-0" style="background-color: #112366; height: 31px;">
+                                    <div class="row">
+                                        <div class="col-11">
+                                            <h6 class="card-title ms-1 mt-0" style="color:white"> Descuentos</h6>
+                                        </div>
+                                        <div class="ms-1 col p-0" style="margin-top: 0.1em;">
+                                            <RadzenButton type="button" text="Crear" Icon="add"
+                                                          Size="ButtonSize.ExtraSmall" ButtonStyle="ButtonStyle.Primary"
+                                                          class="rz-border-radius-1"
+                                                          Click="() => crear_dcto()"
+                                                          Style="margin-top: -2%; font-size:10px;">
+                                            </RadzenButton>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body  mt-1">
+                                    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true"
+                                                    AllowAlternatingRows="false" FilterMode="FilterMode.Advanced"
+                                                    AllowGrouping="false" AllowSorting="true" PageSize="11"
+                                                    AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left"
+                                                    Data="@dctos_list" TItem="Descuento"
+                                                    ColumnWidth="350px" LogicalFilterOperator="LogicalFilterOperator.Or"
+                                                    ShowPagingSummary="true"
+                                                    IsLoading="@isLoading" SelectionMode="DataGridSelectionMode.Single"
+                                                    @bind-Value=@selectedDcto RowSelect="@OnRowSel">
+                                        <Columns>
+                                            <RadzenDataGridColumn TItem="Descuento" Property="id" Title="Id"
+                                                                  Width="70px" Filterable="false"
+                                                                  HeaderCssClass="rz-background-color-primary-lighter"/>
+                                            <RadzenDataGridColumn TItem="Descuento" Property="desde" Title="Desde Fecha"
+                                                                  Width="160px" Filterable="false"
+                                                                  HeaderCssClass="rz-background-color-primary-lighter"/>
+                                            <RadzenDataGridColumn TItem="Descuento" Property="hasta" Title="Hasta Fecha"
+                                                                  Width="160px" Filterable="false"
+                                                                  HeaderCssClass="rz-background-color-primary-lighter"/>
+                                            <RadzenDataGridColumn TItem="Descuento" Property="porc" Title="Porcentaje"
+                                                                  Width="80px" Filterable="false"
+                                                                  HeaderCssClass="rz-background-color-primary-lighter"/>
+                                        </Columns>
+                                    </RadzenDataGrid>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (mostrarModal1)
+{
+    <div class="liq-overlay"></div>
+    <div class="liq-modal-wrap">
+        <div class="liq-modal">
+            <div class="liq-modal-head">
+                <span>Configuracion Valores Adicionales</span>
+                <button class="liq-modal-close" @onclick="CerrarModal">×</button>
+            </div>
+            <div class="liq-modal-body">
+                <div class="modal-body bg-light bg-gradient">
+                    @if (agentesobj != null)
+                    {
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <div>
+                                        <label style="font-size:12px">Id</label>
+                                        <input type="text" class="form-control w-50" @bind="agentesobj.Id" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div>
+                                    <label style="font-size:12px">Detalle Proceso</label>
+                                    <input type="text" class="form-control" style="font-weight: bold;"
+                                           @bind="agentesobj.Nombre">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <label style="font-size:12px">Porcentaje Vlr Adicional</label>
+                                <input type="text" class="form-control" maxlength="20" @bind="agentesobj.Costas">
+                            </div>
+                        </div>
+                    }
+
+                </div>
+                <div class="modal-footer">
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="button" Style="font-size:12px; border-radius:15px;" class="btn btn-secondary"
+                                    @onclick="CerrarModal1">Cerrar
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" Style="font-size:12px; border-radius:15px;"
+                                    class="btn btn-primary bg-success text-white"
+                                    @onclick="() => Actualizar(agentesobj)">
+                                <span>Actualizar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (mostrarModal2)
+{
+    <div class="liq-overlay"></div>
+    <div class="liq-modal-wrap">
+        <div class="liq-modal">
+            <div class="liq-modal-head">
+                <span>Configuracion Descuentos</span>
+                <button class="liq-modal-close" @onclick="CerrarModal1">×</button>
+            </div>
+            <div class="liq-modal-body">
+                <div class="modal-body bg-light bg-gradient">
+                    @if (dctsobj != null)
+                    {
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <div>
+                                        <label style="font-size:12px">Id</label>
+                                        <input type="text" class="form-control w-50" @bind="dctsobj.Id" readonly>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div>
+                                    <label style="font-size:12px">Desde Fecha</label>
+                                    <input type="date" class="form-control" style="font-weight: bold;"
+                                           @bind="dctsobj.Desde">
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div>
+                                    <label style="font-size:12px">Hasta Fecha</label>
+                                    <input type="date" class="form-control" style="font-weight: bold;"
+                                           @bind="dctsobj.Hasta">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col">
+                                <label style="font-size:12px">Porcentaje Vlr Adicional</label>
+                                <input type="number" class="form-control" maxlength="20" @bind="dctsobj.Porcentaje">
+                            </div>
+                        </div>
+                    }
+
+                </div>
+                <div class="modal-footer">
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="button" Style="font-size:12px; border-radius:15px;" class="btn btn-secondary"
+                                    @onclick="CerrarModal1">Cerrar
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" style="font-size:12px; height:30px;"
+                                    class="btn btn-primary bg-success text-white"
+                                    @onclick="async () => { if (esModoEditar) await Act_dctos(dctsobj); else Agregar(); }">
+                                <span>@(esModoEditar ? "Actualizar" : "Agregar")</span>
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+
+<style>
+    :root {
+        --c-bg: #f4f5f7;
+        --c-surface: #ffffff;
+        --c-border: #e3e6ea;
+        --c-text: #1a2332;
+        --c-muted: #7a8694;
+        --c-accent: #2d4a6b;
+        --c-accent-h: #3a5f89;
+        --c-warn: #b45309;
+        --c-ok: #166534;
+        --c-err: #991b1b;
+        --c-ok-bg: #f0fdf4;
+        --c-warn-bg: #fffbeb;
+        --c-err-bg: #fef2f2;
+        --c-info-bg: #eff6ff;
+        --c-info: #1d4ed8;
+        --r: 6px;
+        --shadow: 0 1px 3px rgba(0, 0, 0, .07), 0 1px 2px rgba(0, 0, 0, .04);
+    }
+
+    .liq-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 18, 30, .35);
+        backdrop-filter: blur(2px);
+        z-index: 1040;
+    }
+
+    .liq-modal-wrap {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+        padding: 20px;
+    }
+
+    .liq-modal {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border);
+        border-radius: 8px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .18);
+        width: 100%;
+        max-width: 680px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .liq-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        background: var(--c-accent);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .liq-modal-close {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, .8);
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0 4px;
+    }
+
+    .liq-modal-close:hover {
+        color: #fff;
+    }
+
+    .liq-modal-body {
+        padding: 4px 4px 0;
+        overflow-y: auto;
+        max-height: 70vh;
+        background: var(--c-bg);
+    }
+
+    .liq-modal-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 18px;
+        border-top: 1px solid var(--c-border);
+        background: var(--c-surface);
+    }
+</style>
+
+@code
+{
+    private bool mostrarModal = false;
+    private bool mostrarModal1 = false;
+    private bool mostrarModal2 = false;
+    private bool tab1 = true;
+    private bool tab2 = false;
+    private bool tab3 = false;
+    public bool isLoading;
+    private bool esModoEditar = false;
+    private EstadoProceso agentesobj = new EstadoProceso();
+    private Descuento dctsobj = new Descuento();
+    private List<EstadoProceso> estados_list { get; set; }
+    private List<Descuento> dctos_list { get; set; }
+    IQueryable<EstadoProceso> data;
+    IQueryable<Descuento> datades;
+    IList<EstadoProceso> selectedEmployees;
+    IList<Descuento> selectedDcto;
+
+    public Parametro param_obj { get; set; } = new Parametro
+    {
+    };
+    public string errorMessage { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        await getparametros();
+        await abre_archivos();
+    }
+
+
+    private async Task Actualizar(EstadoProceso agentes)
+    {
+        var count = await ParametroService.EditEstados(agentes);
+        await abre_archivos();
+        if (count > 0)
+        {
+            mostrarModal1 = true;
+            StateHasChanged();
+            mostrarModal1 = false;
+        }
+        else
+        {
+            // Manejar el caso en que la actualización no tuvo éxito
+            Console.WriteLine("Error al actualizar el infractor.");
+        }
+    }
+
+    private async Task Act_dctos(Descuento agentes)
+    {
+        var count = await ParametroService.EditDctos(agentes);
+
+        if (count > 0)
+        {
+            mostrarModal2 = true;
+            StateHasChanged();
+            mostrarModal2 = false;
+        }
+        else
+        {
+            // Manejar el caso en que la actualización no tuvo éxito
+            Console.WriteLine("Error al actualizar el infractor.");
+        }
+    }
+
+    private void OnRowSelect(EstadoProceso item)
+    {
+        agentesobj = item;
+        esModoEditar = true;
+        mostrarModal1 = true;
+    }
+
+    private void OnRowSel(Descuento item)
+    {
+        dctsobj = item;
+        esModoEditar = true;
+        mostrarModal2 = true;
+    }
+
+    private void crear_dcto()
+    {
+        mostrarModal2 = true;
+        dctsobj = new Descuento();
+        dctsobj.Hasta = DateTime.Today;
+        dctsobj.Hasta = DateTime.Today;
+    }
+
+    private async Task Agregar()
+    {
+        var result = await ParametroService.AddDescuento(dctsobj);
+        mostrarModal2 = false;
+        await abre_archivos();
+    }
+
+    private async Task abre_archivos()
+    {
+        estados_list = await ParametroService.GetListEstados();
+        data = estados_list.AsQueryable();
+        dctos_list = await ParametroService.DescuentosList();
+        datades = dctos_list.AsQueryable();
+    }
+
+    private async Task getparametros()
+    {
+        param_obj = await ParametroService.GetParametroById(1);
+    }
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+
+    private void CerrarModal1()
+    {
+        mostrarModal1 = false;
+        mostrarModal2 = false;
+    }
+
+    public void displayTabs(int TabNumber)
+    {
+        switch (TabNumber)
+        {
+            case 1:
+                this.tab1 = true;
+                this.tab2 = false;
+                this.tab3 = false;
+
+                break;
+            case 2:
+                this.tab1 = false;
+                this.tab2 = true;
+                this.tab3 = false;
+
+                break;
+            case 3:
+                this.tab1 = false;
+                this.tab2 = false;
+                this.tab3 = true;
+
+                break;
+        }
+    }
+
+    protected async Task Editparm()
+    {
+        if (IsValid(param_obj))
+        {
+            try
+            {
+                await ParametroService.EditParametros( param_obj);
+                Console.WriteLine($"ejecuto el update ");
+                var confirmationResult = await this.DialogService.Alert("Informacion Atualizada.", "Parametros", new AlertOptions() { OkButtonText = "Ok" });
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Error al agregar el Infractor: {ex.Message}";
+            }
+        }
+        else
+        {
+            Console.WriteLine($"Error en Consulta: ");
+            await DialogService.Alert("Campos Vacios.", "Alerta", new AlertOptions() { OkButtonText = "Ok", Style = "border-radius:30px;" });
+        }
+    }
+
+
+    public void MostrarModal1(bool nkey)
+    {
+        mostrarModal1 = true;
+        esModoEditar = nkey;
+
+        if (esModoEditar && agentesobj != null)
+        {
+        }
+        else
+        {
+            agentesobj = new EstadoProceso();
+        }
+    }
+
+    private bool IsValid(Parametro param_obj)
+    {
+        PropertyInfo[] properties = param_obj.GetType().GetProperties();
+        List<string> propertiesToValidate = new List<string>
+        {
+            "dir",
+            "Ciudad",
+            "Nombre",
+            "nit"
+        };
+        foreach (PropertyInfo property in properties)
+        {
+            if (propertiesToValidate.Contains(property.Name) && property.PropertyType == typeof(string))
+            {
+                string value = (string)property.GetValue(param_obj);
+                if (string.IsNullOrEmpty(value))
+                {
+                    errorMessage = $"El campo '{property.Name}' es obligatorio.";
+
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+}
+--->

@@ -1,0 +1,305 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "E:\\Net\\Rodamiento\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\shared\\services\\sparametros\\parametroservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\shared\\services\\sparametros\\parametroservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\pages\\index.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\pages\\index.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\pages\\pagos\\ppagos.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\pages\\pagos\\ppagos.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\pages\\pconsulta\\consulta.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\pages\\pconsulta\\consulta.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\shared\\services\\sliquidaciones\\liquidacionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\shared\\services\\sliquidaciones\\liquidacionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\pages\\pcoactivos\\pcoactivos.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\pages\\pcoactivos\\pcoactivos.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\reportes\\recibo_pago.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\reportes\\recibo_pago.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\pages\\pvehiculos\\pvehiculos.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\pages\\pvehiculos\\pvehiculos.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\pages\\preporte_lote\\pimpresion_lotes.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\pages\\preporte_lote\\pimpresion_lotes.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\shared\\mainlayout.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\shared\\mainlayout.razor||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\shared\\appdbcontext\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\shared\\appdbcontext\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\shared\\models\\recibos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\shared\\models\\recibos.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\shared\\models\\liquidacion.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\shared\\models\\liquidacion.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\shared\\services\\sliquidaciones\\iliquidacionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\shared\\services\\sliquidaciones\\iliquidacionservice.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|e:\\net\\rodamiento\\rodamiento\\wwwroot\\css\\bootstrap\\bootstrap.min.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{3F1EB406-D297-4D72-82E6-6441D94239DE}|Rodamiento\\Rodamiento.csproj|solutionrelative:rodamiento\\wwwroot\\css\\bootstrap\\bootstrap.min.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 13,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:128:0:{1fc202d4-d401-403c-9834-5b218574bb67}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{0174dea2-fdbe-4ef1-8f99-c0beae78880f}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "Index.razor",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\Index.razor",
+              "RelativeDocumentMoniker": "Rodamiento\\Pages\\Index.razor",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\Index.razor",
+              "RelativeToolTip": "Rodamiento\\Pages\\Index.razor",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAQAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-16T12:58:41.005Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "PVehiculos.razor",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\PVehiculos\\PVehiculos.razor",
+              "RelativeDocumentMoniker": "Rodamiento\\Pages\\PVehiculos\\PVehiculos.razor",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\PVehiculos\\PVehiculos.razor",
+              "RelativeToolTip": "Rodamiento\\Pages\\PVehiculos\\PVehiculos.razor",
+              "ViewState": "AgIAAG0AAAAAAAAAAAD4v3gAAAA4AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-08T18:12:16.827Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "Pimpresion_lotes.razor",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\PReporte_Lote\\Pimpresion_lotes.razor",
+              "RelativeDocumentMoniker": "Rodamiento\\Pages\\PReporte_Lote\\Pimpresion_lotes.razor",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\PReporte_Lote\\Pimpresion_lotes.razor",
+              "RelativeToolTip": "Rodamiento\\Pages\\PReporte_Lote\\Pimpresion_lotes.razor",
+              "ViewState": "AgIAAIcAAAAAAAAAAAAwwKkAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-08T16:54:56.406Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "Pcoactivos.razor",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\PCoactivos\\Pcoactivos.razor",
+              "RelativeDocumentMoniker": "Rodamiento\\Pages\\PCoactivos\\Pcoactivos.razor",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\PCoactivos\\Pcoactivos.razor",
+              "RelativeToolTip": "Rodamiento\\Pages\\PCoactivos\\Pcoactivos.razor",
+              "ViewState": "AgIAAA8AAAAAAAAAAAAAABkAAAAhAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-08T16:45:20.512Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "MainLayout.razor",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\MainLayout.razor",
+              "RelativeDocumentMoniker": "Rodamiento\\Shared\\MainLayout.razor",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\MainLayout.razor",
+              "RelativeToolTip": "Rodamiento\\Shared\\MainLayout.razor",
+              "ViewState": "AgIAAJAAAAAAAAAAAAAAAKcAAAAuAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-04-29T13:20:02.484Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "AppDbContext.cs",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\AppDbContext\\AppDbContext.cs",
+              "RelativeDocumentMoniker": "Rodamiento\\Shared\\AppDbContext\\AppDbContext.cs",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\AppDbContext\\AppDbContext.cs",
+              "RelativeToolTip": "Rodamiento\\Shared\\AppDbContext\\AppDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABAAAABMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-29T13:03:45.999Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\appsettings.json",
+              "RelativeDocumentMoniker": "Rodamiento\\appsettings.json",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\appsettings.json",
+              "RelativeToolTip": "Rodamiento\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-04-29T13:01:21.581Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Ppagos.razor",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\Pagos\\Ppagos.razor",
+              "RelativeDocumentMoniker": "Rodamiento\\Pages\\Pagos\\Ppagos.razor",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\Pagos\\Ppagos.razor",
+              "RelativeToolTip": "Rodamiento\\Pages\\Pagos\\Ppagos.razor",
+              "ViewState": "AgIAALoBAAAAAAAAAAAcwMIBAAAjAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-04-22T00:49:43.766Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "Liquidacion.cs",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\Models\\Liquidacion.cs",
+              "RelativeDocumentMoniker": "Rodamiento\\Shared\\Models\\Liquidacion.cs",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\Models\\Liquidacion.cs",
+              "RelativeToolTip": "Rodamiento\\Shared\\Models\\Liquidacion.cs",
+              "ViewState": "AgIAAAUAAAAAAAAAAAAzwA0AAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-22T00:43:20.738Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "Program.cs",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Program.cs",
+              "RelativeDocumentMoniker": "Rodamiento\\Program.cs",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Program.cs",
+              "RelativeToolTip": "Rodamiento\\Program.cs",
+              "ViewState": "AgIAACgAAAAAAAAAAAAgwC0AAAA4AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-17T00:54:12.566Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "ParametroService.cs",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\Services\\SParametros\\ParametroService.cs",
+              "RelativeDocumentMoniker": "Rodamiento\\Shared\\Services\\SParametros\\ParametroService.cs",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\Services\\SParametros\\ParametroService.cs",
+              "RelativeToolTip": "Rodamiento\\Shared\\Services\\SParametros\\ParametroService.cs",
+              "ViewState": "AgIAAOYAAAAAAAAAAAAWwPEAAAA+AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-17T00:23:16.458Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "Recibos.cs",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\Models\\Recibos.cs",
+              "RelativeDocumentMoniker": "Rodamiento\\Shared\\Models\\Recibos.cs",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\Models\\Recibos.cs",
+              "RelativeToolTip": "Rodamiento\\Shared\\Models\\Recibos.cs",
+              "ViewState": "AgIAABYAAAAAAAAAAAAxwCYAAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-17T00:19:44.502Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "bootstrap.min.css",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
+              "RelativeDocumentMoniker": "Rodamiento\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
+              "RelativeToolTip": "Rodamiento\\wwwroot\\css\\bootstrap\\bootstrap.min.css",
+              "ViewState": "AgIAAAAAAAAAAAAAAMBXwAYAAAAtAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2026-04-17T00:15:37.965Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "ILiquidacionService.cs",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\Services\\SLiquidaciones\\ILiquidacionService.cs",
+              "RelativeDocumentMoniker": "Rodamiento\\Shared\\Services\\SLiquidaciones\\ILiquidacionService.cs",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\Services\\SLiquidaciones\\ILiquidacionService.cs",
+              "RelativeToolTip": "Rodamiento\\Shared\\Services\\SLiquidaciones\\ILiquidacionService.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAUAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-10T22:23:39.033Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "LiquidacionService.cs",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\Services\\SLiquidaciones\\LiquidacionService.cs",
+              "RelativeDocumentMoniker": "Rodamiento\\Shared\\Services\\SLiquidaciones\\LiquidacionService.cs",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Shared\\Services\\SLiquidaciones\\LiquidacionService.cs",
+              "RelativeToolTip": "Rodamiento\\Shared\\Services\\SLiquidaciones\\LiquidacionService.cs",
+              "ViewState": "AgIAAF0BAAAAAAAAAAAiwFABAAAkAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-10T22:22:22.793Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Recibo_pago.cs",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Reportes\\Recibo_pago.cs",
+              "RelativeDocumentMoniker": "Rodamiento\\Reportes\\Recibo_pago.cs",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Reportes\\Recibo_pago.cs",
+              "RelativeToolTip": "Rodamiento\\Reportes\\Recibo_pago.cs",
+              "ViewState": "AgIAAFIAAAAAAAAAAADwv00AAAAqAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2026-04-10T22:12:38.212Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Consulta.razor",
+              "DocumentMoniker": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\PConsulta\\Consulta.razor",
+              "RelativeDocumentMoniker": "Rodamiento\\Pages\\PConsulta\\Consulta.razor",
+              "ToolTip": "E:\\Net\\Rodamiento\\Rodamiento\\Pages\\PConsulta\\Consulta.razor",
+              "RelativeToolTip": "Rodamiento\\Pages\\PConsulta\\Consulta.razor",
+              "ViewState": "AgIAALwGAAAAAAAAAAAswMcGAAAEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-04-10T22:12:38.26Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,208 @@
+﻿@page "/Principal"
+@using Domain.Responses.Vehiculos
+@using Infrastructure.Services.Parametros
+@inject ParametroService ParametroService;
+
+<PageTitle>Index</PageTitle>
+
+<div class="container-fluid p-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header text-white" style="background-color: #112366;">
+                    <h5 class="card-title mb-0" style="font-size: 14px; padding: 4px 0;">Vehículos Por Clase</h5>
+                </div>
+                <div class="card-body py-5">
+                    
+                    @if (Itemlist == null || !Itemlist.Any())
+                    {
+                        <div class="text-center text-muted py-4">
+                            No hay datos estadísticos para mostrar.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="chart-container">
+                            
+                            <div class="chart-y-axis-lines">
+                                <div class="axis-line"></div>
+                                <div class="axis-line"></div>
+                                <div class="axis-line"></div>
+                                <div class="axis-line"></div>
+                                <div class="axis-line"></div>
+                            </div>
+                            
+                            <div class="chart-bars-wrapper">
+                                @{
+                                    var maxValor = Itemlist.Max(x => x.Valor);
+                                    // Evitar división por cero si todos los valores son 0
+                                    if (maxValor == 0) maxValor = 1; 
+                                    
+                                    var colores = GetColors(Itemlist.Count);
+                                }
+
+                                @for (int i = 0; i < Itemlist.Count; i++)
+                                {
+                                    var item = Itemlist[i];
+                                    var colorBarra = colores[i];
+                                    // Cálculo exacto del porcentaje de altura respecto al valor máximo
+                                    var porcentajeAltura = (item.Valor / maxValor) * 100;
+
+                                    <div class="chart-column-item">
+                                        <div class="chart-bar-fill-wrapper">
+                                            <div class="chart-bar-actual" 
+                                                 style="height: @(porcentajeAltura)%; background-color: @colorBarra;">
+                                                <span class="chart-bar-label">@FormatAsUSD(item.Valor)</span>
+                                            </div>
+                                        </div>
+                                        <div class="chart-category-title" title="@item.CantidadVehiculos">
+                                            @item.CantidadVehiculos
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+
+                        </div>
+                    }
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Contenedor del Gráfico */
+    .chart-container {
+        position: relative;
+        width: 100%;
+        max-width: 1150px;
+        height: 400px;
+        margin: 0 auto;
+        border-bottom: 2px solid #64748b;
+        border-left: 2px solid #64748b;
+        padding-top: 30px;
+    }
+
+    /* Líneas de cuadrícula de fondo (Equivalente a RadzenGridLines) */
+    .chart-y-axis-lines {
+        position: absolute;
+        top: 30px;
+        left: 0;
+        width: 100%;
+        height: calc(100% - 30px);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        pointer-events: none;
+    }
+    .axis-line {
+        width: 100%;
+        border-top: 1px dashed #e2e8f0;
+    }
+
+    /* Envoltura de barras (Flexbox horizontal) */
+    .chart-bars-wrapper {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        justify-content: space-around;
+        align-items: flex-end;
+        padding: 0 10px;
+    }
+
+    /* Cada ítem columna individual (Barra + Texto inferior) */
+    .chart-column-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+        justify-content: flex-end;
+    }
+
+    /* Espacio asignado para la animación y renderizado de la barra */
+    .chart-bar-fill-wrapper {
+        width: 100%;
+        height: calc(100% - 30px); /* Deja espacio para el texto inferior */
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+    }
+
+    /* La barra física (Equivalente a RadzenColumnSeries con Radius) */
+    .chart-bar-actual {
+        width: 35px; /* Ancho ajustable de la barra */
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+        position: relative;
+        transition: height 0.3s ease-in-out, opacity 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+    }
+    .chart-bar-actual:hover {
+        opacity: 0.85;
+    }
+
+    /* Etiqueta numérica encima o dentro de la barra (RadzenSeriesDataLabels) */
+    .chart-bar-label {
+        position: absolute;
+        top: -22px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 11px;
+        font-weight: bold;
+        color: #334155;
+        white-space: nowrap;
+    }
+
+    /* Título de la categoría abajo */
+    .chart-category-title {
+        margin-top: 8px;
+        font-size: 11px;
+        color: #475569;
+        text-align: center;
+        max-width: 85px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+</style>
+
+@code {
+    private List<EstadisticaVehiculoDto> Itemlist { get; set; } = new List<EstadisticaVehiculoDto>();
+
+    protected async override Task OnInitializedAsync()
+    {
+       await Carga_datos();
+    }
+
+    string FormatAsUSD(object value)
+    {
+       return Convert.ToDecimal(value).ToString("N0");
+    }
+
+    private async Task Carga_datos()
+    {
+       try
+       {
+          Itemlist = await ParametroService.ObtenerCantidadVehiculosPorClaseYServicio();
+       }
+       catch (Exception ex)
+       {
+          Console.WriteLine($"Error en getresoluciones: {ex.Message}");
+       }
+    }
+
+    private string[] GetColors(int count)
+    {
+       string[] colors = new string[count];
+       Random random = new Random();
+       for (int i = 0; i < count; i++)
+       {
+          colors[i] = $"#{random.Next(0x1000000):X6}";
+       }
+       return colors;
+    }
+}

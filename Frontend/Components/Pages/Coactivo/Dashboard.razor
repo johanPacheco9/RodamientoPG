@@ -1,0 +1,326 @@
+﻿@page "/Coactivos"
+@using Domain.Models.ProcesoLiquidacion
+@using Infrastructure.Services.Procesos.Persuasivo
+@using CoactivoService = Infrastructure.Services.Procesos.Coactivo.CoactivoService
+
+@inject NavigationManager NavigationManager
+@inject BusquedaService BusquedaService
+@inject CoactivoService CoactivoServices;
+@inject PersuasivoService PersuasivoService;
+@rendermode  InteractiveServer
+
+<div class="container-fluid py-3">
+    <!-- Navegación por pestañas con Bootstrap 5 -->
+    <ul class="nav nav-tabs mb-3" id="custom-content-below-tab" role="tablist">
+        <li class="nav-item">
+            <button type="button" class="nav-link @(tab1 ? "active fw-bold text-dark" : "text-secondary")" 
+                    @onclick="() => displayTabs(1)">
+                Proceso Persuasivo
+            </button>
+        </li>
+        <li class="nav-item">
+            <button type="button" class="nav-link @(tab2 ? "active fw-bold text-dark" : "text-secondary")" 
+                    @onclick="() => displayTabs(2)">
+                Proceso Coactivo
+            </button>
+        </li>
+    </ul>
+
+    @if (tab1)
+    {
+        <!-- PESTAÑA 1: PROCESO PERSUASIVO -->
+        <section class="mb-4">
+            <div class="row align-items-end g-3">
+                <div class="col-auto">
+                    <label class="form-label mb-1 text-secondary" style="font-size:12px">Vigencia</label>
+                    <input type="number" style="width:100px;" class="form-control form-control-sm fw-bold text-center" @bind="vig">
+                </div>
+
+                <div class="col-auto">
+                    <button class="btn btn-primary btn-sm px-3 me-2" @onclick="Carga_datos">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
+                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                        </svg> Consultar
+                    </button>
+                    <button class="btn btn-success btn-sm px-3 text-white" @onclick="Procesar">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-arrow-right-circle me-1" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8m15 0A8 8 0 1 1 0 8a8 8 0 0 1 16 0M4.5 7.5a.5.5 0 0 0 0 1h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5z"/>
+                        </svg> Pasar a Persuasivo
+                    </button>
+                </div>
+            </div>
+            
+            @if (bot)
+            {
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated w-100" role="progressbar"></div>
+                </div>
+            }
+        </section>
+
+        <section class="card shadow-sm position-relative">
+            <div class="card-header text-white py-2" style="background-color:#112366;">
+                <h6 class="card-title mb-0 fs-6">Vehículos para Persuasivo</h6>
+            </div>
+            <div class="card-body p-0">
+                @if (isLoading)
+                {
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 5;">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                }
+
+                <div class="table-responsive" style="min-height: 180px;">
+                    <table class="table table-sm table-hover table-striped align-middle mb-0 text-nowrap">
+                        <thead class="table-light">
+                            <tr style="font-size: 13px;">
+                                <th class="ps-3">Placa</th>
+                                <th>Clase Vehículo</th>
+                                <th>Marca</th>
+                                <th>Línea</th>
+                                <th>Modelo</th>
+                                <th>Vigencia</th>
+                                <th class="text-end pe-3">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Itemlist == null || !Itemlist.Any())
+                            {
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4" style="font-size: 13px;">No se encontraron registros.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var item in ObtenerPaginado(Itemlist, PaginaTab1))
+                                {
+                                    <tr style="font-size: 13px;">
+                                        <td class="ps-3 fw-bold text-primary">@item.Vehiculo.Placa</td>
+                                        <td>@item.Vehiculo.TipoVehiculo.Nombre</td>
+                                        <td>@item.Vehiculo.Marca</td>
+                                        <td>@item.Vehiculo.Linea</td>
+                                        <td>@item.Vehiculo.Modelo</td>
+                                        <td>@item.VigenciaDesde</td>
+                                        <td class="text-end pe-3 fw-bold">@item.TotalDeuda.ToString("C0")</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer del Paginador - Tab 1 -->
+                @if (CalcularTotalPaginas(Itemlist.Count) > 1)
+                {
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                        <span class="text-muted ms-2">Mostrando registros en la página @PaginaTab1 de @CalcularTotalPaginas(Itemlist.Count)</span>
+                        <ul class="pagination pagination-sm m-0 me-2">
+                            <li class="page-item @(PaginaTab1 == 1 ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => PaginaTab1--">Anterior</button>
+                            </li>
+                            <li class="page-item @(PaginaTab1 == CalcularTotalPaginas(Itemlist.Count) ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => PaginaTab1++">Siguiente</button>
+                            </li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+
+    @if (tab2)
+    {
+        <!-- PESTAÑA 2: PROCESO COACTIVO -->
+        <section class="mb-4">
+            <div class="row align-items-end g-3">
+                <div class="col-auto">
+                    <label class="form-label mb-1 text-secondary" style="font-size:12px">Opción</label>
+                    <select @onchange="Capturar" id="lClaseVehiculo" class="form-select form-select-sm" style="width:180px; font-size: 12px;">
+                        <option value="0">Todos</option>
+                        <option value="1">No. Transacción</option>
+                    </select>
+                </div>
+
+                @if (Istran)
+                {
+                    <div class="col-auto">
+                        <label class="form-label mb-1 text-secondary" style="font-size:12px">Transacción</label>
+                        <div class="input-group input-group-sm" style="width: 180px;">
+                            <input type="number" class="form-control" @bind="tran">
+                            <button type="button" @onclick="Muestra_tran" class="btn btn-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-three-dots" viewBox="0 0 16 16">
+                                    <path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                }
+
+                <div class="col-auto">
+                    <button class="btn btn-primary btn-sm px-3 me-2" @onclick="Carga_persuasivo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
+                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                        </svg> Consultar
+                    </button>
+                    <button class="btn btn-success btn-sm px-3 text-white" @onclick="Meter_Coactivo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-box-arrow-in-right me-1" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M6 3.5a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 0-1 0v2A1.5 1.5 0 0 0 6.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-8A1.5 1.5 0 0 0 5 3.5v2a.5.5 0 0 0 1 0z"/>
+                            <path fill-rule="evenodd" d="M11.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 1 0-.708.708L10.293 7.5H1.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/>
+                        </svg> Pasar a Coactivo
+                    </button>
+                </div>
+            </div>
+
+            @if (bot)
+            {
+                <div class="progress mt-3" style="height: 4px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated w-100 bg-warning" role="progressbar"></div>
+                </div>
+            }
+        </section>
+
+        <section class="card shadow-sm position-relative">
+            <div class="card-header text-white py-2" style="background-color:#112366;">
+                <h6 class="card-title mb-0 fs-6">Procesos para Coactivo</h6>
+            </div>
+            <div class="card-body p-0">
+                @if (isLoading)
+                {
+                    <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 5;">
+                        <div class="spinner-border text-secondary" role="status"></div>
+                    </div>
+                }
+
+                <div class="table-responsive" style="min-height: 180px;">
+                    <table class="table table-sm table-hover table-striped align-middle mb-0 text-nowrap">
+                        <thead class="table-light">
+                            <tr style="font-size: 13px;">
+                                <th class="ps-3">Expediente</th>
+                                <th>Placa</th>
+                                <th>Fecha</th>
+                                <th>Cédula</th>
+                                <th>Nombre Propietario</th>
+                                <th>Desde</th>
+                                <th>Hasta</th>
+                                <th class="text-end pe-3">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Procesoslist == null || !Procesoslist.Any())
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4" style="font-size: 13px;">No se encontraron registros.</td>
+                                </tr>
+                            }
+                            else
+                            {
+                                @foreach (var proceso in ObtenerPaginado(Procesoslist, PaginaTab2))
+                                {
+                                    <tr style="font-size: 13px;">
+                                        <td class="ps-3 fw-bold text-dark">@proceso.Id</td>
+                                        <td class="fw-bold text-primary">@proceso.Vehiculo.Placa</td>
+                                        <td>@proceso.Fecha.ToString("dd/MM/yyyy")</td>
+                                        <td>@proceso.Vehiculo.Propietario.Documento</td>
+                                        <td>@proceso.Vehiculo.Propietario.Nombre</td>
+                                        <td>@proceso.Desde</td>
+                                        <td>@proceso.Hasta</td>
+                                        <td class="text-end pe-3 fw-bold">@proceso.Valor.ToString("C0")</td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Footer del Paginador - Tab 2 -->
+                @if (CalcularTotalPaginas(Procesoslist.Count) > 1)
+                {
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                        <span class="text-muted ms-2">Mostrando registros en la página @PaginaTab2 de @CalcularTotalPaginas(Procesoslist.Count)</span>
+                        <ul class="pagination pagination-sm m-0 me-2">
+                            <li class="page-item @(PaginaTab2 == 1 ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => PaginaTab2--">Anterior</button>
+                            </li>
+                            <li class="page-item @(PaginaTab2 == CalcularTotalPaginas(Procesoslist.Count) ? "disabled" : "")">
+                                <button type="button" class="page-link" @onclick="() => PaginaTab2++">Siguiente</button>
+                            </li>
+                        </ul>
+                    </div>
+                }
+            </div>
+        </section>
+    }
+</div>
+
+<!-- Modal de Transacciones Generadas convertido 100% a Bootstrap 5 -->
+@if (mostrarModal)
+{
+    <div class="modal-backdrop fade show" style="z-index: 1040;"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1050; overflow-y: auto;">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content shadow border-0">
+                <div class="modal-header text-white" style="background-color: #112366;">
+                    <h6 class="modal-title fw-bold m-0" style="font-size: 14px;">Transacciones Generadas</h6>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
+                </div>
+                <div class="modal-body bg-light p-0 position-relative">
+                    <div class="table-responsive" style="max-height: 350px;">
+                        <table class="table table-sm table-hover table-striped align-middle mb-0 text-nowrap">
+                            <thead class="table-light sticky-top">
+                                <tr style="font-size: 13px;">
+                                    <th class="ps-3" style="width: 60px;">Selección</th>
+                                    <th>Transacción</th>
+                                    <th>Fecha</th>
+                                    <th>Cantidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Tranlist == null || !Tranlist.Any())
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4" style="font-size: 13px;">No se encontraron transacciones.</td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var tranItem in ObtenerPaginado(Tranlist, PaginaModal))
+                                    {
+                                        <tr style="font-size: 13px; cursor: pointer;" @onclick="() => SeleccionarFilaModal(tranItem)">
+                                            <td class="text-center ps-3">
+                                                <input type="radio" name="selectedTranRadio" class="form-check-input" 
+                                                       checked="@(procesoSeleccionadoTemporal?.NumeroProceso == tranItem.NumeroProceso)" />
+                                            </td>
+                                            <td class="fw-bold text-primary">@tranItem.NumeroProceso</td>
+                                            <td>@tranItem.Fecha.ToString("dd/MM/yyyy")</td>
+                                            <td>@tranItem.NumeroProceso</td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Footer del Paginador - Modal -->
+                    @if (CalcularTotalPaginas(Tranlist.Count) > 1)
+                    {
+                        <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                            <span class="text-muted ms-2">Página @PaginaModal de @CalcularTotalPaginas(Tranlist.Count)</span>
+                            <ul class="pagination pagination-sm m-0 me-2">
+                                <li class="page-item @(PaginaModal == 1 ? "disabled" : "")">
+                                    <button type="button" class="page-link" @onclick="() => PaginaModal--">Anterior</button>
+                                </li>
+                                <li class="page-item @(PaginaModal == CalcularTotalPaginas(Tranlist.Count) ? "disabled" : "")">
+                                    <button type="button" class="page-link" @onclick="() => PaginaModal++">Siguiente</button>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer bg-white border-top-0 pt-2">
+                    <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" style="font-size: 12px;" @onclick="CerrarModal">Cerrar</button>
+                    <button type="button" class="btn btn-success btn-sm px-4 text-white rounded-pill" style="font-size: 12px;" @onclick="EnviarDatos">Seleccionar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

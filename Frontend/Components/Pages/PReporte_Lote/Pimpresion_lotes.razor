@@ -1,0 +1,427 @@
+﻿<!--
+@page "/Pimpresion_lotespage"
+@using Rodamiento.Shared.Components.ComponentServices.BusquedaService;
+@using System.Diagnostics
+@using Domain.Models
+@using Domain.Models.ProcesoLiquidacion
+@using Infrastructure.Services.Coactivos
+@using Infrastructure.Services.Liquidaciones
+@inject NavigationManager NavigationManager
+@inject DialogService DialogService
+@inject BusquedaService busquedaService
+@inject LiquidacionService PersuasivoServices;
+@inject CoactivoService CoactivoServices;
+
+<div class="content-wrapper">
+    <section class="content-header">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-1 ms-4">
+                    <div class="form-group">
+                        <label style="font-size:12px">Transaccion</label>
+                        <div class="input-group">
+                            <input type="text" style="width:20px" class="form-control col-auto" @bind="tran">
+                            <div class="input-group-append">
+                                <button type="button" @onclick="Muestra_tran" class="btn btn-primary"
+                                        style="box-shadow:none; border-radius:0; height:28px;">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                         class="bi bi-three-dots" viewBox="0 0 16 16" style="margin-top:5px;">
+                                        <path
+                                            d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-sm-3 mt-4">
+                    <button class="liq-btn" @onclick="Carga_datos">
+                        <i class="bi bi-printer"></i> Consultar
+                    </button>
+                    <button class="liq-btn" @onclick="Procesar">
+                        <i class="bi bi-printer"></i> Generar Liquidacion en Pdf
+                    </button>
+                </div>
+
+            </div>
+            <div class="row bg-transparent">
+                @if (bot)
+                {
+                    <div class="col ms-2 mt-2 p-0">
+                        <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate"/>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+    <section class="content">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header p-0" style="background-color:#112366;  height: 31px;">
+                            <h5 class="card-title ms-2 mt-1" style="color:white;">Vehiculos con Deuda</h5>
+                        </div>
+                        <div class="card-body  mt-1">
+                            <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false"
+                                            FilterMode="FilterMode.Advanced" AllowGrouping="false" AllowSorting="true"
+                                            PageSize="8"
+                                            AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left"
+                                            Data="@Itemlist" TItem="Liquidacion"
+                                            ColumnWidth="350px" LogicalFilterOperator="LogicalFilterOperator.Or"
+                                            ShowPagingSummary="true"
+                                            IsLoading="@isLoading">
+                                <Columns>
+                                    <RadzenDataGridColumn TItem="Liquidacion" Property="pplaca" Title="Placa"
+                                                          Frozen="true" Width="110px" Filterable="false"
+                                                          HeaderCssClass="rz-background-color-primary-lighter"/>
+                                    <RadzenDataGridColumn TItem="Liquidacion" Property="pclase" Title="Clase Vehiculo"
+                                                          Width="120px" Filterable="false"
+                                                          HeaderCssClass="rz-background-color-primary-lighter"/>
+                                    <RadzenDataGridColumn TItem="Liquidacion" Property="pmarca" Title="Marca"
+                                                          Width="140px"
+                                                          HeaderCssClass="rz-background-color-primary-lighter"/>
+                                    <RadzenDataGridColumn TItem="Liquidacion" Property="plinea" Title="Linea"
+                                                          Width="230px" Filterable="false"
+                                                          HeaderCssClass="rz-background-color-primary-lighter"/>
+                                    <RadzenDataGridColumn TItem="Liquidacion" Property="pmodelo" Title="Modelo"
+                                                          Width="100px" Filterable="false"
+                                                          HeaderCssClass="rz-background-color-primary-lighter"/>
+                                    <RadzenDataGridColumn TItem="Liquidacion" Property="pdesde" Title="Vigencia"
+                                                          Width="100px" Filterable="false"
+                                                          HeaderCssClass="rz-background-color-primary-lighter"/>
+                                    <RadzenDataGridColumn TItem="Liquidacion" Property="valor" Title="Valor"
+                                                          Width="160px" Filterable="false"
+                                                          HeaderCssClass="rz-background-color-primary-lighter">
+                                        <Template Context="data">
+                                            <span>@data.TotalDeuda.ToString("C")</span>
+                                        </Template>
+                                    </RadzenDataGridColumn>
+                                </Columns>
+                            </RadzenDataGrid>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+
+@if (mostrarModal)
+{
+    <div class="liq-overlay"></div>
+    <div class="liq-modal-wrap">
+        <div class="liq-modal">
+            <div class="liq-modal-head">
+                <span>Transacciones Generadas</span>
+                <button class="liq-modal-close" @onclick="CerrarModal">×</button>
+            </div>
+            <div class="liq-modal-body">
+                <div class="modal-body bg-light bg-gradient">
+                    @if (Tranlist != null)
+                    {
+                        <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false"
+                                        FilterMode="FilterMode.Advanced" AllowGrouping="false" AllowSorting="true"
+                                        PageSize="8"
+                                        AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" Data="@Tranlist"
+                                        TItem="Transac_Report"
+                                        ColumnWidth="350px" SelectionMode="DataGridSelectionMode.Single"
+                                        @bind-Value="@selectedtran" LogicalFilterOperator="LogicalFilterOperator.Or"
+                                        ShowPagingSummary="true"
+                                        IsLoading="@isLoading">
+                            <Columns>
+                                <RadzenDataGridColumn TItem="Transac_Report" Property="transaccion" Title="Transacción"
+                                                      Frozen="true" Width="190px" Filterable="false"
+                                                      HeaderCssClass="rz-background-color-secondary-lighter"/>
+                                <RadzenDataGridColumn TItem="Transac_Report" Property="fecha" Title="Fecha"
+                                                      Width="120px" Filterable="false"
+                                                      HeaderCssClass="rz-background-color-secondary-lighter"/>
+                                <RadzenDataGridColumn TItem="Transac_Report" Property="No" Title="Cantidad"
+                                                      Width="160px" Filterable="false"
+                                                      HeaderCssClass="rz-background-color-secondary-lighter"/>
+                            </Columns>
+                        </RadzenDataGrid>
+                    }
+
+                </div>
+                <div class="modal-footer">
+                    <div class="row">
+                        <div class="col-6">
+                            <button type="button" Style="font-size:12px; border-radius:15px;" class="btn btn-secondary"
+                                    @onclick="CerrarModal">Cerrar
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" Style="font-size:12px; border-radius:15px;"
+                                    class="btn btn-primary bg-success text-white" @onclick="EnviarDatos">
+                                <span>Seleccionar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    :root {
+        --c-bg: #f4f5f7;
+        --c-surface: #ffffff;
+        --c-border: #e3e6ea;
+        --c-text: #1a2332;
+        --c-muted: #7a8694;
+        --c-accent: #2d4a6b;
+        --c-accent-h: #3a5f89;
+        --c-warn: #b45309;
+        --c-ok: #166534;
+        --c-err: #991b1b;
+        --c-ok-bg: #f0fdf4;
+        --c-warn-bg: #fffbeb;
+        --c-err-bg: #fef2f2;
+        --c-info-bg: #eff6ff;
+        --c-info: #1d4ed8;
+        --r: 6px;
+        --shadow: 0 1px 3px rgba(0, 0, 0, .07), 0 1px 2px rgba(0, 0, 0, .04);
+    }
+
+    .liq-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 18, 30, .35);
+        backdrop-filter: blur(2px);
+        z-index: 1040;
+    }
+
+    .liq-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 6px 14px;
+        font-size: 12px;
+        font-weight: 500;
+        background: var(--c-accent);
+        color: #fff;
+        border: 1px solid var(--c-accent);
+        border-radius: var(--r);
+        cursor: pointer;
+        transition: background .15s;
+        text-decoration: none;
+    }
+
+    .liq-modal-wrap {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+        padding: 20px;
+    }
+
+    .liq-modal {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border);
+        border-radius: 8px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .18);
+        width: 100%;
+        max-width: 680px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .liq-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        background: var(--c-accent);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .liq-modal-close {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, .8);
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+        padding: 0 4px;
+    }
+
+    .liq-modal-close:hover {
+        color: #fff;
+    }
+
+    .liq-modal-body {
+        padding: 4px 4px 0;
+        overflow-y: auto;
+        max-height: 70vh;
+        background: var(--c-bg);
+    }
+
+    .liq-modal-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 18px;
+        border-top: 1px solid var(--c-border);
+        background: var(--c-surface);
+    }
+</style>
+
+@code
+{
+    public List<Liquidacion> Itemlist { get; set; } = new List<Liquidacion>();
+    private List<Rcon> listxconc = new List<Rcon>();
+    public List<Transac_Report> Tranlist { get; set; } = new List<Transac_Report>();
+    private IList<Transac_Report> selectedtran = new List<Transac_Report>();
+    public int tran;
+    private bool mostrarModal = false;
+
+    IQueryable<Liquidacion> data;
+    IQueryable<Transac_Report> datat;
+    bool isLoading = false;
+
+    protected int SelectedItem { get; set; }
+    public bool bot = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+    }
+
+    private async Task Muestra_tran()
+    {
+        await ShowLoading();
+        Tranlist = await CoactivoServices.GetListtran(1);
+        datat = Tranlist.AsQueryable();
+        MostrarModal();
+        StateHasChanged();
+    }
+
+    private async Task EnviarDatos()
+    {
+        try
+        {
+            if (selectedtran != null && selectedtran.Any())
+            {
+                tran = selectedtran[0].transaccion;
+                mostrarModal = false;
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al asignar comparendo: {ex.Message}");
+        }
+    }
+
+    async Task ShowLoading()
+    {
+        isLoading = true;
+
+        await Task.Yield();
+
+        isLoading = false;
+    }
+
+    private async Task Carga_datos()
+    {
+        try
+        {
+            await ShowLoading();
+            Itemlist = await PersuasivoServices.Deudas_x_Vigencia(tran);
+            data = Itemlist.AsQueryable();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en getresoluciones: {ex.Message}");
+        }
+    }
+
+
+    private async Task Procesar()
+    {
+        var confirmationResult = await this.DialogService.Confirm("Esta seguro..?", "Generar Pdfs", new ConfirmOptions { OkButtonText = "Si", CancelButtonText = "No" });
+        if (confirmationResult == true)
+        {
+            this.DialogService.Close();
+            try
+            {
+                Exporta_Ap();
+                bot = true;
+                StateHasChanged();
+                await DialogService.Alert("Generando Liquidacion Rodamiento Impreso.", "Alerta", new AlertOptions() { OkButtonText = "Ok", Style = "border-radius:30px;" });
+                bot = false;
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error al generar acuerdo: {ex.Message}");
+            }
+        }
+    }
+
+
+    public async Task Exporta_Ap()
+    {
+        StreamWriter sw = new StreamWriter(@"C:\Dataset\recibo.txt");
+        sw.AutoFlush = true;
+        sw.WriteLine("update activos set numero=6;");
+        String vx = "";
+        String vy = "";
+        var recibo = 0;
+        float vlr_imp = 0;
+        foreach (var item_v in Itemlist)
+        {
+            vy = "insert into rod_vehiculos (recibo,placa,modelo,marca,linea,clase_veh,cedula,nombre,dir,servicio,rtotal) values (";
+            sw.WriteLine(vy + item_v.pid + ",'" + item_v.pplaca + "','" + item_v.pmodelo + "','" + item_v.pmarca + "','" + item_v.plinea + "','" + item_v.pclase + "','" + item_v.pdoc + "','" +
+                         item_v.pnombre + "','" + item_v.pdir + "','" + item_v.ptipo_ser + "'," + item_v.ptotal_deuda + ");");
+            listxconc = await PersuasivoServices.Deuda_x_Conceptos(item_v.pplaca, item_v.phasta);
+            foreach (var item in listxconc)
+            {
+                vlr_imp = item.vlr_carga + item.vlr_rod;
+                vx = "insert into rod_detalles (placa,vigencia,detalle,valor,vlr_interes,vlr_estamp,vlr_recibo) values (";
+                sw.WriteLine(vx + "'" + item_v.pplaca + "'," + item.pvigencia + ",'" + "DERECHO TRANSITO" + "'," + vlr_imp + "," + item.vlr_interes + "," + item.vlr_estamp + "," + item.vlr_recibo + ");");
+            }
+        }
+        sw.Close();
+        ExecuteCommand("c:\\dataset\\Impresor.exe");
+    }
+
+
+    private void CerrarModal()
+    {
+        mostrarModal = false;
+    }
+
+    public void MostrarModal()
+    {
+        mostrarModal = true;
+    }
+
+    static void ExecuteCommand(string command)
+    {
+        int exitCode;
+        ProcessStartInfo processInfo;
+        Process process;
+
+        processInfo = new ProcessStartInfo("cmd.exe", "/c " + command);
+        processInfo.CreateNoWindow = true; //Esta propiedad oculta la consola
+        processInfo.UseShellExecute = false;
+        processInfo.WorkingDirectory = Path.GetDirectoryName(command);
+
+        process = Process.Start(processInfo);
+        process.WaitForExit();
+
+        exitCode = process.ExitCode;
+
+        process.Close();
+    }
+}
+-->

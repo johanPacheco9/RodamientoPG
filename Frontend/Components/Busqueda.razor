@@ -1,0 +1,133 @@
+﻿@using Domain.Models.Vehiculos
+@using Infrastructure.Services.Vehiculos
+@using Infrastructure.Services.Vehiculos.Responses 
+@inject VehiculosService VehiculosService;
+@inject BusquedaService BusquedaService;
+@inject IJSRuntime JsRuntime
+@rendermode InteractiveServer
+
+<div class="content-wrapper">
+    <section class="content">
+       <div class="container-fluid">
+
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="form-label fw-bold" style="font-size: 13px; color: #475569;">No. Documento</label>
+                        <div class="input-group input-group-sm">
+                            <input type="text" @bind="pcedula" class="form-control" id="comparendoBusqueda" name="busqueda" placeholder="Ingrese documento..." />
+                            <button @onclick="ComparendoByCedula" class="btn btn-primary d-inline-flex align-items-center" type="button">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr />
+            
+            <div class="table-responsive border rounded" style="max-height: 350px; min-height: 150px;">
+                <table class="table table-sm table-hover table-striped align-middle mb-0">
+                    <thead class="sticky-top" style="background-color: #f1f5f9; z-index: 1;">
+                        <tr>
+                            <th style="font-size: 12px; color: #1e293b;">Placa</th>
+                            <th style="font-size: 12px; color: #1e293b;">Clase Vehículo</th>
+                            <th style="font-size: 12px; color: #1e293b;">Marca</th>
+                            <th style="font-size: 12px; color: #1e293b;">Línea</th>
+                            <th style="font-size: 12px; color: #1e293b;">Modelo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (vehiculosInfo == null || !vehiculosInfo.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4" style="font-size: 13px;">
+                                    No se han cargado vehículos. Busque por documento.
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var vehiculo in vehiculosInfo)
+                            {
+                                <tr @onclick="() => SeleccionarVehiculo(vehiculo)" 
+                                    style="cursor: pointer; font-size: 13px;"
+                                    class="@(selectedVehiculo != null && selectedVehiculo.Id == vehiculo.Id ? "table-primary fw-bold" : "")">
+                                    <td>@vehiculo.Placa</td>
+                                    <td>@vehiculo.ClaseVehiculo</td> 
+                                    <td>@vehiculo.Marca</td>         
+                                    <td>@vehiculo.Linea</td>         
+                                    <td>@vehiculo.Modelo</td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <hr />
+            
+            <div class="d-flex align-items-center mb-3">
+                @if (selectedVehiculo != null)
+                {
+                    <button type="button" class="btn btn-success btn-sm px-4" 
+                            style="border-radius: 15px; font-size: 12px;" 
+                            @onclick="EnviarDatos">
+                        Seleccionar Vehículo (@selectedVehiculo.Placa)
+                    </button>
+                }
+            </div>
+
+        </div>
+    </section>
+</div>
+
+@code {
+    private IEnumerable<PlacasByCedulaResponse> vehiculosInfo = Enumerable.Empty<PlacasByCedulaResponse>();
+    private PlacasByCedulaResponse? selectedVehiculo; 
+    private string pcedula = string.Empty;
+
+    private void SeleccionarVehiculo(PlacasByCedulaResponse vehiculo)
+    {
+        selectedVehiculo = vehiculo;
+    }
+
+    private async Task ComparendoByCedula()
+    {
+        if (string.IsNullOrEmpty(pcedula))
+        {
+            await JsRuntime.InvokeVoidAsync("alert", new object[] { "Por favor, ingresa un valor en el campo Documento." });
+            return;
+        }
+
+        selectedVehiculo = null; 
+        var resultado = await VehiculosService.GetVehiculosAsociadosAComparendo(pcedula.Trim());
+        
+        if (resultado != null && resultado.Any())
+        {
+            vehiculosInfo = resultado;
+        }
+        else
+        {
+            vehiculosInfo = Enumerable.Empty<PlacasByCedulaResponse>();
+            await JsRuntime.InvokeVoidAsync("alert", new object[] { "No se encontraron registros para el documento ingresado." });
+        }
+    }
+
+    private async Task EnviarDatos()
+    {
+        try
+        {
+            if (selectedVehiculo != null)
+            {
+                // Invocamos al servicio (que ahora sí tiene el método y lanzará el evento al padre)
+                await BusquedaService.ComparendoCapturado(selectedVehiculo.Placa??"");
+                await InvokeAsync(StateHasChanged);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al asignar el vehículo seleccionado: {ex.Message}");
+        }
+    }
+}

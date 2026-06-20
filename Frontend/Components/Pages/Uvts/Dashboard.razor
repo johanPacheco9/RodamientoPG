@@ -1,0 +1,418 @@
+﻿@page "/Uvtspage"
+@using Domain.Models
+@using Infrastructure.Services.Uvts
+
+@inject UvtService UvtService;
+@inject IJSRuntime JSRuntime
+
+<meta name="viewport" content="width=device-width,inicial-scale=1.0">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header p-0" style="background-color: #112366; height: 41px;">
+                    <div class="row ps-1 w-100 m-0 align-items-center h-100">
+                        <div class="col-6 p-0">
+                            <h5 class="card-title ms-3 mb-0" style="color:white; font-size: 14px;">Histórico de Valores UVT</h5>
+                        </div>
+                        <div class="col-md-4 p-0">
+                            <div class="input-group input-group-sm">
+                                <input type="text" class="form-control" @bind="_textoBusqueda"
+                                       placeholder="Buscar por Año / Fecha"/>
+                                <button @onclick="BuscarUvtPorFecha" class="btn btn-light btn-sm border" type="button">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
+                                         fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-2 text-end p-0">
+                            <button type="button" class="btn btn-primary btn-sm" 
+                                    style="font-size:10px; padding: 2px 8px; background-color: #0d6efd;"
+                                    @onclick="() => AbrirModalCrear(false)">
+                                + Crear UVT
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body mt-1 p-0">
+                    <div class="table-responsive" style="position: relative; min-height: 180px;">
+                        @if (_isLoading)
+                        {
+                            <div class="table-loading-overlay">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Cargando...</span>
+                                </div>
+                            </div>
+                        }
+
+                        <table class="table table-sm table-hover table-striped align-middle mb-0">
+                            <thead style="background-color: #f8f9fa;">
+                                <tr>
+                                    <th style="width: 80px; font-size: 13px; padding-left: 15px;">Id</th>
+                                    <th style="font-size: 13px;">Vigencia Desde</th>
+                                    <th style="font-size: 13px;">Vigencia Hasta</th>
+                                    <th style="font-size: 13px; width: 180px;">Valor de la UVT</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (_listadoUvts == null || !_listadoUvts.Any())
+                                {
+                                    <tr>
+                                        <td colspan="4" class="text-center text-muted py-4" style="font-size: 13px;">
+                                            No se encontraron registros de UVT.
+                                        </td>
+                                    </tr>
+                                }
+                                else
+                                {
+                                    @foreach (var uvt in ObtenerItemsPaginados())
+                                    {
+                                        <tr @onclick="() => OnRowSelect(uvt)" style="cursor: pointer; font-size: 13px;">
+                                            <td style="padding-left: 15px;">@uvt.Id</td>
+                                            <td>@uvt.FechaDesde.ToString("dd/MM/yyyy")</td>
+                                            <td>@uvt.FechaHasta.ToString("dd/MM/yyyy")</td>
+                                            <td>
+                                                <span class="fw-bold text-success">@uvt.Valor.ToString("C0")</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    @if (TotalPaginas > 1)
+                    {
+                        <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
+                            <div class="ms-2">
+                                Mostrando de @(((PaginaActual - 1) * TamanoPagina) + 1) a @(Math.Min(PaginaActual * TamanoPagina, _listadoUvts.Count)) de @_listadoUvts.Count registros
+                            </div>
+                            <nav aria-label="Paginacion">
+                                <ul class="pagination pagination-sm m-0 me-2">
+                                    <li class="page-item @(PaginaActual == 1 ? "disabled" : "")">
+                                        <button class="page-link" @onclick="() => CambiarPagina(PaginaActual - 1)">Anterior</button>
+                                    </li>
+                                    @for (int i = 1; i <= TotalPaginas; i++)
+                                    {
+                                        var paginaAsignada = i;
+                                        <li class="page-item @(PaginaActual == paginaAsignada ? "active" : "")">
+                                            <button class="page-link" @onclick="() => CambiarPagina(paginaAsignada)">@paginaAsignada</button>
+                                        </li>
+                                    }
+                                    <li class="page-item @(PaginaActual == TotalPaginas ? "disabled" : "")">
+                                        <button class="page-link" @onclick="() => CambiarPagina(PaginaActual + 1)">Siguiente</button>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (_mostrarModal)
+{
+    <div class="liq-overlay"></div>
+    <div class="liq-modal-wrap">
+        <div class="liq-modal">
+            <div class="liq-modal-head">
+                <span>@(_esModoEditar ? "Modificar Configuración UVT" : "Registrar Nueva UVT Anual")</span>
+                <button class="liq-modal-close" @onclick="CerrarModal">×</button>
+            </div>
+            <div class="liq-modal-body">
+                <div class="modal-body bg-light bg-gradient p-3">
+                    @if (_uvtFormulario != null)
+                    {
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label style="font-size:12px" class="form-label">Código Interno (Id)</label>
+                                <input type="text" class="form-control"
+                                       value="@(_esModoEditar ? _uvtFormulario.Id.ToString() : "AUTOGENERADO")" readonly>
+                            </div>
+                            <div class="col-md-8">
+                                <label style="font-size:12px" class="form-label">Fecha de Inicio Vigencia</label>
+                                <input type="date" class="form-control fw-bold" @bind="_uvtFormulario.FechaDesde"
+                                       @bind:format="yyyy-MM-dd">
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <label style="font-size:12px" class="form-label">Fecha de Fin Vigencia</label>
+                                <input type="date" class="form-control fw-bold" @bind="_uvtFormulario.FechaHasta"
+                                       @bind:format="yyyy-MM-dd">
+                            </div>
+                            <div class="col-md-8">
+                                <label style="font-size:12px" class="form-label">Valor en Pesos ($)</label>
+                                <input type="number" step="0.01" class="form-control fw-bold text-success"
+                                       @bind="_uvtFormulario.Valor">
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="liq-modal-foot">
+                    <button type="button" class="btn btn-secondary btn-sm px-3" style="border-radius:15px;"
+                            @onclick="CerrarModal">Cancelar
+                    </button>
+                    <button type="button" class="btn btn-success btn-sm px-4" style="border-radius:15px;"
+                            @onclick="ProcesarGuardado">
+                        <span>@(_esModoEditar ? "Guardar Cambios" : "Crear Registro")</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    :root {
+        --c-bg: #f4f5f7;
+        --c-surface: #ffffff;
+        --c-border: #e3e6ea;
+        --c-accent: #112366;
+    }
+
+    .liq-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(10, 18, 30, .35);
+        backdrop-filter: blur(2px);
+        z-index: 1040;
+    }
+
+    .liq-modal-wrap {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+        padding: 20px;
+    }
+
+    .liq-modal {
+        background: var(--c-surface);
+        border: 1px solid var(--c-border);
+        border-radius: 8px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, .18);
+        width: 100%;
+        max-width: 550px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .liq-modal-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        background: var(--c-accent);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .liq-modal-close {
+        background: transparent;
+        border: none;
+        color: rgba(255, 255, 255, .8);
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+    .liq-modal-close:hover {
+        color: #fff;
+    }
+
+    .liq-modal-body {
+        padding: 0;
+        overflow-y: auto;
+        background: var(--c-bg);
+    }
+
+    .liq-modal-foot {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 18px;
+        border-top: 1px solid var(--c-border);
+        background: var(--c-surface);
+    }
+
+    .table-loading-overlay {
+        position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(255,255,255,0.7); z-index: 5; display: flex;
+        justify-content: center; align-items: center;
+    }
+</style>
+
+@code {
+    private bool _mostrarModal = false;
+    private string _textoBusqueda = string.Empty;
+    private Uvt _uvtFormulario = new Uvt();
+    private List<Uvt> _listadoUvts = new();
+    private bool _esModoEditar;
+    private bool _isLoading;
+
+    // Variables de control para la paginación manual
+    private int PaginaActual { get; set; } = 1;
+    private int TamanoPagina { get; set; } = 8; // El PageSize que tenías en Radzen
+    private int TotalPaginas => (int)Math.Ceiling((double)_listadoUvts.Count / TamanoPagina);
+
+    protected async override Task OnInitializedAsync()
+    {
+        await CargarHistoricoUvts();
+    }
+
+    private async Task CargarHistoricoUvts()
+    {
+        _isLoading = true;
+        try
+        {
+            var respuesta = await UvtService.GetAll();
+            _listadoUvts = respuesta ?? [];
+            PaginaActual = 1; 
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar el histórico de UVTs: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OnRowSelect(Uvt uvtSeleccionado)
+    {
+        if (uvtSeleccionado == null) return;
+
+        _uvtFormulario = uvtSeleccionado;
+        _esModoEditar = true;
+        _mostrarModal = true;
+    }
+
+    private async Task BuscarUvtPorFecha()
+    {
+        _isLoading = true;
+        try
+        {
+            var respuesta = await UvtService.GetAll();
+            var historicoCompleto = respuesta ?? [];
+
+            if (string.IsNullOrWhiteSpace(_textoBusqueda))
+            {
+                _listadoUvts = historicoCompleto;
+            }
+            else
+            {
+                string filtro = _textoBusqueda.Trim();
+                _listadoUvts = historicoCompleto
+                    .Where(u => u.FechaDesde.Year.ToString().Contains(filtro) || 
+                                u.FechaHasta.Year.ToString().Contains(filtro) ||
+                                u.FechaDesde.ToString("dd/MM/yyyy").Contains(filtro))
+                    .ToList();
+            }
+            PaginaActual = 1;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error ejecutando el filtro de UVT: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task ProcesarGuardado()
+    {
+        if (_uvtFormulario.Valor <= 0)
+        {
+            // 🚀 REEMPLAZADO: Alerta nativa JS
+            await JSRuntime.InvokeVoidAsync("alert", new object[] { "El valor de la UVT debe ser mayor a cero." });
+            return;
+        }
+
+        if (_esModoEditar)
+            await EjecutarActualizacion();
+        else
+            await EjecutarInsercion();
+    }
+
+    private async Task EjecutarInsercion()
+    {
+        try
+        {
+            var result = await UvtService.Add(_uvtFormulario);
+            _mostrarModal = false;
+            // 🚀 REEMPLAZADO: Alerta nativa JS
+            await JSRuntime.InvokeVoidAsync("alert", new object[] { "Vigencia UVT guardada con éxito." });
+            await CargarHistoricoUvts();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error inserción UVT: {ex.Message}");
+        }
+    }
+
+    private async Task EjecutarActualizacion()
+    {
+        try
+        {
+            var filasAfectadas = await UvtService.Edit(_uvtFormulario);
+            if (filasAfectadas > 0)
+            {
+                _mostrarModal = false;
+                // 🚀 REEMPLAZADO: Alerta nativa JS
+                await JSRuntime.InvokeVoidAsync("alert", new object[] { "Configuración UVT modificada con éxito." });
+                await CargarHistoricoUvts();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error actualización UVT: {ex.Message}");
+        }
+    }
+
+    public void AbrirModalCrear(bool modoEditar)
+    {
+        _esModoEditar = modoEditar;
+
+        if (!_esModoEditar)
+        {
+            _uvtFormulario = new Uvt
+            {
+                FechaDesde = new DateTime(DateTime.Today.Year, 1, 1),
+                FechaHasta = new DateTime(DateTime.Today.Year, 12, 31),
+                Valor = 0
+            };
+        }
+
+        _mostrarModal = true;
+    }
+
+    private void CerrarModal()
+    {
+        _mostrarModal = false;
+    }
+
+    // Métodos de apoyo para paginar la tabla nativa HTML
+    private IEnumerable<Uvt> ObtenerItemsPaginados()
+    {
+        return _listadoUvts.Skip((PaginaActual - 1) * TamanoPagina).Take(TamanoPagina);
+    }
+
+    private void CambiarPagina(int nuevaPagina)
+    {
+        if (nuevaPagina >= 1 && nuevaPagina <= TotalPaginas)
+        {
+            PaginaActual = nuevaPagina;
+        }
+    }
+}
