@@ -3,8 +3,10 @@ using Infrastructure.AppDbContext;
 using Infrastructure.DependencyInjection;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using Rodamiento.Auth;
 
+using QuestPDF.Infrastructure;
+
+QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.

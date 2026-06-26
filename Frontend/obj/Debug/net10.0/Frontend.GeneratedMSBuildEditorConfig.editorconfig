@@ -46,20 +46,8 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDb2FjdGl2b1xEYXNoYm9hcmQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Pages/Consulta/ConsultaVehiculo.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDb25zdWx0YVxDb25zdWx0YVZlaGljdWxvLnJhem9y
-build_metadata.AdditionalFiles.CssScope = 
-
 [D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Pages/Consulta/Dashboard.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDb25zdWx0YVxEYXNoYm9hcmQucmF6b3I=
-build_metadata.AdditionalFiles.CssScope = 
-
-[D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Pages/Consulta/ProcesosGrid.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDb25zdWx0YVxQcm9jZXNvc0dyaWQucmF6b3I=
-build_metadata.AdditionalFiles.CssScope = 
-
-[D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Pages/Consulta/VehiculoInfo.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDb25zdWx0YVxWZWhpY3Vsb0luZm8ucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
 [D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Pages/Counter.razor]
@@ -86,8 +74,8 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xOb3RGb3VuZC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Pages/Pagos/Ppagos.razor]
-build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQYWdvc1xQcGFnb3MucmF6b3I=
+[D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Pages/Pagos/Dashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQYWdvc1xEYXNoYm9hcmQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
 [D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Pages/PImportacion/Pimportacion.razor]
@@ -173,6 +161,10 @@ build_metadata.AdditionalFiles.CssScope = b-ftcrkoicqg
 [D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Layout/ReconnectModal.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcUmVjb25uZWN0TW9kYWwucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-r2f2ppjcxf
+
+[D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Pages/Cartera/Dashboard.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDYXJ0ZXJhXERhc2hib2FyZC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = b-tkxgoo26gh
 
 [D:/Source/Repos/RodamientoJohan/Rodamiento/Frontend/Components/Pages/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFcnJvci5jc2h0bWw=

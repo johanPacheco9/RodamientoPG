@@ -1,11 +1,13 @@
 ﻿using DocumentFormat.OpenXml.Spreadsheet;
 using Domain.Models.Vehiculos;
-using Domain.Models; // Asegúrate de que esté el namespace correcto de Propietario
+using Domain.Models;
+using Domain.Models.Vehiculos.Requests;
+using Domain.Models.Vehiculos.Responses;
 using Infrastructure.AppDbContext;
 using Infrastructure.Services.Vehiculos.Responses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Npgsql;
+
 
 namespace Infrastructure.Services.Vehiculos;
 
@@ -18,11 +20,13 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
         {
             using var ctx = await contextFactory.CreateDbContextAsync();
             ctx.Vehiculos.Add(vehiculo);
+
             return await ctx.SaveChangesAsync();
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error crítico al guardar el vehículo con placa {Placa}", vehiculo.Placa);
+
             return 0;
         }
     }
@@ -33,11 +37,13 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
         {
             using var ctx = await contextFactory.CreateDbContextAsync();
             ctx.Vehiculos.Update(vehiculo);
+
             return await ctx.SaveChangesAsync();
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error crítico al editar el vehículo con ID {Id}", vehiculo.Id);
+
             throw;
         }
     }
@@ -45,66 +51,70 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
     public async Task<Vehiculo?> GetById(int id)
     {
         using var ctx = await contextFactory.CreateDbContextAsync();
+
         return await ctx.Vehiculos
-            .Include(v => v.TipoVehiculo) 
+            .Include(v => v.TipoVehiculo)
             .Include(v => v.Marca)
             .Include(v => v.Linea)
             .Include(v => v.EstadoProceso)
             .FirstOrDefaultAsync(v => v.Id == id);
     }
+    
 
-    public async Task<Vehiculo?> GetByPlaca(string placa)
-    {
-        using var ctx = await contextFactory.CreateDbContextAsync();
-        return await ctx.Vehiculos
-            .Include(v => v.TipoVehiculo)
-            .Include(v => v.Marca)
-            .Include(v => v.Linea)
-            .Include(v => v.EstadoProceso)
-            .FirstOrDefaultAsync(v => v.Placa == placa.ToUpper());
-    }
-
-    public async Task<List<Vehiculo>> GetList()
-    {
-        using var ctx = await contextFactory.CreateDbContextAsync();
-        return await ctx.Vehiculos
-            .Take(10)
-            .ToListAsync();
-    }
-
-    public async Task<List<Vehiculo>> GetAll()
+    public async Task<List<VehiculoDetalleDto>> GetAll()
     {
         try
         {
             using var ctx = await contextFactory.CreateDbContextAsync();
+
             return await ctx.Vehiculos
-                .Include(v => v.TipoVehiculo)
-                .Include(v => v.Marca)
-                .Include(v => v.Linea)
-                .Include(v => v.EstadoProceso)
+                .AsNoTracking()
                 .Take(30)
+                .Select(v => new VehiculoDetalleDto(
+                    v.Id,
+                    v.Placa,
+                    v.Modelo,
+                    v.Cilindraje,
+                    v.PagoHasta,
+                    v.DocumentoPropietario,
+                    v.TipoVehiculo.Nombre,
+                    v.Marca.Nombre,
+                    v.Linea.Nombre,
+                    v.EstadoProceso.ToString()
+                ))
                 .ToListAsync();
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Ocurrió un fallo al consultar el listado general de vehículos.");
-            throw new Exception("Error al obtener el listado general de vehículos con sus catálogos.", ex);
+            throw new Exception("Error al obtener el listado general de vehículos optimizado.", ex);
         }
+    }
+
+// 🚀 NUEVO MÉTODO AUXILIAR: Para traer la entidad completa SOLO cuando se va a editar
+    public async Task<Vehiculo?> GetByIdCompleto(int id)
+    {
+        using var ctx = await contextFactory.CreateDbContextAsync();
+        return await ctx.Vehiculos
+            .Include(v => v.Propietario)
+            .FirstOrDefaultAsync(v => v.Id == id);
     }
 
     public async Task<List<Vehiculo>> GetByDocumentoPropietario(string documento)
     {
         using var ctx = await contextFactory.CreateDbContextAsync();
+
         return await ctx.Vehiculos
             .Where(v => v.DocumentoPropietario == documento)
             .Include(v => v.TipoVehiculo)
             .Include(v => v.Marca)
             .ToListAsync();
     }
-    
+
     public async Task<List<Vehiculo>> GetVehiculosByDocumentoPropietario(string documento)
     {
         using var ctx = await contextFactory.CreateDbContextAsync();
+
         return await ctx.Vehiculos
             .Include(v => v.Marca)
             .Include(v => v.Linea)
@@ -113,36 +123,56 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
             .Where(v => v.DocumentoPropietario == documento)
             .ToListAsync();
     }
-    
 
-    public async Task<List<PlacasByCedulaResponse>> GetVehiculosAsociadosAComparendo(string cedula)
+
+    public async Task<List<PlacasByCedulaResponse>> GetInfoVehiculo(GetInfoVehiculoRequest request)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(cedula))
-                return new List<PlacasByCedulaResponse>();
+            // 1. Validación inicial corregida
+            if (string.IsNullOrWhiteSpace(request.Cedula) && string.IsNullOrWhiteSpace(request.Placa))
+                throw new Exception("Placa o cédula son requeridos para realizar la búsqueda.");
 
             using var context = await contextFactory.CreateDbContextAsync();
-        
-            string terminoBusqueda = cedula.Trim();
 
-            return await context.Vehiculos
-                .Where(v => EF.Functions.Like(v.Propietario.Documento, $"%{terminoBusqueda}%"))
+            // 2. Creamos la consulta base (IQueryable) sin ejecutarla aún
+            var query = context.Vehiculos.AsNoTracking();
+
+            // 3. Filtro dinámico por Cédula/Documento del propietario si viene en el request
+            if (!string.IsNullOrWhiteSpace(request.Cedula))
+            {
+                string cedulaBusqueda = request.Cedula.Trim();
+                query = query.Where(v => EF.Functions.Like(v.Propietario.Documento, $"%{cedulaBusqueda}%"));
+            }
+
+            // 4. Filtro dinámico por Placa si viene en el request
+            if (!string.IsNullOrWhiteSpace(request.Placa))
+            {
+                string placaBusqueda = request.Placa.Trim().ToUpper();
+                query = query.Where(v => EF.Functions.Like(v.Placa, $"%{placaBusqueda}%"));
+            }
+
+            // 5. Proyectamos y limitamos a las primeras 20 ocurrencias
+            return await query
                 .Take(20)
                 .Select(v => new PlacasByCedulaResponse(
                     v.Id,
                     v.Placa,
-                    v.TipoVehiculo.Nombre,
-                    v.Marca.Nombre, 
-                    v.Linea.Nombre,
+                    v.TipoVehiculo != null ? v.TipoVehiculo.Nombre : string.Empty,
+                    v.Marca != null ? v.Marca.Nombre : string.Empty,
+                    v.Linea != null ? v.Linea.Nombre : string.Empty,
                     v.Modelo
                 ))
                 .ToListAsync();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error al ejecutar la búsqueda de placas para la cédula: {Cedula}", cedula);
-            throw new Exception($"Error al ejecutar la consulta de placas para el ciudadano: {cedula}", ex);
+            // Usamos de forma segura las propiedades del objeto 'request' en los logs
+            logger.LogError(ex,
+                "Error al ejecutar la búsqueda de vehículos. Filtros -> Cédula: {Cedula}, Placa: {Placa}",
+                request.Cedula, request.Placa);
+
+            throw new Exception("Ocurrió un error al ejecutar la consulta de vehículos para el ciudadano.", ex);
         }
     }
 
@@ -153,21 +183,23 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
         try
         {
             using var ctx = await contextFactory.CreateDbContextAsync();
-            
+
             // Revisa si coincide con la propiedad real de Propietario (TipoDocumento o TipoIdentificacionId)
             bool existePropietario = await ctx.Propietarios
                 .AnyAsync(p => p.Documento == propietario.Documento && p.TipoDocumento == propietario.TipoDocumento);
-            
+
             if (!existePropietario)
             {
                 ctx.Propietarios.Add(propietario);
                 await ctx.SaveChangesAsync();
             }
-            return 1; 
+
+            return 1;
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error crítico en el servicio al generar propietario con documento {Documento}", propietario.Documento);
+
             return 0;
         }
     }

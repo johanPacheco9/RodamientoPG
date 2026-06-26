@@ -47,7 +47,7 @@ public partial class ReporteDiario : ComponentBase
         string shasta = hasta.ToString("yyyy-MM-dd");
         string rango = $"{sdesde} a: {shasta}";
         
-        await recibo_Pago.DiarioPdf(ReporteDiarioList, rango, param_obj.NombreSecretario, param_obj.Nit, param_obj.Direccion);
+        //await recibo_Pago.DiarioPdf(ReporteDiarioList, rango, param_obj.NombreSecretario, param_obj.Nit, param_obj.Direccion);
         await Task.Delay(2000);
         await Muestra_Pdf("Informe_Diario.pdf");
     }

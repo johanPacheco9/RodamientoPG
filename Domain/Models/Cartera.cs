@@ -1,9 +1,13 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Models.Notificaciones;
 using Domain.Models.Vehiculos;
 
 namespace Domain.Models;
 
+/// <summary>
+/// Clase que representa la deuda de una persona. Tiene relacion con el vehiculo y avisos.
+/// </summary>
 public class Cartera
 {
     [Key]
@@ -18,8 +22,6 @@ public class Cartera
     public string Concepto { get; set; } = string.Empty;
 
     public bool IsPagado { get; set; }
-
-    public int? ReciboId { get; set; } 
     
     // 🔥 CORRECCIÓN: Este es el campo que DEBE ser la Clave Foránea porque coincide en tipo (int) con Vehiculo.Id
     [Required]
@@ -48,13 +50,10 @@ public class Cartera
     public decimal ValorTotal { get; set; }
 
     // =========================================================
-    // 🔗 RELACIONES NATIVAS CORREGIDAS
+    //  RELACIONES
     // =========================================================
-    
-    // 🔥 CORRECCIÓN: Ahora apuntamos al campo de tipo int (VehiculoId)
     [ForeignKey(nameof(VehiculoId))]
     public virtual Vehiculo Vehiculo { get; set; } = null!;
-
-    [ForeignKey(nameof(ReciboId))]
-    public virtual Recibo? Recibo { get; set; }
+    
+    public virtual ICollection<Aviso> Avisos { get; set; } = new List<Aviso>();
 }

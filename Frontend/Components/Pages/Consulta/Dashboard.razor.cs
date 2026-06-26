@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Domain.Models;
 using Domain.Models.ProcesoLiquidacion;
+using Domain.Models.Recibos;
+using Domain.Models.Recibos.Responses;
 using Domain.Responses.Liquidacion;
 using Domain.Responses.Recibo;
 using Domain.Responses.Resolucion.Enums;
@@ -11,7 +13,7 @@ using Infrastructure.Services.Pagos;
 using Infrastructure.Services.Parametros;
 using Infrastructure.Services.Procesos.Coactivo;
 using Infrastructure.Services.Procesos.Persuasivo;
-using Infrastructure.Services.Vehiculos;
+using Infrastructure.Services.Rec2ibos;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Web;
@@ -25,23 +27,27 @@ public partial class Dashboard : ComponentBase, IDisposable
     [Inject] private IConfiguration Config { get; set; } = null!;
     [Inject] private BusquedaService BusquedaService { get; set; } = null!;
     [Inject] private LiquidacionService ComparendoService { get; set; } = null!;
+    [Inject] private ReciboService ReciboService { get; set; } = null!;
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
     [Inject] private HttpClient HttpClient { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
     [Inject] private ParametroService ParametroService { get; set; } = null!;
-    [Inject] private PagosService PagosServices { get; set; } = null!;
+    
+    [Inject] private PagoService PagoService{ get; set; } = null!;
     [Inject] private ImportadosService Importadoservice { get; set; } = null!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private PersuasivoService PersuasivoService { get; set; } = null!;
+    [Inject] private CoactivoService CoactivoService { get; set; } = null!;
 
     // ── Estado principal ────────────────────────────────────────────
     private EstadoCuentaVehiculoDto _estadoCuenta = new();
     private List<VigenciaGrupo> _vigencias = [];
     private List<ConceptoResumenDto> resumenConceptoslist = [];
-    private List<Recibo> reciboslist = [];
+    private List<ReciboDto> reciboslist = []; // Inicializado para evitar nulls en renderizado inicial
     private List<DetalleReciboDto> _detalleRecibo = [];
     private List<Resolucion> resolucioneslist = [];
     private List<Proceso> coactivosList = [];
+    private Dictionary<int, int> avisosPorProceso = [];
     private Resolucion resolObj = new();
     private Recibo_pago recibo_Pago = new();
     private Parametro paramObj = new();
@@ -54,6 +60,7 @@ public partial class Dashboard : ComponentBase, IDisposable
     private bool _mostrarModalr = false;
     private bool MostrarBusquedaCedula = false;
     private bool _islic = true;
+    private bool _buscarPlacaInicial = false;
 
     // ── Resolución ──────────────────────────────────────────────────
     public int vigenciaDesde;
@@ -63,17 +70,37 @@ public partial class Dashboard : ComponentBase, IDisposable
 
     // ── Selección de vigencias ──────────────────────────────────────
     private decimal totalSeleccionado;
-    private List<int> vigenciasSeleccionadas = [];
+    private List<int> carterasSeleccionadasIds = []; // Cambiado de vigencias a IDs de carteras
 
     // ───────────────────────────────────────────────────────────────
-    protected override async Task OnInitializedAsync()
+    [Parameter] public string? PlacaParam { get; set; }
+
+    protected async override Task OnInitializedAsync()
     {
         paramObj = await ParametroService.GetParametroById(1);
         BusquedaService.OnComparendoCapturado += EscucharBusquedaPlaca;
+
+        if (!string.IsNullOrEmpty(PlacaParam))
+        {
+            _estadoCuenta.Placa = PlacaParam.ToUpper();
+            _buscarPlacaInicial = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || !_buscarPlacaInicial) return;
+
+        _buscarPlacaInicial = false;
+        await ObtenerCartera();
     }
 
     // ── Tabs ────────────────────────────────────────────────────────
-    private void SetTab(int n) { tab = n; StateHasChanged(); }
+    private void SetTab(int n)
+    {
+        tab = n;
+        StateHasChanged();
+    }
 
     // ── Búsqueda ────────────────────────────────────────────────────
     private async Task ShowBusqueda()
@@ -114,6 +141,8 @@ public partial class Dashboard : ComponentBase, IDisposable
         {
             _isLoading = true;
             var placa = _estadoCuenta.Placa.Trim().ToUpper();
+            
+            // 🚀 Clave: Trae vehículo, propietario y todos los conceptos de cartera en una sola consulta
             var result = await ComparendoService.GetCarteraByPlaca(placa);
 
             if (result == null || string.IsNullOrEmpty(result.Documento))
@@ -130,16 +159,18 @@ public partial class Dashboard : ComponentBase, IDisposable
                 CargarResoluciones(),
                 CargarCoactivos(placa));
 
-            var detalle = await ComparendoService.DetallesConceptos(placa, _estadoCuenta.VigenciaHasta);
-            _vigencias = detalle
+            // 🚀 Optimización: Poblamos la tabla agrupando en memoria el resultado directo de la base de datos
+            _vigencias = _estadoCuenta.Conceptos
                 .GroupBy(d => d.Vigencia)
                 .OrderBy(g => g.Key)
                 .Select(g => new VigenciaGrupo
                 {
                     Vigencia = g.Key,
-                    Conceptos = g.ToList()
+                    Conceptos = g.ToList(),
+                    Seleccionado = false // Por seguridad inicializan desmarcados
                 })
                 .ToList();
+
             RecalcularTotal();
             SetTab(1);
         }
@@ -156,36 +187,69 @@ public partial class Dashboard : ComponentBase, IDisposable
 
     private async Task CargarRecibos(string placa)
     {
-        try { reciboslist = await ComparendoService.GetRecibos(placa); }
-        catch (Exception ex) { Console.WriteLine($"Error recibos: {ex.Message}"); }
+        try
+        {
+            reciboslist = await ReciboService.GetRecibosByPlaca(placa);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error recibos: {ex.Message}");
+        }
     }
 
     private async Task CargarResumen(string placa)
     {
-        try { resumenConceptoslist = await ComparendoService.Resumen_Conceptos(placa, _estadoCuenta.VigenciaHasta); }
-        catch (Exception ex) { Console.WriteLine($"Error resumen: {ex.Message}"); }
+        try
+        {
+            resumenConceptoslist = await ComparendoService.Resumen_Conceptos(placa, _estadoCuenta.VigenciaHasta);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error resumen: {ex.Message}");
+        }
     }
 
     private async Task CargarResoluciones()
     {
-        try { resolucioneslist = await ComparendoService.GetResol(_estadoCuenta.Placa); }
-        catch (Exception ex) { Console.WriteLine($"Error resoluciones: {ex.Message}"); }
+        try
+        {
+            resolucioneslist = await ComparendoService.GetResol(_estadoCuenta.Placa);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error resoluciones: {ex.Message}");
+        }
     }
 
     private async Task CargarCoactivos(string placa)
     {
-        try { coactivosList = await PersuasivoService.List(5, 0, placa); }
-        catch (Exception ex) { Console.WriteLine($"Error coactivos: {ex.Message}"); }
+        try
+        {
+            coactivosList = await PersuasivoService.List(5, 0, placa);
+            avisosPorProceso = [];
+
+            foreach (var proceso in coactivosList)
+            {
+                avisosPorProceso[proceso.Id] = await PersuasivoService.ContarAvisosProceso(proceso.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error coactivos: {ex.Message}");
+        }
     }
 
     // ── Selección de vigencias ──────────────────────────────────────
     private void RecalcularTotal()
     {
-        vigenciasSeleccionadas = _vigencias
+        // 🚀 Aquí está la magia: SelectMany aplana y extrae TODOS los IDs de conceptos de los años marcados
+        carterasSeleccionadasIds = _vigencias
             .Where(v => v.Seleccionado)
-            .Select(v => v.Vigencia)
+            .SelectMany(v => v.Conceptos) // Entra a la lista de conceptos de cada año seleccionado
+            .Select(c => c.Id)            // Toma el Id de la BD de cada uno (Rodamiento, Estampilla, etc.)
             .ToList();
 
+        // Sumamos el dinero total de los años seleccionados
         totalSeleccionado = _vigencias
             .Where(v => v.Seleccionado)
             .Sum(v => v.TotalVigencia);
@@ -202,15 +266,22 @@ public partial class Dashboard : ComponentBase, IDisposable
             return;
         }
 
+        if (!carterasSeleccionadasIds.Any())
+        {
+            await MostrarAlerta("warning", "Selecciona al menos una vigencia.");
+            return;
+        }
+
         if (!await MostrarConfirmacion("¿Está seguro de generar el Recibo?")) return;
 
         try
         {
+            // 🚀 Enviamos la firma actualizada con los IDs de cartera exactos seleccionados
             var resultado = await ComparendoService.GenerarRecibo(
-                _estadoCuenta.Placa,
+                _estadoCuenta.VehiculoId,
                 _estadoCuenta.Documento,
                 _estadoCuenta.TipoDocumento,
-                vigenciasSeleccionadas);
+                carterasSeleccionadasIds);
 
             if (!resultado.success)
             {
@@ -219,9 +290,11 @@ public partial class Dashboard : ComponentBase, IDisposable
             }
 
             var ultimoRecibo = await Importadoservice.Ultimo_recibo(_estadoCuenta.Placa)
-                ?? throw new Exception("No se ha encontrado el recibo");
+                               ?? throw new Exception("No se ha encontrado el recibo");
 
-            reciboActual = await PagosServices.GetRecibo(ultimoRecibo.Num);
+            reciboActual = await PagoService.GetRecibo(ultimoRecibo.Num);
+            
+            // 🚀 Consume el método pivoteado por año que renderiza el reporte
             _detalleRecibo = await ComparendoService.Items_x_Recibo(ultimoRecibo.Num);
 
             if (_detalleRecibo.Count == 0)
@@ -271,8 +344,8 @@ public partial class Dashboard : ComponentBase, IDisposable
             return;
         }
 
-        vigenciaDesde = DateTime.UtcNow.Year;
-        vigenciaHasta = DateTime.UtcNow.Year;
+        vigenciaDesde = _estadoCuenta.VigenciaDesde > 0 ? _estadoCuenta.VigenciaDesde : DateTime.UtcNow.Year;
+        vigenciaHasta = _estadoCuenta.VigenciaHasta > 0 ? _estadoCuenta.VigenciaHasta : DateTime.UtcNow.Year;
         _mostrarModal = true;
         StateHasChanged();
     }
@@ -291,11 +364,56 @@ public partial class Dashboard : ComponentBase, IDisposable
             return;
         }
 
-        if (!await MostrarConfirmacion("¿Está seguro de generar la Deuda?")) return;
+        if (vigenciaDesde > vigenciaHasta)
+        {
+            await MostrarAlerta("warning", "La vigencia desde no puede ser mayor a la vigencia hasta.");
+            return;
+        }
 
-        await ComparendoService.GeneraDeuda(_estadoCuenta.Placa, vigenciaDesde, vigenciaHasta);
+        if (!await MostrarConfirmacion("¿Está seguro de iniciar cobro persuasivo para esta placa?")) return;
+
+        var resultado = await PersuasivoService.CrearProcesoPersuasivoPorPlaca(
+            _estadoCuenta.Placa,
+            vigenciaDesde,
+            vigenciaHasta);
+
+        if (!resultado.Success)
+        {
+            await MostrarAlerta("warning", resultado.Message);
+            return;
+        }
+
         _mostrarModal = false;
         await ObtenerCartera();
+        SetTab(5);
+        await MostrarAlerta("success", resultado.Message);
+    }
+
+    private async Task RegistrarAviso(Proceso proceso)
+    {
+        if (!await MostrarConfirmacion($"¿Registrar el siguiente aviso del proceso {proceso.NumeroProceso}?")) return;
+
+        var resultado = await PersuasivoService.RegistrarAvisoProceso(proceso.Id);
+        await MostrarAlerta(resultado.Success ? "success" : "warning", resultado.Message);
+        await CargarCoactivos(_estadoCuenta.Placa);
+        StateHasChanged();
+    }
+
+    private async Task PasarACoactivo(Proceso proceso)
+    {
+        if (!await MostrarConfirmacion($"¿Pasar el proceso {proceso.NumeroProceso} a coactivo?")) return;
+
+        try
+        {
+            await CoactivoService.Procesar(1, proceso.NumeroProceso ?? 0);
+            await MostrarAlerta("success", "Proceso trasladado a coactivo.");
+            await ObtenerCartera();
+            SetTab(5);
+        }
+        catch (Exception ex)
+        {
+            await MostrarAlerta("warning", ex.InnerException?.Message ?? ex.Message);
+        }
     }
 
     // ── Resolución ──────────────────────────────────────────────────
@@ -388,8 +506,7 @@ public partial class Dashboard : ComponentBase, IDisposable
 
     // ── Helpers de vista ────────────────────────────────────────────
     private static string Iniciales(string? nombre) =>
-        string.IsNullOrEmpty(nombre) ? "?" :
-        string.Concat(nombre.Split(' ').Where(p => p.Length > 0).Take(2).Select(p => p[0]));
+        string.IsNullOrEmpty(nombre) ? "?" : string.Concat(nombre.Split(' ').Where(p => p.Length > 0).Take(2).Select(p => p[0]));
 
     private static string BadgeEstado(int estadoId) => estadoId switch
     {
@@ -399,19 +516,22 @@ public partial class Dashboard : ComponentBase, IDisposable
 
     private static string BadgeRecibo(string estado) => estado?.ToLower() switch
     {
-        "pagado"    => "badge bg-success",
+        "pagado" => "badge bg-success",
         "pendiente" => "badge bg-warning text-dark",
-        _           => "badge bg-secondary"
+        _ => "badge bg-secondary"
     };
 
     private static string BadgeProceso(string tipo) => tipo?.ToLower() switch
     {
-        "coactivo"   => "badge bg-danger",
+        "coactivo" => "badge bg-danger",
         "persuasivo" => "badge bg-warning text-dark",
-        _            => "badge bg-secondary"
+        _ => "badge bg-secondary"
     };
 
     private static string BadgeEstadoProceso(object estado) => "badge bg-warning text-dark";
+
+    private int AvisosProceso(Proceso proceso) =>
+        avisosPorProceso.TryGetValue(proceso.Id, out var total) ? total : 0;
 
     // ── Permisos ────────────────────────────────────────────────────
     private async Task<bool> VerificarPermiso()
@@ -436,24 +556,21 @@ public partial class Dashboard : ComponentBase, IDisposable
     private async Task<bool> MostrarConfirmacion(string mensaje) =>
         await JsRuntime.InvokeAsync<bool>("confirm", mensaje);
 
+    // ── Clase contenedora UI para la Grilla ─────────────────────────
     public class VigenciaGrupo
     {
         public int Vigencia { get; set; }
-        public List<CarteraDetailDto> Conceptos { get; set; } = [];
+    
+        // Lista de conceptos detallados (IDs reales de la BD) para este año
+        public List<ConceptoCarteraDto> Conceptos { get; set; } = [];
+    
+        // Suma dinámica de todo lo que compone este año específico
         public decimal TotalVigencia => Conceptos.Sum(c => c.ValorTotal);
 
-        private bool _seleccionado = true;
-        public bool Seleccionado
-        {
-            get => _seleccionado;
-            set
-            {
-                _seleccionado = value;
-                foreach (var c in Conceptos)
-                    c.Seleccionado = value;
-            }
-        }
+        // El checkbox de la interfaz se amarra a esta propiedad
+        public bool Seleccionado { get; set; }
     }
+
     // ── Dispose ─────────────────────────────────────────────────────
     public void Dispose()
     {

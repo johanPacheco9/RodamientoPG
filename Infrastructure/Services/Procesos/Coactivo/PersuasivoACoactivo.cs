@@ -25,6 +25,12 @@ public partial  class CoactivoService
 
         foreach (var proceso in procesosSeleccionados)
         {
+            if (!await TieneCuatroAvisosCumplidos(proceso))
+            {
+                throw new InvalidOperationException(
+                    $"El proceso {proceso.NumeroProceso} de la placa {proceso.Vehiculo.Placa} aun no tiene los 4 avisos requeridos para pasar a coactivo.");
+            }
+
             var desde = proceso.Desde ?? 0;
             var hasta = proceso.Hasta ?? 0;
 
@@ -52,8 +58,29 @@ public partial  class CoactivoService
             proceso.EstadoProceso = EstadoProceso.MandamientoPago;
             proceso.FechaMandamiento = DateTime.UtcNow;
             proceso.Valor = valorTotal;
+            proceso.Vehiculo.EstadoProceso = EstadoProceso.MandamientoPago;
         }
 
         return await context.SaveChangesAsync();
+    }
+
+    private async Task<bool> TieneCuatroAvisosCumplidos(Proceso proceso)
+    {
+        var desde = proceso.Desde ?? 0;
+        var hasta = proceso.Hasta ?? 0;
+
+        var avisos = await context.Avisos
+            .AsNoTracking()
+            .Where(a =>
+                a.Cartera.VehiculoId == proceso.VehiculoId &&
+                !a.Cartera.IsPagado &&
+                a.Cartera.Vigencia >= desde &&
+                a.Cartera.Vigencia <= hasta &&
+                (a.Estado == "Enviado" || a.Estado == "Entregado"))
+            .Select(a => a.NumeroAviso)
+            .Distinct()
+            .CountAsync();
+
+        return avisos >= 4;
     }
 }

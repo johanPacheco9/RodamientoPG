@@ -1,4 +1,5 @@
 ﻿@using Domain.Models.Vehiculos
+@using Domain.Models.Vehiculos.Requests
 @using Infrastructure.Services.Vehiculos
 @using Infrastructure.Services.Vehiculos.Responses 
 @inject VehiculosService VehiculosService;
@@ -11,15 +12,29 @@
        <div class="container-fluid">
 
             <div class="row mt-3">
-                <div class="col-md-6">
+                <div class="col-md-8">
                     <div class="form-group">
-                        <label class="form-label fw-bold" style="font-size: 13px; color: #475569;">No. Documento</label>
+                        <label class="form-label fw-bold" style="font-size: 13px; color: #475569;">Buscar por</label>
                         <div class="input-group input-group-sm">
-                            <input type="text" @bind="pcedula" class="form-control" id="comparendoBusqueda" name="busqueda" placeholder="Ingrese documento..." />
-                            <button @onclick="ComparendoByCedula" class="btn btn-primary d-inline-flex align-items-center" type="button">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
+                            
+                            <select class="form-select border-primary-subtle bg-light text-dark fw-medium" 
+                                    style="max-width: 140px; font-size: 13px;" 
+                                    @bind="tipoBusqueda">
+                                <option value="cedula">Cédula/Doc</option>
+                                <option value="placa">Placa</option>
+                            </select>
+
+                            <input type="text" 
+                                   @bind="valorBusqueda" 
+                                   class="form-control text-uppercase" 
+                                   id="comparendoBusqueda" 
+                                   placeholder="@(tipoBusqueda == "cedula" ? "Ingrese documento..." : "Ingrese placa...")" />
+                            
+                            <button @onclick="ConsultarVehiculos" class="btn btn-primary d-inline-flex align-items-center" type="button">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search me-1" viewBox="0 0 16 16">
                                     <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
                                 </svg>
+                                Buscar
                             </button>
                         </div>
                     </div>
@@ -43,7 +58,7 @@
                         {
                             <tr>
                                 <td colspan="5" class="text-center text-muted py-4" style="font-size: 13px;">
-                                    No se han cargado vehículos. Busque por documento.
+                                    Ningún criterio cargado. Utilice el buscador superior.
                                 </td>
                             </tr>
                         }
@@ -54,7 +69,7 @@
                                 <tr @onclick="() => SeleccionarVehiculo(vehiculo)" 
                                     style="cursor: pointer; font-size: 13px;"
                                     class="@(selectedVehiculo != null && selectedVehiculo.Id == vehiculo.Id ? "table-primary fw-bold" : "")">
-                                    <td>@vehiculo.Placa</td>
+                                    <td><span class="badge bg-dark-subtle text-dark border font-monospace">@vehiculo.Placa</span></td>
                                     <td>@vehiculo.ClaseVehiculo</td> 
                                     <td>@vehiculo.Marca</td>         
                                     <td>@vehiculo.Linea</td>         
@@ -70,38 +85,56 @@
             <div class="d-flex align-items-center mb-3">
                 @if (selectedVehiculo != null)
                 {
-                    <button type="button" class="btn btn-success btn-sm px-4" 
+                    <button type="button" class="btn btn-success btn-sm px-4 shadow-sm" 
                             style="border-radius: 15px; font-size: 12px;" 
                             @onclick="EnviarDatos">
-                        Seleccionar Vehículo (@selectedVehiculo.Placa)
+                        <i class="bi bi-check2-circle"></i> Seleccionar Vehículo (@selectedVehiculo.Placa)
                     </button>
                 }
             </div>
 
-        </div>
+       </div>
     </section>
 </div>
 
 @code {
     private IEnumerable<PlacasByCedulaResponse> vehiculosInfo = Enumerable.Empty<PlacasByCedulaResponse>();
     private PlacasByCedulaResponse? selectedVehiculo; 
-    private string pcedula = string.Empty;
+    
+    // 🚀 Controles dinámicos de UI
+    private string tipoBusqueda = "cedula"; 
+    private string valorBusqueda = string.Empty;
 
     private void SeleccionarVehiculo(PlacasByCedulaResponse vehiculo)
     {
         selectedVehiculo = vehiculo;
     }
 
-    private async Task ComparendoByCedula()
+    private async Task ConsultarVehiculos()
     {
-        if (string.IsNullOrEmpty(pcedula))
+        if (string.IsNullOrWhiteSpace(valorBusqueda))
         {
-            await JsRuntime.InvokeVoidAsync("alert", new object[] { "Por favor, ingresa un valor en el campo Documento." });
+            var msg = tipoBusqueda == "cedula" ? "Por favor ingrese un documento." : "Por favor ingrese una placa.";
+            await JsRuntime.InvokeVoidAsync("alert", msg);
             return;
         }
 
         selectedVehiculo = null; 
-        var resultado = await VehiculosService.GetVehiculosAsociadosAComparendo(pcedula.Trim());
+        
+        // 🚀 Inicializamos el Request limpio
+        var request = new GetInfoVehiculoRequest();
+
+        // Evaluamos qué propiedad llenar basándonos en la selección del componente
+        if (tipoBusqueda == "cedula")
+        {
+            request.Cedula = valorBusqueda.Trim();
+        }
+        else
+        {
+            request.Placa = valorBusqueda.Trim().ToUpper();
+        }
+
+        var resultado = await VehiculosService.GetInfoVehiculo(request);
         
         if (resultado != null && resultado.Any())
         {
@@ -110,7 +143,7 @@
         else
         {
             vehiculosInfo = Enumerable.Empty<PlacasByCedulaResponse>();
-            await JsRuntime.InvokeVoidAsync("alert", new object[] { "No se encontraron registros para el documento ingresado." });
+            await JsRuntime.InvokeVoidAsync("alert", "No se encontraron vehículos registrados bajo este criterio.");
         }
     }
 
@@ -120,14 +153,13 @@
         {
             if (selectedVehiculo != null)
             {
-                // Invocamos al servicio (que ahora sí tiene el método y lanzará el evento al padre)
-                await BusquedaService.ComparendoCapturado(selectedVehiculo.Placa??"");
+                await BusquedaService.ComparendoCapturado(selectedVehiculo.Placa ?? "");
                 await InvokeAsync(StateHasChanged);
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error al asignar el vehículo seleccionado: {ex.Message}");
+            Console.WriteLine($"Error al asignar el vehículo: {ex.Message}");
         }
     }
 }

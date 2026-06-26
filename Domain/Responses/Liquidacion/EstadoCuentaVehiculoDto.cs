@@ -3,7 +3,8 @@ namespace Domain.Responses.Liquidacion;
 
 public class EstadoCuentaVehiculoDto
 {
-    // Vehículo
+    // ... Todos tus campos de Vehículo y Propietario se quedan igual ...
+    public int VehiculoId { get; set; }
     public string Placa { get; set; } = string.Empty;
     public string Clase { get; set; } = string.Empty;
     public int Modelo { get; set; }
@@ -23,10 +24,24 @@ public class EstadoCuentaVehiculoDto
     public string NombrePropietario { get; set; } = string.Empty;
     public string? Direccion { get; set; }
     public string? Telefono { get; set; }
-    // Liquidación
+
+    // Liquidación Global
     public int VigenciaDesde { get; set; }
     public int VigenciaHasta { get; set; }
     public decimal TotalDeuda { get; set; }
     public decimal Avaluo { get; set; }
     public decimal? UltimoPago { get; set; }
+
+    public List<ConceptoCarteraDto> Conceptos { get; set; } = [];
 }
+
+public record ConceptoCarteraDto(
+    int Id,
+    int Vigencia,
+    string Concepto,
+    string Tipo,
+    decimal Valor,
+    decimal ValorInteres,
+    decimal Descuento,
+    decimal ValorTotal
+);

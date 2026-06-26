@@ -17,7 +17,7 @@ public class Propietario
 
     public string Telefono { get; set; } = string.Empty;
     
-    //public string? Correo { get; set; }
+    public string? Correo { get; set; }
     
     public TipoDocumento TipoDocumento { get; set; }
 

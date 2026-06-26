@@ -1,0 +1,166 @@
+@page "/Cartera"
+@using Infrastructure.Services.Carteras
+@rendermode InteractiveServer
+@inject CarteraService CarteraService
+@inject NavigationManager Nav
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h5 class="mb-0 fw-medium">Cartera de deudores</h5>
+        <small class="text-muted">Vehículos con deuda pendiente de impuesto vehicular</small>
+    </div>
+</div>
+
+<!-- Métricas -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
+        <div class="card"><div class="card-body py-2 px-3">
+            <small class="text-muted d-block">Total deudores</small>
+            <span class="fw-medium fs-5">@_totalDeudores</span>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card"><div class="card-body py-2 px-3">
+            <small class="text-muted d-block">Deuda total cartera</small>
+            <span class="fw-medium fs-5 text-danger">@_totalCartera.ToString("C0")</span>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card"><div class="card-body py-2 px-3">
+            <small class="text-muted d-block">Con proceso activo</small>
+            <span class="fw-medium fs-5">@_conProceso</span>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card"><div class="card-body py-2 px-3">
+            <small class="text-muted d-block">Sin proceso</small>
+            <span class="fw-medium fs-5">@(_totalDeudores - _conProceso)</span>
+        </div></div>
+    </div>
+</div>
+
+<!-- Filtros -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label mb-1" style="font-size:11px;">Búsqueda</label>
+                <input class="form-control form-control-sm"
+                       placeholder="Placa o documento..."
+                       @bind="_filtro.Busqueda" @bind:event="oninput" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1" style="font-size:11px;">Vigencia desde</label>
+                <input class="form-control form-control-sm" type="number"
+                       @bind="_filtro.VigenciaDesde" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1" style="font-size:11px;">Deuda mínima</label>
+                <input class="form-control form-control-sm" type="number"
+                       placeholder="$ 0"
+                       @bind="_filtro.DeudaMinima" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label mb-1" style="font-size:11px;">Proceso activo</label>
+                <select class="form-select form-select-sm" @bind="_filtro.Proceso">
+                    <option value="">Todos</option>
+                    <option value="ninguno">Sin proceso</option>
+                    <option value="persuasivo">Persuasivo</option>
+                    <option value="coactivo">Coactivo</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-primary btn-sm" @onclick="Buscar">
+                    <i class="bi bi-search"></i> Filtrar
+                </button>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="Limpiar">
+                    <i class="bi bi-x-circle"></i> Limpiar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card">
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:55px;">Tipo doc.</th>
+                    <th style="width:120px;">Documento</th>
+                    <th>Propietario</th>
+                    <th style="width:90px;">Placa</th>
+                    <th style="width:100px;" class="text-center">Vigencias pend.</th>
+                    <th style="width:130px;" class="text-end">Total deuda</th>
+                    <th style="width:120px;" class="text-center">Proceso</th>
+                    <th style="width:50px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _deudores)
+                {
+                    <tr style="cursor:pointer;" @onclick="() => VerDetalle(item.Placa)">
+                        <td><span class="badge bg-secondary">@item.TipoDocumento</span></td>
+                        <td>@item.Documento</td>
+                        <td>@item.NombrePropietario</td>
+                        <td><strong class="text-primary">@item.Placa</strong></td>
+                        <td class="text-center">
+                            <span class="badge @BadgeVigencias(item.VigenciasPendientes)">
+                                @item.VigenciasPendientes año(s)
+                            </span>
+                        </td>
+                        <td class="text-end fw-medium text-danger">@item.TotalDeuda.ToString("C")</td>
+                        <td class="text-center">
+                            <span class="badge @BadgeProceso(item.Proceso)">
+                                @(string.IsNullOrEmpty(item.Proceso) ? "Ninguno" : item.Proceso)
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <i class="bi bi-arrow-right text-primary"></i>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Paginación -->
+    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
+        <small class="text-muted">
+            Mostrando @((_pagina - 1) * _porPagina + 1)–@Math.Min(_pagina * _porPagina, _totalDeudores)
+            de @_totalDeudores deudores
+        </small>
+        <div class="d-flex gap-1">
+            <button class="btn btn-outline-secondary btn-sm"
+                    disabled="@(_pagina == 1)"
+                    @onclick="() => CambiarPagina(_pagina - 1)">
+                <i class="bi bi-chevron-left"></i>
+            </button>
+            @for (int p = 1; p <= _totalPaginas; p++)
+            {
+                var pLocal = p;
+                <button class="btn btn-sm @(_pagina == pLocal ? "btn-primary" : "btn-outline-secondary")"
+                        @onclick="() => CambiarPagina(pLocal)">
+                    @pLocal
+                </button>
+            }
+            <button class="btn btn-outline-secondary btn-sm"
+                    disabled="@(_pagina == _totalPaginas)"
+                    @onclick="() => CambiarPagina(_pagina + 1)">
+                <i class="bi bi-chevron-right"></i>
+            </button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <small class="text-muted">Filas:</small>
+            <select class="form-select form-select-sm" style="width:70px;"
+                    @bind="_porPagina" @bind:after="Buscar">
+                <option value="20">20</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+            </select>
+        </div>
+    </div>
+</div>

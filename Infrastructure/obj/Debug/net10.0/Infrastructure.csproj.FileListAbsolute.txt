@@ -69,7 +69,6 @@ D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\bin\Debug\net10.0\Syst
 D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\bin\Debug\net10.0\Microsoft.Extensions.Hosting.Abstractions.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\bin\Debug\net10.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\bin\Debug\net10.0\Microsoft.Extensions.Options.ConfigurationExtensions.dll
-D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\bin\Debug\net10.0\System.Security.Cryptography.Pkcs.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\bin\Debug\net10.0\Microsoft.Extensions.FileProviders.Abstractions.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\bin\Debug\net10.0\Microsoft.Extensions.Configuration.Binder.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\bin\Debug\net10.0\Domain.pdb
@@ -84,3 +83,4 @@ D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\obj\Debug\net10.0\refi
 D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\obj\Debug\net10.0\Infrastructure.pdb
 D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\obj\Debug\net10.0\Infrastructure.genruntimeconfig.cache
 D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\obj\Debug\net10.0\ref\Infrastructure.dll
+D:\Source\Repos\RodamientoJohan\Rodamiento\Infrastructure\obj\Debug\net10.0\Infrastructure.sourcelink.json

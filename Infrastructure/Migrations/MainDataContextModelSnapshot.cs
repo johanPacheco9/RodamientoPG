@@ -110,9 +110,6 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(6)
                         .HasColumnType("character varying(6)");
 
-                    b.Property<int?>("ReciboId")
-                        .HasColumnType("integer");
-
                     b.Property<bool>("TieneInteres")
                         .HasColumnType("boolean");
 
@@ -136,8 +133,6 @@ namespace Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ReciboId");
 
                     b.HasIndex("VehiculoId");
 
@@ -186,6 +181,42 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Intereses");
+                });
+
+            modelBuilder.Entity("Domain.Models.Notificaciones.Aviso", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CarteraId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("FechaEnvio")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NumeroAviso")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NumeroGuia")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("RutaPdf")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarteraId");
+
+                    b.ToTable("Avisos");
                 });
 
             modelBuilder.Entity("Domain.Models.Parametro", b =>
@@ -340,7 +371,7 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("LiquidacionId");
 
-                    b.ToTable("LiquidacionDetalle");
+                    b.ToTable("LiquidacionDetalles");
                 });
 
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Proceso", b =>
@@ -380,10 +411,6 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<string>("TipoProceso")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
                     b.Property<decimal>("Valor")
                         .HasColumnType("decimal(18,2)");
 
@@ -397,7 +424,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("Procesos");
                 });
 
-            modelBuilder.Entity("Domain.Models.Recibo", b =>
+            modelBuilder.Entity("Domain.Models.Recibos.Recibo", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -407,9 +434,6 @@ namespace Infrastructure.Migrations
 
                     b.Property<decimal>("Descuento")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Desde")
-                        .HasColumnType("integer");
 
                     b.Property<int>("Estado")
                         .HasColumnType("integer");
@@ -428,9 +452,6 @@ namespace Infrastructure.Migrations
 
                     b.Property<DateTime?>("FechaProceso")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Hasta")
-                        .HasColumnType("integer");
 
                     b.Property<decimal>("InteresMora")
                         .HasColumnType("decimal(18,2)");
@@ -455,6 +476,48 @@ namespace Infrastructure.Migrations
                     b.HasIndex("VehiculoId");
 
                     b.ToTable("Recibos");
+                });
+
+            modelBuilder.Entity("Domain.Models.Recibos.ReciboDetalle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CarteraId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Concepto")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Descuento")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ReciboId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Valor")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ValorInteres")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ValorTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Vigencia")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarteraId");
+
+                    b.HasIndex("ReciboId");
+
+                    b.ToTable("ReciboDetalle");
                 });
 
             modelBuilder.Entity("Domain.Models.Tarifa", b =>
@@ -689,6 +752,9 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Correo")
+                        .HasColumnType("text");
+
                     b.Property<string>("Direccion")
                         .IsRequired()
                         .HasColumnType("text");
@@ -838,19 +904,24 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Models.Cartera", b =>
                 {
-                    b.HasOne("Domain.Models.Recibo", "Recibo")
-                        .WithMany()
-                        .HasForeignKey("ReciboId");
-
                     b.HasOne("Domain.Models.Vehiculos.Vehiculo", "Vehiculo")
                         .WithMany()
                         .HasForeignKey("VehiculoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Recibo");
-
                     b.Navigation("Vehiculo");
+                });
+
+            modelBuilder.Entity("Domain.Models.Notificaciones.Aviso", b =>
+                {
+                    b.HasOne("Domain.Models.Cartera", "Cartera")
+                        .WithMany("Avisos")
+                        .HasForeignKey("CarteraId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cartera");
                 });
 
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Liquidacion", b =>
@@ -898,7 +969,7 @@ namespace Infrastructure.Migrations
                     b.Navigation("Vehiculo");
                 });
 
-            modelBuilder.Entity("Domain.Models.Recibo", b =>
+            modelBuilder.Entity("Domain.Models.Recibos.Recibo", b =>
                 {
                     b.HasOne("Domain.Models.Vehiculos.Vehiculo", "Vehiculo")
                         .WithMany()
@@ -907,6 +978,25 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Vehiculo");
+                });
+
+            modelBuilder.Entity("Domain.Models.Recibos.ReciboDetalle", b =>
+                {
+                    b.HasOne("Domain.Models.Cartera", "Cartera")
+                        .WithMany()
+                        .HasForeignKey("CarteraId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Models.Recibos.Recibo", "Recibo")
+                        .WithMany("Detalles")
+                        .HasForeignKey("ReciboId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cartera");
+
+                    b.Navigation("Recibo");
                 });
 
             modelBuilder.Entity("Domain.Models.Tarifa", b =>
@@ -998,6 +1088,11 @@ namespace Infrastructure.Migrations
                     b.Navigation("Vigencias");
                 });
 
+            modelBuilder.Entity("Domain.Models.Cartera", b =>
+                {
+                    b.Navigation("Avisos");
+                });
+
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Liquidacion", b =>
                 {
                     b.Navigation("Detalles");
@@ -1006,6 +1101,11 @@ namespace Infrastructure.Migrations
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Proceso", b =>
                 {
                     b.Navigation("Liquidaciones");
+                });
+
+            modelBuilder.Entity("Domain.Models.Recibos.Recibo", b =>
+                {
+                    b.Navigation("Detalles");
                 });
 
             modelBuilder.Entity("Domain.Models.Vehiculos.Propietario", b =>

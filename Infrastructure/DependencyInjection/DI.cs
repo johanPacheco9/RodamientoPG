@@ -1,4 +1,6 @@
+using Infrastructure.Services.Carteras;
 using Infrastructure.Services.Colores;
+using Infrastructure.Services.EmailNotification;
 using Infrastructure.Services.Importados;
 using Infrastructure.Services.Intereses;
 using Infrastructure.Services.Lineas;
@@ -9,6 +11,7 @@ using Infrastructure.Services.Pagos;
 using Infrastructure.Services.Parametros;
 using Infrastructure.Services.Procesos.Persuasivo;
 using Infrastructure.Services.Propietarios;
+using Infrastructure.Services.Rec2ibos;
 using Infrastructure.Services.Tarifas;
 using Infrastructure.Services.TiposVehiculos;
 using Infrastructure.Services.Traspasos;
@@ -41,7 +44,8 @@ public static class DependencyInjection
         services.AddTransient<InteresService>();
         services.AddTransient<TarifaService>();
         services.AddTransient<LiquidacionService>();
-        services.AddTransient<PagosService>();
+        services.AddTransient<PagoService>();
+        services.AddTransient<CarteraService>();
 
         // ⚖️ Procesos Coactivos e Importaciones (Transient)
         services.AddTransient<CoactivoService>();
@@ -49,7 +53,11 @@ public static class DependencyInjection
         services.AddTransient<ImportadosService>();
         services.AddTransient<ParametroService>();
         services.AddTransient<TraspasoManager>();
-
+        
+        //Recibo
+        services.AddTransient<ReciboService>();
+        //Envio emails
+        services.AddScoped<EmailService>();
         return services;
     }
 }

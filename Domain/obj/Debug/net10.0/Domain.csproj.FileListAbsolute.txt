@@ -9,3 +9,4 @@ D:\Source\Repos\RodamientoJohan\Rodamiento\Domain\obj\Debug\net10.0\Domain.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Domain\obj\Debug\net10.0\refint\Domain.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Domain\obj\Debug\net10.0\Domain.pdb
 D:\Source\Repos\RodamientoJohan\Rodamiento\Domain\obj\Debug\net10.0\ref\Domain.dll
+D:\Source\Repos\RodamientoJohan\Rodamiento\Domain\obj\Debug\net10.0\Domain.sourcelink.json

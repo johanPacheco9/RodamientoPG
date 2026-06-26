@@ -1,6 +1,8 @@
 using Domain.Generics;
 using Domain.Models;
 using Domain.Models.ProcesoLiquidacion;
+using Domain.Models.Recibos;
+using Domain.Models.Recibos.Requests;
 using Domain.Models.Vehiculos;
 using Domain.Responses.Liquidacion;
 using Domain.Responses.Liquidacion.Enums;
@@ -57,7 +59,7 @@ public partial class LiquidacionService(MainDataContext context)
 
         return Math.Round((interes * 25m) / 100m, 0, MidpointRounding.AwayFromZero);
     }
-    
+
     public async Task<List<ConceptoLiquidacionDto>> LiquidarDeudaPorConceptosAsync(string placa, int hasta)
     {
         var detalle = await ObtenerDetalleDeuda(placa, hasta);
@@ -80,49 +82,75 @@ public partial class LiquidacionService(MainDataContext context)
             .ToList();
     }
 
-    public async Task<(bool Success, string Message, int ReciboId)> GenerarReciboAsync(
-        string placa,
-        string cedula,
-        TipoDocumento tipoDocumento,
-        int desde,
-        int hasta)
+    public async Task<(bool Success, string Message, int ReciboId)> GenerarReciboAsync(CrearReciboRequest request)
     {
-        var vehiculo = await context.Vehiculos.FirstOrDefaultAsync(v => v.Placa == placa);
-
-        if (vehiculo == null)
-            return (false, $"No existe un vehiculo con placa {placa}.", 0);
-
-        var conceptos = await LiquidarDeudaPorConceptosAsync(placa, hasta);
-        var conceptosRango = conceptos.Where(c => c.Vigencia >= desde && c.Vigencia <= hasta).ToList();
-
-        if (conceptosRango.Count == 0)
-            return (false, "No hay deuda pendiente para generar recibo.", 0);
-
-        await context.Recibos
-            .Where(r => r.VehiculoId == vehiculo.Id && r.Estado == EstadoRecibo.Pendiente)
-            .ExecuteUpdateAsync(s => s.SetProperty(r => r.Estado, EstadoRecibo.Aplicado));
-
-        var recibo = new Recibo
+        try
         {
-            VehiculoId = vehiculo.Id,
-            Fecha = DateTime.Today,
-            Estado = EstadoRecibo.Pendiente,
-            Desde = desde,
-            Hasta = hasta,
-            ValorCapital = conceptosRango.Sum(x => x.ValorRodamiento),
-            InteresMora = conceptosRango.Sum(x => x.ValorInteres),
-            Descuento = conceptosRango.Sum(x => x.Descuento),
-            Estampillas = conceptosRango.Sum(x => x.ValorEstampillas),
-            ValorTotalSistema = conceptosRango.Sum(x => x.ValorSistema),
-            ValorCargaDatos = conceptosRango.Sum(x => x.ValorCarga),
-            ValorRodamiento = conceptosRango.Sum(x => x.ValorRodamiento)
-        };
+            // 1. Validar parámetros de entrada mínimos
+            if (request.CarteraIdsSeleccionados == null || !request.CarteraIdsSeleccionados.Any())
+            {
+                return (false, "Debe seleccionar al menos un registro de cartera para liquidar.", 0);
+            }
 
-        context.Recibos.Add(recibo);
-           await context.SaveChangesAsync();
+            // 2. Traer los registros de cartera solicitados que sigan pendientes de pago
+            var carteraALiquidar = await context.Cartera
+                .Where(c => request.CarteraIdsSeleccionados.Contains(c.Id) && !c.IsPagado)
+                .ToListAsync();
 
-        return (true, "Recibo generado exitosamente.", recibo.Id);
+            if (!carteraALiquidar.Any())
+            {
+                return (false, "Los registros de cartera seleccionados ya fueron pagados o no son válidos.", 0);
+            }
+
+            // 3. Instanciar el encabezado consolidando los valores base (Capital)
+            var nuevoRecibo = new Recibo
+            {
+                VehiculoId = request.VehiculoId,
+                Fecha = DateTime.UtcNow,
+                Estado = EstadoRecibo.Pendiente,
+
+                ValorCapital = carteraALiquidar.Sum(c => c.Valor),
+                InteresMora = carteraALiquidar.Sum(c => c.ValorInteres),
+                Descuento = carteraALiquidar.Sum(c => c.Descuento),
+
+                // 💡 CORRECCIÓN: Sumamos el .Valor base (Capital) de cada concepto, no el .ValorTotal
+                Estampillas = carteraALiquidar.Where(c => c.Tipo == "ESTAMPILLA").Sum(c => c.Valor),
+                ValorCargaDatos = carteraALiquidar.Where(c => c.Concepto == "CARGA").Sum(c => c.Valor),
+                ValorRodamiento = carteraALiquidar.Where(c => c.Concepto == "RODAMIENTO").Sum(c => c.Valor),
+
+                // El total del sistema es la suma matemática real de todos los totales de las carteras
+                ValorTotalSistema = carteraALiquidar.Sum(c => c.ValorTotal)
+            };
+
+            // 4. Mapear la cartera elegida al histórico de detalles del recibo
+            foreach (var cartera in carteraALiquidar)
+            {
+                nuevoRecibo.Detalles.Add(new ReciboDetalle
+                {
+                    CarteraId = cartera.Id,
+                    Vigencia = cartera.Vigencia,
+                    Concepto = cartera.Concepto,
+                    Valor = cartera.Valor,
+                    ValorInteres = cartera.ValorInteres,
+                    Descuento = cartera.Descuento,
+                    ValorTotal = cartera.ValorTotal
+                });
+            }
+
+            // 5. Guardar todo en una única transacción atómica
+            context.Recibos.Add(nuevoRecibo);
+            await context.SaveChangesAsync();
+
+            // Retornamos la tupla indicando éxito y el ID generado por PostgreSQL
+            return (true, "Recibo generado exitosamente.", nuevoRecibo.Id);
+        }
+        catch (Exception ex)
+        {
+            // Loggear el error con tu servicio de logger si está disponible (ej. _logger.LogError...)
+            return (false, $"Error interno al liquidar la cartera: {ex.Message}", 0);
+        }
     }
+
 
     public async Task<int> GenerarCarteraVehiculoAsync(string placa, int desde, int hasta)
     {
@@ -131,7 +159,7 @@ public partial class LiquidacionService(MainDataContext context)
         if (vehiculo == null) return 0;
 
         var parametro = await context.Parametros.AsNoTracking().FirstOrDefaultAsync();
-        
+
         await context.Cartera
             .Where(c => c.Placa == placa && !c.IsPagado && c.Vigencia >= desde && c.Vigencia <= hasta)
             .ExecuteDeleteAsync();
@@ -202,7 +230,7 @@ public partial class LiquidacionService(MainDataContext context)
             throw new Exception("Error al obtener las resoluciones", ex);
         }
     }
-    
+
     public async Task<EstadoCuentaVehiculoDto?> GetCarteraByPlaca(
         string placa,
         CancellationToken cancellationToken = default)
@@ -212,52 +240,62 @@ public partial class LiquidacionService(MainDataContext context)
             placa = placa.Trim().ToUpper();
             var nowYear = DateTime.UtcNow.Year;
 
+            // 1. Obtener los datos del Vehículo y Propietario (Se mantiene igual)
             var vehiculo = await context.Vehiculos
                 .AsNoTracking()
                 .Where(v => v.Placa == placa)
                 .Select(v => new
                 {
+                    v.Id,
                     v.Placa,
                     v.Modelo,
                     v.Cilindraje,
                     v.EstadoProcesoId,
                     v.PagoHasta,
                     v.TipoServicioVehiculo,
-
                     Clase = v.TipoVehiculo != null ? v.TipoVehiculo.Nombre : string.Empty,
                     Marca = v.Marca != null ? v.Marca.Nombre : string.Empty,
                     Linea = v.Linea != null ? v.Linea.Nombre : string.Empty,
                     Color = v.Color != null ? v.Color.Nombre : string.Empty,
                     Estado = v.EstadoProceso.GetDisplayName(),
-
                     Documento = v.Propietario != null ? v.Propietario.Documento : string.Empty,
                     NombrePropietario = v.Propietario != null ? v.Propietario.Nombre : string.Empty,
                     Direccion = v.Propietario != null ? v.Propietario.Direccion : string.Empty,
                     Telefono = v.Propietario != null ? v.Propietario.Telefono : string.Empty,
-                    TipoDocumento = v.Propietario != null
-                        ? v.Propietario.TipoDocumento
-                        : TipoDocumento.Cc
+                    TipoDocumento = v.Propietario != null ? v.Propietario.TipoDocumento : TipoDocumento.Cc
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (vehiculo == null)
                 return null;
 
-            var deuda = await context.Cartera
+            // 2. 🚀 CORRECCIÓN: Traemos las filas de cartera pendientes de pago desglosadas
+            var carteraPendiente = await context.Cartera
                 .AsNoTracking()
                 .Where(c => c.Placa == placa && !c.IsPagado)
-                .GroupBy(c => c.Placa)
-                .Select(g => new
-                {
-                    Desde = g.Min(c => c.Vigencia),
-                    Hasta = g.Max(c => c.Vigencia),
-                    Total = g.Sum(c => c.ValorTotal)
-                })
-                .FirstOrDefaultAsync(cancellationToken);
+                .OrderBy(c => c.Vigencia)
+                .Select(c => new ConceptoCarteraDto(
+                    c.Id,
+                    c.Vigencia,
+                    c.Concepto,
+                    c.Tipo,
+                    c.Valor,
+                    c.ValorInteres,
+                    c.Descuento,
+                    c.ValorTotal
+                ))
+                .ToListAsync(cancellationToken);
 
+            // 3. Calculamos los datos globales basados en la lista obtenida
+            int vigenciaDesde = carteraPendiente.Any() ? carteraPendiente.Min(c => c.Vigencia) : nowYear;
+            int vigenciaHasta = carteraPendiente.Any() ? carteraPendiente.Max(c => c.Vigencia) : nowYear;
+            decimal totalDeuda = carteraPendiente.Sum(c => c.ValorTotal);
+
+            // 4. Armamos la respuesta final unificada
             return new EstadoCuentaVehiculoDto
             {
                 // Vehículo
+                VehiculoId = vehiculo.Id,
                 Placa = vehiculo.Placa,
                 Clase = vehiculo.Clase,
                 Modelo = vehiculo.Modelo,
@@ -277,22 +315,23 @@ public partial class LiquidacionService(MainDataContext context)
                 Telefono = vehiculo.Telefono,
                 TipoDocumento = vehiculo.TipoDocumento,
 
-                // Deuda
-                VigenciaDesde = deuda?.Desde ?? nowYear,
-                VigenciaHasta = deuda?.Hasta ?? nowYear,
-                TotalDeuda = deuda?.Total ?? 0
+                // Liquidación / Deuda
+                VigenciaDesde = vigenciaDesde,
+                VigenciaHasta = vigenciaHasta,
+                TotalDeuda = totalDeuda,
+
+                // 🔥 El cambio clave: El frontend ahora recibe la lista de deudas desglosada
+                Conceptos = carteraPendiente
             };
         }
         catch (Exception ex)
         {
-            logger.LogError(ex,
-                "Error consultando liquidación para placa {Placa}",
-                placa);
+            logger.LogError(ex, "Error consultando liquidación para placa {Placa}", placa);
 
             return null;
         }
     }
-    
+
 
     public async Task<List<Liquidacion>> Deudas_x_Vigencia(int pvig)
     {
@@ -303,9 +342,42 @@ public partial class LiquidacionService(MainDataContext context)
 
     public async Task<List<ReporteDiarioDto>> Lista_Recibos(DateTime pdesde, DateTime phasta)
     {
-        return await context.Database
-            .SqlQuery<ReporteDiarioDto>($"SELECT * FROM informe_diario({pdesde}, {phasta})")
+        var desde = DateTime.SpecifyKind(pdesde.Date, DateTimeKind.Utc);
+        var hasta = DateTime.SpecifyKind(phasta.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
+
+        var recibos = await context.Recibos
+            .AsNoTracking()
+            .Include(r => r.Vehiculo)
+            .ThenInclude(v => v.Propietario)
+            .Include(r => r.Detalles)
+            .Where(r =>
+                r.Estado == EstadoRecibo.Pagado &&
+                r.FechaPago.HasValue &&
+                r.FechaPago.Value >= desde &&
+                r.FechaPago.Value <= hasta)
+            .OrderBy(r => r.FechaPago)
             .ToListAsync();
+
+        return recibos.Select(r => new ReporteDiarioDto
+            {
+                NumeroRecibo = r.Id.ToString(),
+                Placa = r.Vehiculo.Placa,
+                FechaCreacion = r.Fecha,
+                FechaPago = r.FechaPago ?? r.Fecha,
+                AnioDesde = r.Detalles.Count == 0 ? 0 : r.Detalles.Min(d => d.Vigencia),
+                AnioHasta = r.Detalles.Count == 0 ? 0 : r.Detalles.Max(d => d.Vigencia),
+                ValorTotal = r.Detalles.Sum(d => d.ValorTotal),
+                ValorImpuesto = r.Detalles.Where(d => d.Concepto == ConceptoRodamiento).Sum(d => d.Valor),
+                ValorCarga = r.Detalles.Where(d => d.Concepto == ConceptoCarga).Sum(d => d.Valor),
+                ValorCostas = r.Detalles.Where(d => d.Concepto == ConceptoCostas).Sum(d => d.Valor),
+                ValorSistematizacion = r.ValorTotalSistema,
+                ValorInteres = r.Detalles.Sum(d => d.ValorInteres),
+                ValorEstampillas = r.Detalles.Where(d => d.Concepto == ConceptoEstampillas).Sum(d => d.Valor),
+                ValorSancion = 0,
+                Descuento = r.Detalles.Sum(d => d.Descuento),
+                NombrePropietario = r.Vehiculo.Propietario.Nombre
+            })
+            .ToList();
     }
 
     public async Task<List<ConceptoResumenDto>> Resumen_Conceptos(string pplaca, int phasta)
@@ -333,20 +405,44 @@ public partial class LiquidacionService(MainDataContext context)
 
     public async Task<List<DetalleReciboDto>> Items_x_Recibo(int precibo)
     {
-        return await context.Database
-            .SqlQuery<DetalleReciboDto>($@"
-            SELECT
-                vigencia as pvigencia,
-                transito as vlr_rod,
-                carga as vlr_carga,
-                estampillas as vlr_estamp,
-                costas as vlr_recibo,
-                intereses as vlr_interes,
-                descuento,
-                sancion
-            FROM detalles
-            WHERE recibo = {precibo}")
+        // 1. Traemos de la base de datos los detalles de este recibo específico
+        var detallesRaw = await context.Recibos
+            .Where(r => r.Id == precibo)
+            .SelectMany(r => r.Detalles)
+            .Select(d => new
+            {
+                d.Vigencia,
+                d.Concepto,
+                d.Valor,
+                d.ValorInteres,
+                d.Descuento
+                // Si en ReciboDetalle añadiste Sancion, inclúyela aquí: d.Sancion
+            })
             .ToListAsync();
+
+        if (!detallesRaw.Any()) return [];
+
+        // 2. Agrupamos en memoria por Vigencia para armar el DTO consolidado por año
+        var resultado = detallesRaw
+            .GroupBy(d => d.Vigencia)
+            .Select(g => new DetalleReciboDto
+            {
+                Vigencia = g.Key,
+
+                ValorRodamiento = g.Where(x => x.Concepto == "RODAMIENTO").Sum(x => x.Valor),
+                ValorCarga = g.Where(x => x.Concepto == "CARGA").Sum(x => x.Valor),
+                ValorEstampillas = g.Where(x => x.Concepto == "ESTAMPILLAS").Sum(x => x.Valor),
+
+                ValorRecibo = g.Sum(x => x.Valor),
+
+                ValorInteres = g.Sum(x => x.ValorInteres),
+                Descuento = g.Sum(x => x.Descuento),
+                Sancion = 0
+            })
+            .OrderBy(r => r.Vigencia)
+            .ToList();
+
+        return resultado;
     }
 
     public async Task<List<ConceptoLiquidacionDto>> Debido_Cobrar()
@@ -389,7 +485,7 @@ public partial class LiquidacionService(MainDataContext context)
             ValorTotal = result.Sum(x => x.ValorTotal)
         };
     }
-    
+
 
     private async Task<decimal> ObtenerValorSistemaAsync()
     {
@@ -397,7 +493,7 @@ public partial class LiquidacionService(MainDataContext context)
             .Select(p => p.ValorSistema)
             .FirstOrDefaultAsync();
     }
-    
+
     private static bool EsConceptoRodamiento(string concepto) => EsConcepto(concepto, ConceptoRodamiento, "1", "TRANSITO");
     private static bool EsConceptoEstampillas(string concepto) => EsConcepto(concepto, ConceptoEstampillas, "2");
     private static bool EsConceptoCostas(string concepto) => EsConcepto(concepto, ConceptoCostas, "3", "RECIBO");

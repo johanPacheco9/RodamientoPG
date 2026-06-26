@@ -1,6 +1,8 @@
 ﻿@page "/Consulta"
+@page "/Consulta/{PlacaParam}"
 @using Domain.Generics
 @using Domain.Models
+@using Domain.Models.ProcesoLiquidacion
 @using Domain.Responses.Liquidacion
 @using Domain.Responses.Recibo
 @using Infrastructure.Services.Importados
@@ -29,7 +31,6 @@
     <div class="card mb-3">
         <div class="card-body py-3">
 
-            <!-- Fila propietario -->
             <p class="text-muted mb-2"
                style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.04em;">
                 <i class="bi bi-person"></i> Propietario
@@ -53,7 +54,6 @@
 
             <hr class="my-2">
 
-            <!-- Fila vehículo -->
             <p class="text-muted mb-2"
                style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.04em;">
                 <i class="bi bi-car-front"></i> Vehículo · <strong>@_estadoCuenta.Placa</strong>
@@ -103,7 +103,6 @@
         </div>
     </div>
 
-    <!-- ─── Métricas resumen ──────────────────────────────────── -->
     <div class="row g-3 mb-3">
         <div class="col-6 col-md-3">
             <div class="card h-100">
@@ -151,7 +150,6 @@
         </div>
     </div>
 
-    <!-- ─── Panel de pestañas ─────────────────────────────────── -->
     <div class="card">
         <div class="card-header p-0">
             <ul class="nav nav-tabs card-header-tabs px-3">
@@ -185,7 +183,6 @@
 
         <div class="card-body p-3">
 
-            <!-- Tab 1: Estado de cuenta / Selección de vigencias -->
             @if (tab == 1)
             {
                 <p class="text-muted mb-2"
@@ -232,8 +229,8 @@
                                     @if (grupo.Conceptos.Sum(c => c.Descuento) > 0)
                                     {
                                         <span class="badge bg-success-subtle text-success-emphasis">
-                                -@grupo.Conceptos.Sum(c => c.Descuento).ToString("C")
-                            </span>
+                                            -@grupo.Conceptos.Sum(c => c.Descuento).ToString("C")
+                                        </span>
                                     }
                                     else
                                     {
@@ -247,7 +244,7 @@
                         <tfoot class="table-light">
                         <tr>
                             <td colspan="6" class="text-end text-muted small">
-                                Total seleccionado (@vigenciasSeleccionadas.Count vigencia(s)):
+                                Total seleccionado (@carterasSeleccionadasIds.Count concepto(s)):
                             </td>
                             <td class="text-end fw-medium text-danger">@totalSeleccionado.ToString("C")</td>
                         </tr>
@@ -255,12 +252,11 @@
                     </table>
                 </div>
 
-                <!-- Barra de acciones -->
                 <div class="d-flex align-items-center justify-content-between mt-2 gap-2 flex-wrap
                             bg-light rounded p-2">
                     <div class="d-flex gap-2 flex-wrap">
                         <button class="btn btn-primary btn-sm" @onclick="GenerarRecibo"
-                                disabled="@(!vigenciasSeleccionadas.Any())">
+                                disabled="@(!carterasSeleccionadasIds.Any())">
                             <i class="bi bi-printer"></i> Generar recibo
                         </button>
                         <button class="btn btn-outline-secondary btn-sm" @onclick="GenerarPazYSalvo">
@@ -274,7 +270,6 @@
                 </div>
             }
 
-            <!-- Tab 2: Recibos -->
             @if (tab == 2)
             {
                 <div class="table-responsive">
@@ -312,39 +307,86 @@
                 </div>
             }
 
-            <!-- Tab 3: Resumen por conceptos -->
             @if (tab == 3)
             {
+                <div class="mb-3">
+                    <h6 class="fw-semibold text-secondary mb-1">Desglose detallado por vigencia y concepto</h6>
+                    <p class="text-muted small">A continuación se detalla el comportamiento financiero de cada rubro
+                        parametrizado discriminado por su año fiscal correspondiente.</p>
+                </div>
+
                 <div class="table-responsive">
-                    <table class="table table-sm table-hover align-middle">
-                        <thead class="table-light">
+                    <table class="table table-sm table-hover align-middle" style="font-size: 13px;">
+                        <thead class="table-light border-bottom">
                         <tr>
-                            <th>Id</th>
-                            <th>Concepto</th>
-                            <th class="text-end">Valor base</th>
-                            <th class="text-end">Interés mora</th>
-                            <th class="text-end">Descuento</th>
-                            <th class="text-end">Total</th>
+                            <th style="width: 12%;">Vigencia</th>
+                            <th>Concepto / Rubro</th>
+                            <th class="text-end" style="width: 16%;">Capital Base</th>
+                            <th class="text-end" style="width: 16%;">Interés Mora</th>
+                            <th class="text-end" style="width: 16%;">Descuento</th>
+                            <th class="text-end" style="width: 18%;">Total Rubro</th>
                         </tr>
                         </thead>
                         <tbody>
-                        @foreach (var c in resumenConceptoslist)
+                        
+                        @foreach (var rubroDetallado in _vigencias
+                                      .SelectMany(v => v.Conceptos.Select(c => new { v.Vigencia, Detalle = c }))
+                                      .OrderBy(r => r.Vigencia)
+                                      .ThenBy(r => r.Detalle.Concepto))
                         {
+                            var totalItem = rubroDetallado.Detalle.Valor + rubroDetallado.Detalle.ValorInteres - rubroDetallado.Detalle.Descuento;
+
                             <tr>
-                                <td>@c.Id</td>
-                                <td>@c.Nombre</td>
-                                <td class="text-end">@c.Valor.ToString("C")</td>
-                                <td class="text-end">@c.ValorIntereses.ToString("C")</td>
-                                <td class="text-end">@c.Descuento.ToString("C")</td>
-                                <td class="text-end fw-medium">@c.Total.ToString("C")</td>
+                                <td>
+                        <span
+                            class="badge bg-light text-dark border border-secondary border-opacity-25 font-monospace px-2 py-1 fw-bold">
+                            @rubroDetallado.Vigencia
+                        </span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-arrow-right-short text-primary"></i>
+                                        <span class="fw-medium text-dark text-uppercase" style="font-size: 12.5px;">
+                                @rubroDetallado.Detalle.Concepto
+                            </span>
+                                    </div>
+                                </td>
+                                <td class="text-end font-monospace text-secondary">
+                                    @rubroDetallado.Detalle.Valor.ToString("C0")
+                                </td>
+                                <td class="text-end font-monospace text-danger">
+                                    @rubroDetallado.Detalle.ValorInteres.ToString("C0")
+                                </td>
+                                <td class="text-end font-monospace text-success">
+                                    @if (rubroDetallado.Detalle.Descuento > 0)
+                                    {
+                                        <span>-@rubroDetallado.Detalle.Descuento.ToString("C0")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted opacity-50">$0</span>
+                                    }
+                                </td>
+                                <td class="text-end font-monospace fw-bold text-dark bg-light bg-opacity-25">
+                                    @totalItem.ToString("C0")
+                                </td>
                             </tr>
                         }
                         </tbody>
-                        <tfoot class="table-light">
+                        <tfoot class="table-light fw-bold border-top-2 text-dark">
                         <tr>
-                            <td colspan="5" class="text-end fw-medium text-muted">Total deuda:</td>
-                            <td class="text-end fw-medium text-danger">
-                                @resumenConceptoslist.Sum(c => c.Total).ToString("C")
+                            <td colspan="2" class="text-end fw-medium text-muted">Total General Consolidado:</td>
+                            <td class="text-end font-monospace text-secondary">
+                                @_vigencias.SelectMany(v => v.Conceptos).Sum(c => c.Valor).ToString("C0")
+                            </td>
+                            <td class="text-end font-monospace text-danger">
+                                @_vigencias.SelectMany(v => v.Conceptos).Sum(c => c.ValorInteres).ToString("C0")
+                            </td>
+                            <td class="text-end font-monospace text-success">
+                                @_vigencias.SelectMany(v => v.Conceptos).Sum(c => c.Descuento).ToString("C0")
+                            </td>
+                            <td class="text-end font-monospace text-danger fs-6 bg-danger bg-opacity-10 fw-bold">
+                                @_estadoCuenta.TotalDeuda.ToString("C0")
                             </td>
                         </tr>
                         </tfoot>
@@ -352,7 +394,6 @@
                 </div>
             }
 
-            <!-- Tab 4: Resoluciones -->
             @if (tab == 4)
             {
                 <div class="d-flex justify-content-end mb-2">
@@ -382,9 +423,9 @@
                                 <td>@r.Fecha.ToString("dd/MM/yyyy")</td>
                                 <td><strong>@r.NumeroResolucion</strong></td>
                                 <td>
-                                        <span class="badge bg-info-subtle text-info-emphasis">
-                                            @r.TipoResolucionId
-                                        </span>
+                                    <span class="badge bg-info-subtle text-info-emphasis">
+                                        @r.TipoResolucionId
+                                    </span>
                                 </td>
                                 <td>@r.PeriodoDesde – @r.PeriodoHasta</td>
                                 <td class="text-muted small">@r.Observaciones</td>
@@ -397,7 +438,6 @@
                 </div>
             }
 
-            <!-- Tab 5: Procesos (Persuasivo / Coactivo) -->
             @if (tab == 5)
             {
                 <div class="d-flex justify-content-end mb-2">
@@ -416,7 +456,9 @@
                             <th>Resolución</th>
                             <th>Período</th>
                             <th>Estado</th>
+                            <th class="text-center">Avisos</th>
                             <th class="text-end">Valor</th>
+                            <th class="text-end">Acciones</th>
                         </tr>
                         </thead>
                         <tbody>
@@ -427,17 +469,41 @@
                                 <td>@p.Fecha.ToString("dd/MM/yyyy")</td>
                                 <td><strong>@p.NumeroProceso</strong></td>
                                 <td>
-                                    <span
-                                        class="badge @BadgeProceso(p.EstadoProceso.GetDisplayName())">@p.EstadoProceso.GetDisplayName()</span>
+                                    <span class="badge @BadgeProceso(p.EstadoProceso.GetDisplayName())">
+                                        @p.EstadoProceso.GetDisplayName()
+                                    </span>
                                 </td>
                                 <td>@p.Resolucion</td>
                                 <td>@p.Desde – @p.Hasta</td>
                                 <td>
-                                        <span class="badge @BadgeEstadoProceso(p.EstadoProceso)">
-                                            @p.EstadoProceso.GetDisplayName()
-                                        </span>
+                                            <span class="badge @BadgeEstadoProceso(p.EstadoProceso)">
+                                                @p.EstadoProceso.GetDisplayName()
+                                            </span>
+                                </td>
+                                <td class="text-center">
+                                            <span
+                                                class="badge @(AvisosProceso(p) >= 4 ? "bg-success" : "bg-secondary")">
+                                                @AvisosProceso(p)/4
+                                            </span>
                                 </td>
                                 <td class="text-end">@p.Valor.ToString("C")</td>
+                                <td class="text-end">
+                                    @if (p.EstadoProceso == EstadoProceso.Persuasivo)
+                                    {
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary"
+                                                    @onclick="() => RegistrarAviso(p)"
+                                                    disabled="@(AvisosProceso(p) >= 4)">
+                                                Aviso
+                                            </button>
+                                            <button class="btn btn-outline-danger"
+                                                    @onclick="() => PasarACoactivo(p)"
+                                                    disabled="@(AvisosProceso(p) < 4)">
+                                                Coactivo
+                                            </button>
+                                        </div>
+                                    }
+                                </td>
                             </tr>
                         }
                         </tbody>
@@ -448,18 +514,6 @@
         </div>
     </div>
 }
-else
-{
-    <!-- Estado vacío inicial -->
-    <div class="card">
-        <div class="card-body text-center py-5 text-muted">
-            <i class="bi bi-search fs-1 d-block mb-2 opacity-50"></i>
-            <p class="mb-1">Ningún vehículo seleccionado</p>
-            <small>Use el botón <strong>Buscar por documento</strong> para iniciar una consulta.</small>
-        </div>
-    </div>
-}
-
 <!-- ─── Modal: Búsqueda por cédula ───────────────────────────── -->
 @if (MostrarBusquedaCedula)
 {
@@ -574,3 +628,17 @@ else
         </div>
     </div>
 }
+<script>
+    window.downloadFileFromStream = async (fileName, streamRef) => {
+        const arrayBuffer = await streamRef.arrayBuffer();
+        const blob = new Blob([arrayBuffer]);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+</script>

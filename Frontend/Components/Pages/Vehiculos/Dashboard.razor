@@ -90,36 +90,37 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var item in ListVehiculos)
-                            {
-                                <tr @onclick="() => SeleccionarFila(item)" class="cursor-pointer">
-                                    <td class="ps-4 fw-semibold text-secondary">#@item.Id</td>
-                                    <td>
-                                        <span class="badge bg-warning text-dark border border-dark border-opacity-10 font-monospace px-2 py-1.5 fs-7 rounded-sm fw-bold tracking-wider shadow-xs">
-                                            @item.Placa?.ToUpper()
-                                        </span>
-                                    </td>
-                                    <td class="fw-medium text-dark">@item.Modelo</td>
-                                    <td class="text-secondary">@item.Marca?.Nombre</td>
-                                    <td class="text-secondary">@item.Linea?.Nombre</td>
-                                    <td>
-                                        <span class="text-dark bg-light px-2 py-1 rounded border border-light-subtle">
-                                            @item.TipoVehiculo?.Nombre
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge rounded-pill px-2 py-1 @(item.EstadoProceso.GetDisplayName() == "Coactivo" ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle")">
-                                            @item.EstadoProceso.GetDisplayName()
-                                        </span>
-                                    </td>
-                                    <td class="pe-4 text-end">
-                                        <button class="btn btn-sm btn-outline-secondary btn-icon-only rounded-circle border-0 me-1" 
-                                                @onclick="() => GestionarEditar(item)" @onclick:stopPropagation="true" title="Editar">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            }
+                        @foreach (var item in ListVehiculos)
+                        {
+                            <tr @onclick="() => SeleccionarFila(item)" class="cursor-pointer">
+                                <td class="ps-4 fw-semibold text-secondary">#@item.Id</td>
+                                <td>
+                                    <span class="badge bg-warning text-dark border border-dark border-opacity-10 font-monospace px-2 py-1.5 fs-7 rounded-sm fw-bold tracking-wider shadow-xs">
+                                        @item.Placa?.ToUpper()
+                                    </span>
+                                </td>
+                                <td class="fw-medium text-dark">@item.Modelo</td>
+        
+                                <td class="text-secondary">@item.Marca</td>
+                                <td class="text-secondary">@item.Linea</td>
+                                <td>
+                                    <span class="text-dark bg-light px-2 py-1 rounded border border-light-subtle">
+                                        @item.TipoVehiculo
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill px-2 py-1 @(item.EstadoProceso == "Coactivo" ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle")">
+                                        @item.EstadoProceso
+                                    </span>
+                                </td>
+                                <td class="pe-4 text-end">
+                                    <button class="btn btn-sm btn-outline-secondary btn-icon-only rounded-circle border-0 me-1" 
+                                            @onclick="() => GestionarEditar(item)" @onclick:stopPropagation="true" title="Editar">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
                         </tbody>
                     </table>
                 </div>
