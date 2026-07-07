@@ -1,6 +1,8 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Models.Carteras.Enums;
 using Domain.Models.Notificaciones;
+using Domain.Models.Resoluciones;
 using Domain.Models.Vehiculos;
 
 namespace Domain.Models;
@@ -8,7 +10,7 @@ namespace Domain.Models;
 /// <summary>
 /// Clase que representa la deuda de una persona. Tiene relacion con el vehiculo y avisos.
 /// </summary>
-public class Cartera
+public class Cartera : EntityWithTraceability
 {
     [Key]
     public int Id { get; set; }
@@ -19,11 +21,12 @@ public class Cartera
 
     public int Vigencia { get; set; }
 
-    public string Concepto { get; set; } = string.Empty;
+    public TipoConceptoCartera Concepto { get; set; }
 
     public bool IsPagado { get; set; }
     
-    // 🔥 CORRECCIÓN: Este es el campo que DEBE ser la Clave Foránea porque coincide en tipo (int) con Vehiculo.Id
+    public bool IsAnulled { get; set; }
+    
     [Required]
     public int VehiculoId { get; set; }
 
@@ -52,6 +55,12 @@ public class Cartera
     // =========================================================
     //  RELACIONES
     // =========================================================
+    
+    public int? ResolucionId { get; set; }
+
+    [ForeignKey(nameof(ResolucionId))]
+    public virtual Resolucion? Resolucion { get; set; }
+    
     [ForeignKey(nameof(VehiculoId))]
     public virtual Vehiculo Vehiculo { get; set; } = null!;
     

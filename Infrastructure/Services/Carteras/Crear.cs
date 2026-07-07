@@ -1,9 +1,10 @@
 using Domain.Models;
-namespace Infrastructure.Services.Liquidaciones;
+using Domain.Models.Carteras.Enums;
+namespace Infrastructure.Services.Carteras;
 
-public partial class LiquidacionService
+public partial class CarteraService
 {
-    private static Cartera CrearCartera(int vehiculoId, string placa, int vigencia, string concepto, decimal valor, bool tieneInteres)
+    private static Cartera CrearCartera(int vehiculoId, string placa, int vigencia, TipoConceptoCartera concepto, decimal valor, bool tieneInteres)
     {
         return new Cartera
         {

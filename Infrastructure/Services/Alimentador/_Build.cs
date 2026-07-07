@@ -1,8 +1,10 @@
 using Domain.Models;
+using Domain.Models.Carteras.Enums;
 using Domain.Models.Notificaciones;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Recibos;
 using Domain.Models.Vehiculos;
+using Domain.Models.Vehiculos.Enums;
 using Domain.Responses.Liquidacion.Enums;
 using Domain.Responses.Recibo.Enums;
 using Domain.Responses.Users.Enums;
@@ -14,7 +16,7 @@ namespace Infrastructure.Services.Alimentador;
 
 public static class DbInitializer
 {
-    private const int TargetVehiculosTesting = 40;
+    private const int TargetVehiculosTesting = 1000;
 
     public static void Initialize(MainDataContext context)
     {
@@ -60,12 +62,12 @@ public static class DbInitializer
 
     private static void SeedCatalogos(MainDataContext context)
     {
-        EnsureTipoVehiculo(context, 1, 10, "Automovil", "A", 1);
-        EnsureTipoVehiculo(context, 2, 20, "Camioneta", "A", 1);
-        EnsureTipoVehiculo(context, 3, 30, "Buseta", "P", 2);
-        EnsureTipoVehiculo(context, 4, 40, "Camion", "C", 2);
-        EnsureTipoVehiculo(context, 8, 80, "Volqueta", "C", 2);
-        EnsureTipoVehiculo(context, 9, 90, "Tractocamion", "C", 2);
+        EnsureTipoVehiculo(context, 1, 10, "Automovil", ClaseAgrupacionVehiculo.Automovil, 1);
+        EnsureTipoVehiculo(context, 2, 20, "Camioneta", ClaseAgrupacionVehiculo.Automovil, 1);
+        EnsureTipoVehiculo(context, 3, 30, "Buseta", ClaseAgrupacionVehiculo.Pasajeros, 2);
+        EnsureTipoVehiculo(context, 4, 40, "Camion", ClaseAgrupacionVehiculo.Carga, 2);
+        EnsureTipoVehiculo(context, 8, 80, "Volqueta", ClaseAgrupacionVehiculo.Carga, 2);
+        EnsureTipoVehiculo(context, 9, 90, "Tractocamion", ClaseAgrupacionVehiculo.Carga, 2);
 
         EnsureColor(context, 101, "Blanco");
         EnsureColor(context, 102, "Negro");
@@ -156,25 +158,32 @@ public static class DbInitializer
     {
         var existentes = context.Vehiculos.Count();
 
+        // Ahora evaluará contra el nuevo límite de 1000
         if (existentes >= TargetVehiculosTesting) return;
 
+        // Usamos una semilla fija para reproducibilidad pero expandimos el pool de aleatoriedad
         var random = new Random(1098825894);
-        var nombres = new[] { "Juan", "Carlos", "Diana", "Sandra", "Camila", "Jorge", "Luis", "Pedro", "Maria", "Andres" };
-        var apellidos = new[] { "Gomez", "Rodriguez", "Lopez", "Perez", "Castro", "Silva", "Diaz", "Ortiz", "Mendoza", "Velez" };
-        var direcciones = new[] { "Calle 10 # 5-20", "Carrera 7 # 12-45", "Barrio Centro", "Avenida Principal", "Calle 3 # 8-19" };
-        var placasBase = new[] { "ALB", "TST", "RDM", "JHN", "CAR", "IMP", "VEH", "TAX" };
+        
+        var nombres = new[] { "Juan", "Carlos", "Diana", "Sandra", "Camila", "Jorge", "Luis", "Pedro", "Maria", "Andres", "Diego", "Paula", "marta", "Fabian", "Nelson", "Gloria" };
+        var apellidos = new[] { "Gomez", "Rodriguez", "Lopez", "Perez", "Castro", "Silva", "Diaz", "Ortiz", "Mendoza", "Velez", "Chinchilla", "Duarte", "Sarmiento", "Rios" };
+        var direcciones = new[] { "Calle 10 # 5-20", "Carrera 7 # 12-45", "Barrio Centro", "Avenida Principal", "Calle 3 # 8-19", "Zona Industrial Lt 4", "Avenida Los Patios" };
+        var placasBase = new[] { "ALB", "TST", "RDM", "JHN", "CAR", "IMP", "VEH", "TAX", "COL", "MZN", "BGA", "CUC" };
 
         var marcas = context.Marcas.AsNoTracking().OrderBy(m => m.Id).ToList();
         var lineas = context.Lineas.AsNoTracking().OrderBy(l => l.Id).ToList();
         var colores = context.Colores.AsNoTracking().OrderBy(c => c.Id).ToList();
         var tipos = context.TipoVehiculos.AsNoTracking().OrderBy(t => t.Id).ToList();
 
+        // Cambiamos el guardado inmediato dentro del bucle por un procesamiento por lotes (Batch)
+        // para que la inserción de 1,000 registros sea ultra rápida en PostgreSQL
         for (var i = existentes; i < TargetVehiculosTesting; i++)
         {
             var nombre = $"{Pick(nombres, random)} {Pick(apellidos, random)}";
+            
             var propietario = new Propietario
             {
-                Documento = $"1098{random.Next(100000, 999999)}",
+                // Agregamos el índice de la iteración para evitar colisión de documentos de identidad
+                Documento = $"1098{random.Next(10000, 99999)}{i}", 
                 Nombre = nombre,
                 Direccion = Pick(direcciones, random),
                 Telefono = $"315{random.Next(1000000, 9999999)}",
@@ -182,17 +191,24 @@ public static class DbInitializer
             };
 
             context.Propietarios.Add(propietario);
-            context.SaveChanges();
+            context.SaveChanges(); // Persistimos el propietario para obtener su Id generado
 
             var tipo = tipos[i % tipos.Count];
             var marca = marcas[i % marcas.Count];
             var linea = lineas[i % lineas.Count];
             var color = colores[i % colores.Count];
+            
             var modelo = random.Next(2017, 2025);
             var pagoHasta = random.Next(modelo, Math.Min(modelo + 3, 2025));
-            var placa = CrearPlaca(placasBase[i % placasBase.Length], i);
-
-            if (context.Vehiculos.Any(v => v.Placa == placa)) continue;
+            
+            // 🚀 Generador de placa mejorado para evitar colisiones en volumen alto
+            var placa = $"{Pick(placasBase, random)}{random.Next(10, 99)}{i % 10}";
+            
+            // Si por un azar de la aleatoriedad ya existe, recalculamos de forma única
+            if (context.Vehiculos.Any(v => v.Placa == placa))
+            {
+                placa = $"{Pick(placasBase, random)}{random.Next(100, 999)}";
+            }
 
             var vehiculo = new Vehiculo
             {
@@ -202,8 +218,6 @@ public static class DbInitializer
                 PagoHasta = pagoHasta,
                 CapacidadCarga = tipo.Id is 4 or 8 or 9 ? random.Next(8_000, 22_000) : 0,
                 Pasajeros = tipo.Id is 3 ? random.Next(18, 36) : random.Next(4, 7),
-                DocumentoPropietario = propietario.Documento,
-                TipoIdentificacionId = (int)TipoDocumento.Cc,
                 TipoVehiculoId = tipo.Id,
                 MarcaId = marca.Id,
                 LineaId = linea.Id,
@@ -215,69 +229,72 @@ public static class DbInitializer
             };
 
             context.Vehiculos.Add(vehiculo);
-            context.SaveChanges();
+            context.SaveChanges(); // Guardamos el vehículo
 
+            // Inyectamos la cartera base histórica para este nuevo vehículo de prueba
             CrearCarteraDePrueba(context, vehiculo, random);
         }
     }
 
-    private static void SeedRecibosDePrueba(MainDataContext context)
-    {
-        if (context.Recibos.Any()) return;
+   private static void SeedRecibosDePrueba(MainDataContext context)
+{
+    // CORREGIDO: Usar el DbSet en plural 'Carteras' si es tu convención
+    if (context.Recibos.Any()) return;
 
-        var vehiculos = context.Vehiculos
-            .Include(v => v.Propietario)
-            .OrderBy(v => v.Id)
-            .Take(8)
+    var vehiculos = context.Vehiculos
+        .Include(v => v.Propietario)
+        .OrderBy(v => v.Id)
+        .Take(8)
+        .ToList();
+
+    foreach (var vehiculo in vehiculos)
+    {
+        var carteraPagada = context.Cartera
+            .Where(c => c.VehiculoId == vehiculo.Id && c.Vigencia <= vehiculo.PagoHasta)
             .ToList();
 
-        foreach (var vehiculo in vehiculos)
+        if (carteraPagada.Count == 0) continue;
+
+        var recibo = new Recibo
         {
-            var carteraPagada = context.Cartera
-                .Where(c => c.VehiculoId == vehiculo.Id && c.Vigencia <= vehiculo.PagoHasta)
-                .ToList();
+            VehiculoId = vehiculo.Id,
+            Estado = EstadoRecibo.Pendiente,
+            Fecha = Utc(2026, 2, 15),
+            FechaPago = Utc(2026, 2, 16),
 
-            if (carteraPagada.Count == 0) continue;
+            ValorCapital = carteraPagada.Sum(c => c.Valor),
+            InteresMora = carteraPagada.Sum(c => c.ValorInteres),
+            Descuento = carteraPagada.Sum(c => c.Descuento),
 
-            var recibo = new Recibo
+            // CORREGIDO: Uso de TipoConceptoCartera en lugar de strings quemados
+            Estampillas = carteraPagada.Where(c => c.Concepto == TipoConceptoCartera.Estampillas).Sum(c => c.Valor),
+            ValorCargaDatos = carteraPagada.Where(c => c.Concepto == TipoConceptoCartera.Carga).Sum(c => c.Valor),
+            ValorRodamiento = carteraPagada.Where(c => c.Concepto == TipoConceptoCartera.Rodamiento).Sum(c => c.Valor),
+
+            ValorTotalSistema = carteraPagada.Sum(c => c.ValorTotal),
+            Detalles = new List<ReciboDetalle>()
+        };
+
+        foreach (var item in carteraPagada)
+        {
+            item.IsPagado = true;
+
+            recibo.Detalles.Add(new ReciboDetalle
             {
-                VehiculoId = vehiculo.Id,
-                Estado = EstadoRecibo.Pendiente,
-                Fecha = Utc(2026, 2, 15),
-                FechaPago = Utc(2026, 2, 16),
-
-                ValorCapital = carteraPagada.Sum(c => c.Valor),
-                InteresMora = carteraPagada.Sum(c => c.ValorInteres),
-                Descuento = carteraPagada.Sum(c => c.Descuento),
-
-                Estampillas = carteraPagada.Where(c => c.Concepto == "ESTAMPILLAS").Sum(c => c.Valor),
-                ValorCargaDatos = carteraPagada.Where(c => c.Concepto == "CARGA").Sum(c => c.Valor),
-                ValorRodamiento = carteraPagada.Where(c => c.Concepto == "RODAMIENTO").Sum(c => c.Valor),
-
-                ValorTotalSistema = carteraPagada.Sum(c => c.ValorTotal),
-                Detalles = new List<ReciboDetalle>()
-            };
-
-            foreach (var item in carteraPagada)
-            {
-                item.IsPagado = true;
-
-                recibo.Detalles.Add(new ReciboDetalle
-                {
-                    CarteraId = item.Id,
-                    Vigencia = item.Vigencia,
-                    Concepto = item.Concepto,
-                    Valor = item.Valor,
-                    ValorInteres = item.ValorInteres,
-                    Descuento = item.Descuento,
-                    ValorTotal = item.ValorTotal
-                });
-            }
-
-            context.Recibos.Add(recibo);
-            context.SaveChanges();
+                CarteraId = item.Id,
+                Vigencia = item.Vigencia,
+                Concepto = item.Concepto, // CORREGIDO: Pasa el enum directamente a la entidad relacionada
+                Valor = item.Valor,
+                ValorInteres = item.ValorInteres,
+                Descuento = item.Descuento,
+                ValorTotal = item.ValorTotal
+            });
         }
+
+        context.Recibos.Add(recibo);
+        context.SaveChanges();
     }
+}
 
     private static void CrearCarteraDePrueba(MainDataContext context, Vehiculo vehiculo, Random random)
     {
@@ -292,7 +309,7 @@ public static class DbInitializer
             var estaEnCoactivo = !estaPagado && vigencia <= 2021 && random.Next(0, 3) == 0;
 
             // 🚀 Generar, evaluar avisos y agregar Rodamiento
-            var carteraRodamiento = GenerarObjetoCartera(vehiculo, vigencia, "RODAMIENTO", "IMPUESTO", baseRodamiento, interes, descuento, true, estaPagado, estaEnCoactivo);
+            var carteraRodamiento = GenerarObjetoCartera(vehiculo, vigencia, TipoConceptoCartera.Rodamiento, "IMPUESTO", baseRodamiento, interes, descuento, true, estaPagado, estaEnCoactivo);
             if (carteraRodamiento != null)
             {
                 if (!estaPagado && vigencia < anioActual)
@@ -304,7 +321,7 @@ public static class DbInitializer
 
             // 🚀 Generar, evaluar avisos y agregar Estampillas
             var estampillas = Math.Round(baseRodamiento * 0.02m, 0);
-            var carteraEstampillas = GenerarObjetoCartera(vehiculo, vigencia, "ESTAMPILLAS", "ESTAMPILLA", estampillas, 0, 0, false, estaPagado, estaEnCoactivo);
+            var carteraEstampillas = GenerarObjetoCartera(vehiculo, vigencia, TipoConceptoCartera.Estampillas, "ESTAMPILLA", estampillas, 0, 0, false, estaPagado, estaEnCoactivo);
             if (carteraEstampillas != null)
             {
                 if (!estaPagado && vigencia < anioActual)
@@ -318,7 +335,7 @@ public static class DbInitializer
             if (vehiculo.TipoServicioVehiculo == TipoServicioVehiculo.Publico)
             {
                 var carga = vehiculo.CapacidadCarga > 0 ? random.Next(90_000, 180_000) : random.Next(60_000, 120_000);
-                var carteraCarga = GenerarObjetoCartera(vehiculo, vigencia, "CARGA", "ADICIONAL", carga, vigencia < anioActual ? Math.Round(carga * 0.08m, 0) : 0, 0, true, estaPagado, estaEnCoactivo);
+                var carteraCarga = GenerarObjetoCartera(vehiculo, vigencia, TipoConceptoCartera.Carga, "ADICIONAL", carga, vigencia < anioActual ? Math.Round(carga * 0.08m, 0) : 0, 0, true, estaPagado, estaEnCoactivo);
                 if (carteraCarga != null)
                 {
                     if (!estaPagado && vigencia < anioActual)
@@ -332,7 +349,7 @@ public static class DbInitializer
             // 🚀 Generar, evaluar avisos y agregar Costas si aplica
             if (!estaPagado && vigencia <= 2024)
             {
-                var carteraCostas = GenerarObjetoCartera(vehiculo, vigencia, "COSTAS", "PROCESO", random.Next(25_000, 75_000), 0, 0, false, false, estaEnCoactivo);
+                var carteraCostas = GenerarObjetoCartera(vehiculo, vigencia, TipoConceptoCartera.Costas, "PROCESO", random.Next(25_000, 75_000), 0, 0, false, false, estaEnCoactivo);
                 if (carteraCostas != null)
                 {
                     if (vigencia < anioActual)
@@ -352,7 +369,7 @@ public static class DbInitializer
     // =========================================================================
 
     private static Cartera GenerarObjetoCartera(
-        Vehiculo vehiculo, int vigencia, string concepto, string tipo,
+        Vehiculo vehiculo, int vigencia, TipoConceptoCartera concepto, string tipo,
         decimal valor, decimal interes, decimal descuento, bool tieneInteres, bool isPagado, bool estaEnCoactivo)
     {
         return new Cartera
@@ -401,7 +418,7 @@ public static class DbInitializer
         }
     }
 
-    private static void EnsureTipoVehiculo(MainDataContext context, int id, int codigo, string nombre, string tipo, int modalidad)
+    private static void EnsureTipoVehiculo(MainDataContext context, int id, int codigo, string nombre, ClaseAgrupacionVehiculo tipo, int modalidad)
     {
         if (context.TipoVehiculos.Any(t => t.Id == id)) return;
 

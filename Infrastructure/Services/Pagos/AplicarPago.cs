@@ -39,6 +39,7 @@ public partial class PagoService
 
             // 5. 🔥 CORREGIDO: Asignación del estado del recibo usando el operador '='
             recibo.Estado = EstadoRecibo.Pagado; 
+            recibo.FechaPago = DateTime.UtcNow;
             
             // 6. Impactamos la base de datos en una sola transacción atómica
             return await context.SaveChangesAsync();

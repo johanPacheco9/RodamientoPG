@@ -295,5 +295,6 @@ D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\BouncyCast
 D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\MailKit.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\MimeKit.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\obj\Debug\net10.0\scopedcss\Components\Pages\Cartera\Dashboard.razor.rz.scp.css
-D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\obj\Debug\net10.0\compressed\58vwizni16-{0}-gunoymgtoj-gunoymgtoj.gz
-D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\obj\Debug\net10.0\compressed\8jbmea23pl-{0}-gunoymgtoj-gunoymgtoj.gz
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\obj\Debug\net10.0\scopedcss\Components\Pages\Index.razor.rz.scp.css
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\obj\Debug\net10.0\compressed\58vwizni16-{0}-w2fo33z2n5-w2fo33z2n5.gz
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\obj\Debug\net10.0\compressed\8jbmea23pl-{0}-w2fo33z2n5-w2fo33z2n5.gz

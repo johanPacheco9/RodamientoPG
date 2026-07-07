@@ -16,5 +16,9 @@ public enum TipoServicioVehiculo
     Otro = 4,
 
     [Display(Name = "Diplomático")]
-    Diplomatico = 5
+    Diplomatico = 5, 
+    
+    [Display(Name = "Carga o pasajero")]
+    CargaoPasajero = 10
+    
 }

@@ -1,0 +1,118 @@
+.chart-wrapper {
+    display: flex;
+    gap: 8px;
+    height: 280px;
+    align-items: stretch;
+}
+
+.chart-y-axis {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding-bottom: 24px;
+    min-width: 45px;
+    font-size: 11px;
+    color: #888;
+}
+
+.chart-area {
+    flex: 1;
+    position: relative;
+    border-left: 1.5px solid #e2e8f0;
+    border-bottom: 1.5px solid #e2e8f0;
+    padding-bottom: 24px;
+}
+
+.grid-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.grid-line:nth-child(1) { top: 0%; }
+.grid-line:nth-child(2) { top: 25%; }
+.grid-line:nth-child(3) { top: 50%; }
+.grid-line:nth-child(4) { top: 75%; }
+.grid-line:nth-child(5) { top: 100%; }
+
+.chart-groups {
+    position: absolute;
+    inset: 0;
+    bottom: 24px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    padding: 0 12px;
+}
+
+.chart-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    gap: 2px;
+}
+
+.chart-group > .bar-wrapper,
+.chart-group > div:not(.group-label) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: calc(100% - 28px);
+}
+
+/* layout interno del grupo */
+.chart-group {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    justify-content: center;
+    position: relative;
+    padding-bottom: 28px;
+    gap: 3px;
+    flex: 1;
+    height: 100%;
+}
+
+.bar-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: calc(100% - 28px);
+    position: relative;
+}
+
+.bar {
+    width: 22px;
+    border-radius: 3px 3px 0 0;
+    min-height: 2px;
+    transition: opacity 0.2s;
+}
+
+.bar:hover { opacity: 0.75; }
+
+.bar-value {
+    font-size: 10px;
+    color: #555;
+    margin-bottom: 2px;
+    white-space: nowrap;
+}
+
+.group-label {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 10px;
+    color: #475569;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 0 2px;
+}

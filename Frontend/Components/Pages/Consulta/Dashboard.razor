@@ -328,7 +328,7 @@
                         </tr>
                         </thead>
                         <tbody>
-                        
+
                         @foreach (var rubroDetallado in _vigencias
                                       .SelectMany(v => v.Conceptos.Select(c => new { v.Vigencia, Detalle = c }))
                                       .OrderBy(r => r.Vigencia)
@@ -409,7 +409,7 @@
                             <th>Fecha</th>
                             <th>No. resolución</th>
                             <th>Tipo</th>
-                            <th>Período</th>
+                            <th>Vigencias Afectadas</th>
                             <th>Observaciones</th>
                             <th>Estado</th>
                             <th class="text-end">Valor</th>
@@ -423,11 +423,27 @@
                                 <td>@r.Fecha.ToString("dd/MM/yyyy")</td>
                                 <td><strong>@r.NumeroResolucion</strong></td>
                                 <td>
-                                    <span class="badge bg-info-subtle text-info-emphasis">
-                                        @r.TipoResolucionId
-                                    </span>
+                        <span class="badge bg-info-subtle text-info-emphasis">
+                            @r.TipoResolucion.GetDisplayName()
+                        </span>
                                 </td>
-                                <td>@r.PeriodoDesde – @r.PeriodoHasta</td>
+                                <td>
+                                    @if (r.AnioDesde.HasValue)
+                                    {
+                                        @if (r.AnioDesde == r.AnioHasta)
+                                        {
+                                            <span>@r.AnioDesde</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@r.AnioDesde – @r.AnioHasta</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fst-italic small">Sin vigencias</span>
+                                    }
+                                </td>
                                 <td class="text-muted small">@r.Observaciones</td>
                                 <td><span class="badge @BadgeEstadoProceso(r.Estado)">@r.Estado</span></td>
                                 <td class="text-end">@r.Valor.ToString("C")</td>
@@ -577,43 +593,59 @@
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Crear resolución</h5>
+                    <h5 class="modal-title">Crear resolución de rodamiento</h5>
                     <button type="button" class="btn-close" @onclick="CerrarModal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="row g-3">
-                        <div class="col-md-4">
-                            <label class="form-label">No. resolución</label>
-                            <input class="form-control" @bind="resolObj.NumeroResolucion"/>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Tipo</label>
+                        <div class="col-md-6">
+                            <label class="form-label">Tipo de Resolución</label>
                             <select class="form-select" @onchange="capturar">
-                                <option value="1">Tipo 1</option>
-                                <option value="2">Tipo 2</option>
+                                <option value="1">Traslado de Cuenta</option>
+                                <option value="2">Anulación de Deuda</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Fecha</label>
-                            <input class="form-control" type="date"
-                                   @bind="resolObj.Fecha"/>
+
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Expedición</label>
+                            <input class="form-control" type="date" @bind="resolObj.Fecha"/>
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label">Período hasta</label>
-                            <input class="form-control" type="number"
-                                   @bind="resolObj.PeriodoHasta"/>
-                        </div>
-                        @if (!_islic)
+
+                        @if (_vigencias == null || !_vigencias.Any())
                         {
-                            <div class="col-md-4">
-                                <label class="form-label">Valor</label>
-                                <input class="form-control" type="number"
-                                       @bind="novTotal"/>
+                            <div class="alert alert-info py-2">No hay vigencias pendientes cargadas para este
+                                vehículo.
                             </div>
                         }
+                        else
+                        {
+                            <div class="card p-3" style="max-height: 200px; overflow-y: auto;">
+                                <div class="row">
+                                    @foreach (var v in _vigencias)
+                                    {
+                                        <div class="col-6 col-sm-4 mb-2">
+                                            <div class="form-check">
+                                                <!-- Usamos una propiedad temporal para no alterar la selección de la grilla principal si no quieres -->
+                                                <input class="form-check-input" type="checkbox" id="chk-@v.Vigencia"
+                                                       @bind="v.Seleccionado"/>
+                                                <label class="form-check-label" for="chk-@v.Vigencia">
+                                                    <strong>@v.Vigencia</strong>
+                                                    <span
+                                                        class="text-muted small">($@v.TotalVigencia.ToString("N0"))</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- 🚀 El valor monetario ya no se digita, se totaliza sumando las deudas del rango en el backend -->
+
                         <div class="col-12">
-                            <label class="form-label">Observaciones</label>
-                            <textarea class="form-control" rows="2"
+                            <label class="form-label">Observaciones / Sustento Legal</label>
+                            <textarea class="form-control" rows="3"
+                                      placeholder="Escriba los motivos o el número de radicado externo..."
                                       @bind="resolObj.Observaciones"></textarea>
                         </div>
                     </div>
@@ -621,7 +653,7 @@
                 <div class="modal-footer">
                     <button class="btn btn-secondary btn-sm" @onclick="CerrarModal">Cancelar</button>
                     <button class="btn btn-warning btn-sm" @onclick="Agregar_resol">
-                        <i class="bi bi-check"></i> Guardar resolución
+                        <i class="bi bi-file-earmark-check"></i> Generar resolución consecutiva
                     </button>
                 </div>
             </div>

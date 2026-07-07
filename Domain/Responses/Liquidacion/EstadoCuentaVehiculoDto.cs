@@ -1,3 +1,5 @@
+using Domain.Models.Carteras.Enums;
+using Domain.Models.ProcesoLiquidacion;
 using Domain.Responses.Users.Enums;
 namespace Domain.Responses.Liquidacion;
 
@@ -16,7 +18,7 @@ public class EstadoCuentaVehiculoDto
     public string Carroceria { get; set; } = string.Empty;
     public string Carga { get; set; } = string.Empty;
     public string EstadoNombre { get; set; } = string.Empty;
-    public int EstadoId { get; set; }
+    public EstadoProceso EstadoId { get; set; }
 
     // Propietario
     public TipoDocumento TipoDocumento { get; set; }
@@ -38,7 +40,7 @@ public class EstadoCuentaVehiculoDto
 public record ConceptoCarteraDto(
     int Id,
     int Vigencia,
-    string Concepto,
+    TipoConceptoCartera Concepto,
     string Tipo,
     decimal Valor,
     decimal ValorInteres,

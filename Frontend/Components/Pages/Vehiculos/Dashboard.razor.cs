@@ -1,12 +1,31 @@
 using Domain.Models.Vehiculos;
-using Domain.Models.Vehiculos.Responses; // 🚀 Asegúrate de importar el namespace de tu DTO
+using Domain.Models.Vehiculos.Responses;
+using Infrastructure.Services.Carteras;
+using Infrastructure.Services.Colores;
+using Infrastructure.Services.Lineas;
+using Infrastructure.Services.Marcas;
+using Infrastructure.Services.Propietarios;
+using Infrastructure.Services.TiposVehiculos;
+using Infrastructure.Services.Vehiculos;
+using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
 namespace Frontend.Components.Pages.Vehiculos;
 
 public partial class Dashboard
 {
-    // Variables de Estado de la UI y Alertas Nativas de Bootstrap
+    [Inject] private CarteraService CarteraService { get; set; } = null!;
+    [Inject] private NavigationManager NavigationManager { get; set; } = null!;
+    [Inject] private VehiculosService VehiculosService { get; set; } = null!;
+    [Inject] private PropietarioService PropietarioService { get; set; } = null!;
+    [Inject] private MarcaService GruposService { get; set; } = null!;
+    [Inject] private LineasService LineasService { get; set; } = null!;
+    [Inject] private TiposService Claseservice { get; set; } = null!;
+    [Inject] private ColoresService Clasescolor { get; set; } = null!;
+    
+    [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
+
+    // Variables de Estado de la UI
     private bool _mostrarModal = false;
     private bool _mostrarModal2 = false;
     private bool _isLoading = false;
@@ -17,16 +36,16 @@ public partial class Dashboard
     private string alertaMensaje = string.Empty;
     private string alertaTipo = "danger";
 
-// Modelos de Datos del Dominio de Tránsito
+    // Modelos de Datos
     private Vehiculo vehiculo = new();
     private Propietario _propietario = new();
 
-// 🔥 CAMBIO CLAVE: La grilla ahora es una lista ligera de DTOs
+    // Grilla basada en DTOs ligeros
     private List<VehiculoDetalleDto> ListVehiculos = new();
     private IList<VehiculoDetalleDto>? selectedEmployees;
     private IList<Linea> lines = new List<Linea>();
 
-// Colecciones Maestras globales que usan tus selectores <select> en el HTML
+    // Colecciones Maestras globales para el Formulario de Registro Nuevo
     private IEnumerable<Marca> customers = new List<Marca>();
     private IEnumerable<TipoVehiculo> Clasesveh = new List<TipoVehiculo>();
     private IEnumerable<Color> ClasesColores = new List<Color>();
@@ -37,7 +56,7 @@ public partial class Dashboard
         LimpiarAlerta();
         try
         {
-            // Carga inicial ultra-rápida usando DTOs
+            // Carga inicial de DTOs para la grilla principal
             var todosLosVehiculos = await VehiculosService.GetAll();
             ListVehiculos = todosLosVehiculos ?? new List<VehiculoDetalleDto>();
 
@@ -46,15 +65,13 @@ public partial class Dashboard
                 selectedEmployees = ListVehiculos.Take(1).ToList();
             }
 
-            // 🚀 DEFINICIÓN CORRECTA: Declaramos los Tasks locales para disparar el paralelismo
+            // Carga paralela de catálogos maestros de tránsito (Útil para el registro nuevo)
             Task<List<Marca>> tareaMarcas = GruposService.GetAll();
             Task<List<TipoVehiculo>> tareaClases = Claseservice.GetAll();
             Task<List<Color>> tareaColores = Clasescolor.GetAll();
 
-            // Esperamos a que todas las peticiones a la BD terminen en segundo plano
             await Task.WhenAll(tareaMarcas, tareaClases, tareaColores);
 
-            // 🎯 ASIGNACIÓN SEGURA: Pasamos el .Result a tus variables globales de los dropdowns
             customers = tareaMarcas.Result ?? new List<Marca>();
             Clasesveh = tareaClases.Result ?? new List<TipoVehiculo>();
             ClasesColores = tareaColores.Result ?? new List<Color>();
@@ -68,50 +85,27 @@ public partial class Dashboard
             _isLoading = false;
         }
     }
-    
 
-    // 🔥 MODIFICADO: Ahora recibe el DTO de la grilla y busca el registro completo para el modal
-    private async Task OnRowSelect(VehiculoDetalleDto item)
+    // 🔥 CORREGIDO: Redirige de forma nativa a la nueva página independiente al dar clic en la fila o editar
+    private void GestionarEditar(VehiculoDetalleDto item)
     {
         if (item == null) return;
+        
+        // Navegamos directamente al componente dedicado pasando el ID por URL
+        NavigationManager.NavigateTo($"/Vehiculos/Editar/{item.Id}");
+    }
 
-        _isLoading = true;
-        LimpiarAlerta();
-
-        try
-        {
-            var vehiculoCompleto = await VehiculosService.GetByIdCompleto(item.Id);
-
-            if (vehiculoCompleto == null) return;
-
-            vehiculo = vehiculoCompleto;
-
-            if (!string.IsNullOrWhiteSpace(vehiculo.Placa))
-            {
-                var result = await ComparendoService.GetCarteraByPlaca(vehiculo.Placa.Trim());
-                if (result != null)
-                    rnombre = result.NombrePropietario ?? string.Empty;
-            }
-
-            await CargarLineas();
-            esModoEditar = true;
-            _mostrarModal = true;
-        }
-        catch (Exception ex)
-        {
-            MostrarAlerta($"Error al procesar la fila del vehículo seleccionado: {ex.Message}", "warning");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
+    private void SeleccionarFila(VehiculoDetalleDto item)
+    {
+        selectedEmployees = new List<VehiculoDetalleDto> { item };
+        GestionarEditar(item);
     }
 
     private async Task CargarLineas()
     {
         if (vehiculo != null && vehiculo.MarcaId > 0)
         {
-            var lines = await LineasService.GetListByMarca(vehiculo.MarcaId) ?? new List<Linea>();
+            lines = await LineasService.GetListByMarca(vehiculo.MarcaId) ?? new List<Linea>();
         }
         else
         {
@@ -119,21 +113,16 @@ public partial class Dashboard
         }
     }
 
-    private async Task capturar(object value)
-    {
-        await CargarLineas();
-    }
-
     private async Task BuscarNombreInfractor()
     {
-        if (string.IsNullOrWhiteSpace(vehiculo.DocumentoPropietario))
+        if (string.IsNullOrWhiteSpace(vehiculo.Propietario.Documento))
             return;
 
         LimpiarAlerta();
         try
         {
             var nombre = await PropietarioService.GetNameByDocumento(
-                vehiculo.DocumentoPropietario,
+                vehiculo.Propietario.Documento,
                 _propietario.TipoDocumento);
 
             if (!string.IsNullOrEmpty(nombre))
@@ -159,7 +148,6 @@ public partial class Dashboard
         if (!IsValid(vehiculo))
         {
             MostrarAlerta("Por favor complete todos los campos obligatorios antes de continuar.", "warning");
-
             return;
         }
 
@@ -186,48 +174,15 @@ public partial class Dashboard
             MostrarAlerta($"Error técnico en la inserción de datos: {ex.Message}", "danger");
         }
     }
-
-    private async Task Actualizar(Vehiculo v)
-    {
-        if (!IsValid(v))
-        {
-            MostrarAlerta("No es posible actualizar. Hay campos obligatorios pendientes.", "warning");
-
-            return;
-        }
-
-        try
-        {
-            if (!string.IsNullOrEmpty(v.Placa))
-                v.Placa = v.Placa.ToUpper().Trim();
-
-            var count = await VehiculosService.Edit(v);
-            if (count > 0)
-            {
-                await CerrarModal();
-                var todos = await VehiculosService.GetAll();
-                ListVehiculos = todos?.ToList() ?? new();
-                MostrarAlerta("Datos del automotor actualizados correctamente.", "success");
-            }
-            else
-            {
-                MostrarAlerta("No se detectaron modificaciones en los campos del vehículo.", "info");
-            }
-        }
-        catch (Exception ex)
-        {
-            MostrarAlerta($"Error técnico al editar registro: {ex.Message}", "danger");
-        }
-    }
-
+    
     private bool IsValid(Vehiculo v)
     {
         if (v == null) return false;
         if (string.IsNullOrWhiteSpace(v.Placa) || v.Placa.Length < 5) return false;
-        if (string.IsNullOrWhiteSpace(v.DocumentoPropietario)) return false;
+        if (string.IsNullOrWhiteSpace(v.Propietario.Documento)) return false;
         if (v.MarcaId <= 0) return false;
         if (v.TipoVehiculoId <= 0) return false;
-        if (v.TipoIdentificacionId <= 0) return false;
+        if (v.Propietario.TipoDocumento <= 0) return false;
 
         return true;
     }
@@ -245,8 +200,6 @@ public partial class Dashboard
             }
             else
             {
-                // NOTA SUSTENTACIÓN: Si implementas filtros específicos por placa,
-                // asegúrate de retornar también una proyección de VehiculoDetalleDto desde el servicio.
                 var todos = await VehiculosService.GetAll();
                 ListVehiculos = todos?.Where(x => x.Placa.Contains(buscarnit.ToUpper())).ToList() ?? new();
             }
@@ -266,17 +219,15 @@ public partial class Dashboard
         if (string.IsNullOrWhiteSpace(_propietario.Direccion))
         {
             MostrarAlerta("Debe especificar la dirección urbana de notificación para el propietario.", "warning");
-
             return;
         }
         if (string.IsNullOrWhiteSpace(_propietario.Telefono))
         {
             MostrarAlerta("El número de teléfono/celular es obligatorio para RUNT.", "warning");
-
             return;
         }
 
-        _propietario.Documento = vehiculo.DocumentoPropietario;
+        _propietario.Documento = vehiculo.Propietario.Documento;
 
         try
         {
@@ -298,40 +249,6 @@ public partial class Dashboard
         }
     }
 
-    private async Task Recalcular()
-    {
-        if (!esModoEditar)
-        {
-            MostrarAlerta("Operación rechazada. Debe guardar formalmente el vehículo antes de procesar una liquidación.", "warning");
-
-            return;
-        }
-
-        bool confirm = await JsRuntime.InvokeAsync<bool>("confirm", "¿Desea proceder con el recálculo masivo de impuestos para esta placa coactiva?");
-
-        if (confirm)
-        {
-            try
-            {
-                var comp = await ComparendoService.GetCarteraByPlaca(vehiculo.Placa);
-                if (comp == null || comp.VigenciaDesde == 0)
-                {
-                    MostrarAlerta("Información faltante. Genere la pre-deuda o estado de cartera preliminar primero.", "info");
-
-                    return;
-                }
-
-                await ComparendoService.GeneraDeuda(vehiculo.Placa, comp.VigenciaDesde, comp.VigenciaHasta);
-                await CerrarModal();
-                MostrarAlerta("Recálculo financiero de cartera finalizado con éxito.", "success");
-            }
-            catch (Exception ex)
-            {
-                MostrarAlerta($"Fallo al ejecutar recálculo del proceso de liquidación: {ex.Message}", "danger");
-            }
-        }
-    }
-
     public void MostrarModal(bool modoEditar)
     {
         esModoEditar = modoEditar;
@@ -341,7 +258,6 @@ public partial class Dashboard
         {
             vehiculo = new Vehiculo
             {
-                TipoIdentificacionId = 1,
                 TipoVehiculoId = 1,
                 MarcaId = 0,
                 LineaId = 0,
@@ -349,9 +265,8 @@ public partial class Dashboard
             };
             rnombre = string.Empty;
             lines = new List<Linea>();
+            _mostrarModal = true;
         }
-
-        _mostrarModal = true;
     }
 
     private async Task CerrarModal()
@@ -367,7 +282,7 @@ public partial class Dashboard
     {
         _propietario = new Propietario
         {
-            Documento = vehiculo.DocumentoPropietario,
+            Documento = vehiculo.Propietario.Documento,
             TipoDocumento = _propietario.TipoDocumento
         };
         _mostrarModal2 = true;
@@ -382,38 +297,5 @@ public partial class Dashboard
     private void LimpiarAlerta()
     {
         alertaMensaje = string.Empty;
-    }
-
-    // 🔥 MODIFICADO: Ahora obtiene el objeto completo de base de datos antes de pintar el modal de edición
-    private async Task GestionarEditar(VehiculoDetalleDto item)
-    {
-        _isLoading = true;
-        try
-        {
-            var vehiculoCompleto = await VehiculosService.GetByIdCompleto(item.Id);
-
-            if (vehiculoCompleto == null) return;
-
-            vehiculo = vehiculoCompleto;
-            rnombre = vehiculo.Propietario?.Nombre ?? string.Empty;
-
-            await CargarLineas();
-            MostrarModal(true);
-        }
-        catch (Exception ex)
-        {
-            MostrarAlerta($"Error al cargar el vehículo para edición: {ex.Message}", "danger");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
-    }
-
-    // 🔥 MODIFICADO: Soporta la firma del nuevo DTO de la grilla
-    private void SeleccionarFila(VehiculoDetalleDto item)
-    {
-        selectedEmployees = new List<VehiculoDetalleDto> { item };
-        _ = OnRowSelect(item);
     }
 }

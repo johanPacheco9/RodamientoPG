@@ -1,6 +1,7 @@
 using Frontend.Components;
 using Infrastructure.AppDbContext;
 using Infrastructure.DependencyInjection;
+using Infrastructure.Services.EmailNotification;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,8 +21,7 @@ builder.Services.AddDbContextFactory<MainDataContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")),
     ServiceLifetime.Scoped);
 
-builder.Services.AddDbContext<MainDataContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
@@ -42,7 +42,16 @@ builder.Services.AddInfrastructureServices();
 builder.Services.AddScoped<BusquedaService>();
 
 var app = builder.Build();
+app.MapPost("/test-email", async (EmailService emailService) =>
+{
+    await emailService.Enviar(
+        "johanpach9@gmail.com",
+        "Johan",
+        "Prueba SMTP",
+        "<h2>Hola</h2><p>Correo de prueba.</p>");
 
+    return Results.Ok("Correo enviado");
+});
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

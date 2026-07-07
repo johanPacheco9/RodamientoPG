@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services.Vehiculos;
 
-// 🎯 Cambié el nombre del parámetro del constructor de 'context' a 'contextFactory' para evitar confusiones
 public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory, ILogger<VehiculosService> logger)
 {
     public async Task<int> Add(Vehiculo vehiculo)
@@ -30,34 +29,74 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
             return 0;
         }
     }
-
-    public async Task<int> Edit(Vehiculo vehiculo)
+    public async Task<int> Edit(UpdateVehiculoRequest request)
     {
         try
         {
             using var ctx = await contextFactory.CreateDbContextAsync();
-            ctx.Vehiculos.Update(vehiculo);
+        
+            // 1. Buscar el vehículo existente en la base de datos
+            var vehiculoDb = await ctx.Vehiculos
+                .FirstOrDefaultAsync(v => v.Id == request.Id);
 
+            if (vehiculoDb == null)
+            {
+                logger.LogWarning("Se intentó editar un vehículo que no existe. ID: {Id}", request.Id);
+                return 0; 
+            }
+
+            // 2. Actualizar las propiedades con los datos del Request
+            vehiculoDb.Placa = request.Placa;
+            vehiculoDb.Modelo = request.Modelo;
+            vehiculoDb.Cilindraje = request.Cilindraje;
+            vehiculoDb.CapacidadCarga = request.CapacidadCarga;
+            vehiculoDb.Pasajeros = request.Pasajeros;
+            vehiculoDb.TipoVehiculoId = request.TipoVehiculoId;
+            vehiculoDb.MarcaId = request.MarcaId;
+            vehiculoDb.LineaId = request.LineaId;
+            vehiculoDb.ColorId = request.ColorId;
+            vehiculoDb.TipoCarroceriaId = request.TipoCarroceriaId;
+            vehiculoDb.PropietarioId = request.PropietarioId;
+            vehiculoDb.FechaModificacion = DateTime.UtcNow;
+            vehiculoDb.UsuarioModifico = 1;
+            
+            vehiculoDb.TipoServicioVehiculo = (Domain.Responses.Vehiculos.Enums.TipoServicioVehiculo)request.TipoServicioVehiculo;
+
+            // 3. Guardar cambios (EF ya trackea las modificaciones automáticamente)
             return await ctx.SaveChangesAsync();
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error crítico al editar el vehículo con ID {Id}", vehiculo.Id);
-
+            logger.LogError(ex, "Error crítico al editar el vehículo con ID {Id}", request.Id);
             throw;
         }
     }
 
-    public async Task<Vehiculo?> GetById(int id)
+    public async Task<VehiculoDetailDto?> GetById(int id)
     {
         using var ctx = await contextFactory.CreateDbContextAsync();
 
         return await ctx.Vehiculos
-            .Include(v => v.TipoVehiculo)
-            .Include(v => v.Marca)
-            .Include(v => v.Linea)
-            .Include(v => v.EstadoProceso)
-            .FirstOrDefaultAsync(v => v.Id == id);
+            .AsNoTracking()
+            .Where(v => v.Id == id)
+            .Select(v => new VehiculoDetailDto(
+                v.Id,
+                v.Placa,
+                v.Modelo,
+                v.Cilindraje,
+                v.CapacidadCarga,
+                v.Pasajeros,
+                v.TipoVehiculoId,
+                v.MarcaId,
+                v.LineaId,
+                v.ColorId,
+                v.TipoServicioVehiculo,
+                v.TipoCarroceriaId,
+                v.EstadoProcesoId,
+                v.PropietarioId,
+                v.Propietario.Documento,
+                v.Propietario.TipoDocumento))
+            .FirstOrDefaultAsync();
     }
     
 
@@ -76,7 +115,7 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
                     v.Modelo,
                     v.Cilindraje,
                     v.PagoHasta,
-                    v.DocumentoPropietario,
+                    v.Propietario.Documento,
                     v.TipoVehiculo.Nombre,
                     v.Marca.Nombre,
                     v.Linea.Nombre,
@@ -105,7 +144,7 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
         using var ctx = await contextFactory.CreateDbContextAsync();
 
         return await ctx.Vehiculos
-            .Where(v => v.DocumentoPropietario == documento)
+            .Where(v => v.Propietario.Documento == documento)
             .Include(v => v.TipoVehiculo)
             .Include(v => v.Marca)
             .ToListAsync();
@@ -120,7 +159,7 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
             .Include(v => v.Linea)
             .Include(v => v.TipoVehiculo)
             .Include(v => v.EstadoProceso)
-            .Where(v => v.DocumentoPropietario == documento)
+            .Where(v => v.Propietario.Documento == documento)
             .ToListAsync();
     }
 

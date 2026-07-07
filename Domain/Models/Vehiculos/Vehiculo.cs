@@ -4,7 +4,7 @@ using Domain.Responses.Vehiculos.Enums;
 
 namespace Domain.Models.Vehiculos;
 
-public class Vehiculo
+public class Vehiculo : EntityWithTraceability
 {
     [Key]
     public int Id { get; set; }
@@ -22,12 +22,7 @@ public class Vehiculo
     public int CapacidadCarga { get; set; }
 
     public int Pasajeros { get; set; }
-
-    [Required(ErrorMessage = "El documento del propietario es obligatorio.")]
-    public string DocumentoPropietario { get; set; } = string.Empty;
-
-    public int TipoIdentificacionId { get; set; }
-
+    
     // =========================================================
     // 🔗 CLAVES FORÁNEAS (Estándar de la industria: Sufijo Id)
     // =========================================================
@@ -44,7 +39,7 @@ public class Vehiculo
 
     public int TipoCarroceriaId { get; set; }
 
-    public int EstadoProcesoId { get; set; } 
+    public EstadoProceso EstadoProcesoId { get; set; } 
     
     public int PropietarioId { get; set; }
 

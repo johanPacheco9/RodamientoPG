@@ -5,7 +5,7 @@ namespace Infrastructure.Services.Liquidaciones;
 
 public partial class LiquidacionService
 {
-    private async Task<decimal> ObtenerValorCargaOPasajero(Vehiculo vehiculo, int vigencia)
+    public async Task<decimal> ObtenerValorCargaOPasajero(Vehiculo vehiculo, int vigencia)
     {
         if (vehiculo.TipoServicioVehiculo != TipoServicioVehiculo.Publico)
             return 0;

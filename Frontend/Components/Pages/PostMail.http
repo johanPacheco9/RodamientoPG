@@ -1,0 +1,2 @@
+### Prueba envío de correo
+POST http://localhost:5272/test-email

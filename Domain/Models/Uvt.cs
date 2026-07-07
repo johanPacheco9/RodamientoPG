@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Models;
 
-public class Uvt
+public class Uvt  : EntityWithTraceability
 {
     [Key]
     [Column("id")]

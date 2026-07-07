@@ -11,7 +11,7 @@ public partial class CoactivoService
             .Where(l =>
                 l.ProcesoId == null &&
                 l.VigenciaHasta <= yearVigencia &&
-                l.Vehiculo.EstadoProcesoId == 1)
+                l.Vehiculo.EstadoProcesoId == EstadoProceso.SinProceso)
             .ToListAsync();
     }
 

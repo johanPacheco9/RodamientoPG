@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using Domain.Models.Vehiculos.Enums;
 namespace Domain.Models.Vehiculos;
 
 public class TipoVehiculo
@@ -15,8 +16,7 @@ public class TipoVehiculo
 
     public int ModalidadServicio { get; set; } // Modalidad de servicio para el RUNT
 
-    [StringLength(2)]
-    public string Tipo { get; set; } = string.Empty; // Agrupación de liquidación (A, P, C, M)
+    public ClaseAgrupacionVehiculo Tipo { get; set;}
 
     // ====================================================================
     // 📈 UVT ASOCIADA: Nullable porque no todas las clases aplican para UVT

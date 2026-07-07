@@ -1,8 +1,10 @@
 using Domain.Models;
+using Domain.Models.Avaluo;
 using Domain.Models.BaseGravable;
 using Domain.Models.Notificaciones;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Recibos;
+using Domain.Models.Resoluciones;
 using Domain.Models.Vehiculos;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,8 +32,12 @@ public class MainDataContext(DbContextOptions<MainDataContext> options) : DbCont
     public DbSet<Uvt> Uvts { get; set; }
     public DbSet<HistorialPropietario> HistorialPropietarios { get; set; }
     public DbSet<LiquidacionDetalle> LiquidacionDetalles  { get; set; }
-    
+    public DbSet<Resolucion> Resolucion { get; set; }
     public DbSet<Aviso> Avisos { get; set; }
+    
+    public DbSet<AvaluoVigencia>AvaluoVigencias { get; set; }
+    
+    public DbSet<AvaluoVehiculo>AvaluoVehiculos { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

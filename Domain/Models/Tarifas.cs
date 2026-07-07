@@ -5,7 +5,8 @@ using Domain.Responses.Liquidacion.Enums;
 using Domain.Responses.Vehiculos.Enums;
 
 namespace Domain.Models;
-public class Tarifa
+
+public class Tarifa : EntityWithTraceability
 {
     [Key]
     public int Id { get; set; }

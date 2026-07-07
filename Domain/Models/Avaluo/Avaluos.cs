@@ -1,10 +1,12 @@
-﻿namespace Domain.Models.Avaluo;
+﻿using Domain.Models.Vehiculos;
+namespace Domain.Models.Avaluo;
 
 public class AvaluoVehiculo
 {
     public int Id { get; set; }
     public string Codigo { get; set; } = string.Empty;
     public string ClaseVehiculo { get; set; } = string.Empty;
+    public TipoVehiculo TipoVehiculo { get; set; }
     public string Marca { get; set; } = string.Empty;
     public string Linea { get; set; } = string.Empty;
     public int Cilindraje { get; set; }

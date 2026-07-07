@@ -1,115 +1,35 @@
-using Domain.Generics;
-using Domain.Models.ProcesoLiquidacion;
-using Domain.Responses.Carteras;
 using Infrastructure.AppDbContext;
-using Microsoft.EntityFrameworkCore;
+using Infrastructure.Services.Liquidaciones;
+using Infrastructure.Services.Tarifas;
 using Microsoft.Extensions.Logging;
+
 namespace Infrastructure.Services.Carteras;
 
-public partial class CarteraService(MainDataContext context, ILogger<CarteraService> logger)
+public partial class CarteraService(
+    MainDataContext context, 
+    ILogger<CarteraService> logger,
+    LiquidacionService liquidacionService, 
+    TarifaService tarifaService) // <-- Recibes todos por constructor primario
 {
-    private readonly MainDataContext _context = context;
-    private readonly ILogger<CarteraService> _logger = logger;
+    // C# 12 expone 'context', 'logger', 'liquidacionService' y 'tarifaService' 
+    // automáticamente a toda la clase. ¡Ya no necesitas declarar variables privadas abajo!
+
+    private const string ConceptoRodamiento = "RODAMIENTO";
+    private const string ConceptoEstampillas = "ESTAMPILLAS";
+    private const string ConceptoCostas = "COSTAS";
+    private const string ConceptoCarga = "CARGA";
+    private const string ConceptoSistematizacion = "SISTEMATIZACION";
+
+    private static bool EsConceptoRodamiento(string concepto) => EsConcepto(concepto, ConceptoRodamiento, "1", "TRANSITO");
+    private static bool EsConceptoEstampillas(string concepto) => EsConcepto(concepto, ConceptoEstampillas, "2");
+    private static bool EsConceptoCostas(string concepto) => EsConcepto(concepto, ConceptoCostas, "3", "RECIBO");
+    private static bool EsConceptoCarga(string concepto) => EsConcepto(concepto, ConceptoCarga, "4");
+    private static bool EsConceptoSistema(string concepto) => EsConcepto(concepto, ConceptoSistematizacion);
+    private static bool EsClasePorCarga(int tipoVehiculoId) => tipoVehiculoId is 4 or 8 or 9;
+    private static bool EsClasePorPasajeros(int tipoVehiculoId) => tipoVehiculoId is 1 or 2 or 3 or 5 or 6 or 7;
     
-    
-    public async Task<PaginadoCarteraDto> GetDeudores(FiltroCarteraDto filtro, int pagina, int porPagina)
+    private static bool EsConcepto(string concepto, params string[] opciones)
     {
-        var query = context.Cartera
-            .Where(c => !c.IsPagado)
-            .Include(c => c.Vehiculo)
-                .ThenInclude(v => v.Propietario)
-            .AsQueryable();
-
-        // ── Filtros ──────────────────────────────────────────────
-        if (!string.IsNullOrWhiteSpace(filtro.Busqueda))
-        {
-            var b = filtro.Busqueda.Trim().ToUpper();
-            query = query.Where(c =>
-                c.Placa.Contains(b) ||
-                c.Vehiculo.Propietario.Documento.Contains(b));
-        }
-
-        if (filtro.VigenciaDesde.HasValue)
-            query = query.Where(c => c.Vigencia <= filtro.VigenciaDesde.Value);
-
-        if (!string.IsNullOrEmpty(filtro.Proceso))
-        {
-            query = filtro.Proceso.ToLower() switch
-            {
-                "ninguno"    => query.Where(c => c.Vehiculo.EstadoProceso == EstadoProceso.SinProceso),
-                "persuasivo" => query.Where(c => c.Vehiculo.EstadoProceso == EstadoProceso.Persuasivo),
-                "coactivo"   => query.Where(c => c.Vehiculo.EstadoProceso == EstadoProceso.Coactivo),
-                _ => query
-            };
-        }
-
-        // ── Agrupar por vehículo en memoria ──────────────────────
-        var raw = await query
-            .Select(c => new
-            {
-                c.VehiculoId,
-                c.Placa,
-                c.Vigencia,
-                c.ValorTotal,
-                TipoDocumento     = c.Vehiculo.Propietario.TipoDocumento.ToString(),
-                Documento         = c.Vehiculo.Propietario.Documento,
-                NombrePropietario = c.Vehiculo.Propietario.Nombre,
-                EstadoProceso     = c.Vehiculo.EstadoProceso
-            })
-            .ToListAsync();
-
-        var agrupado = raw
-            .GroupBy(c => c.VehiculoId)
-            .Select(g =>
-            {
-                var primero = g.First();
-                return new
-                {
-                    primero.Placa,
-                    primero.TipoDocumento,
-                    primero.Documento,
-                    primero.NombrePropietario,
-                    VigenciasPendientes = g.Select(c => c.Vigencia).Distinct().Count(),
-                    TotalDeuda          = g.Sum(c => c.ValorTotal),
-                    Proceso             = primero.EstadoProceso == EstadoProceso.SinProceso
-                                            ? null
-                                            : primero.EstadoProceso.GetDisplayName()
-                };
-            })
-            .ToList();
-
-        // ── Filtro deuda mínima (post-agrupación) ─────────────────
-        if (filtro.DeudaMinima.HasValue && filtro.DeudaMinima > 0)
-            agrupado = agrupado.Where(x => x.TotalDeuda >= filtro.DeudaMinima.Value).ToList();
-
-        // ── Métricas ──────────────────────────────────────────────
-        var totalDeudores = agrupado.Count;
-        var totalCartera  = agrupado.Sum(x => x.TotalDeuda);
-        var conProceso    = agrupado.Count(x => !string.IsNullOrEmpty(x.Proceso));
-
-        // ── Paginación ────────────────────────────────────────────
-        var items = agrupado
-            .OrderByDescending(x => x.TotalDeuda)
-            .Skip((pagina - 1) * porPagina)
-            .Take(porPagina)
-            .Select(x => new DeudorDto
-            {
-                TipoDocumento       = x.TipoDocumento,
-                Documento           = x.Documento,
-                NombrePropietario   = x.NombrePropietario,
-                Placa               = x.Placa,
-                VigenciasPendientes = x.VigenciasPendientes,
-                TotalDeuda          = x.TotalDeuda,
-                Proceso             = x.Proceso
-            })
-            .ToList();
-
-        return new PaginadoCarteraDto
-        {
-            Items        = items,
-            Total        = totalDeudores,
-            TotalCartera = totalCartera,
-            ConProceso   = conProceso
-        };
+        return opciones.Any(opcion => string.Equals(concepto?.Trim(), opcion, StringComparison.OrdinalIgnoreCase));
     }
 }

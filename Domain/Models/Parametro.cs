@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Domain.Models;
 
-public class Parametro
+public class Parametro : EntityWithTraceability
 {
     [Key]
     public int Id { get; set; }
@@ -47,4 +47,6 @@ public class Parametro
     
     public decimal ValorCostasCoactivo { get; set; }
     public decimal PorcentajeSancion { get; set; }
+    
+    public decimal PorcentajeInteresACobrar { get; set; }
 }

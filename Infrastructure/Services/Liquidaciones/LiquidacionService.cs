@@ -1,87 +1,21 @@
-using Domain.Generics;
-using Domain.Models;
+using Domain.Models.Carteras.Enums;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Recibos;
 using Domain.Models.Recibos.Requests;
-using Domain.Models.Vehiculos;
+using Domain.Models.Resoluciones;
+using Domain.Models.Resoluciones.Responses;
 using Domain.Responses.Liquidacion;
-using Domain.Responses.Liquidacion.Enums;
 using Domain.Responses.Recibo;
 using Domain.Responses.Recibo.Enums;
 using Domain.Responses.Reportes;
-using Domain.Responses.Users.Enums;
-using Domain.Responses.Vehiculos.Enums;
-using Infrastructure.AppDbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Rodamiento.Shared.Components.Pages.PConsulta;
 
 namespace Infrastructure.Services.Liquidaciones;
 
-public partial class LiquidacionService(MainDataContext context)
+public partial class LiquidacionService
 {
-    private const string ConceptoRodamiento = "RODAMIENTO";
-    private const string ConceptoEstampillas = "ESTAMPILLAS";
-    private const string ConceptoCostas = "COSTAS";
-    private const string ConceptoCarga = "CARGA";
-    private const string ConceptoSistematizacion = "SISTEMATIZACION";
-
-    public async Task<decimal> CalcularInteresMoraAsync(decimal capital, int vigencia, DateTime? fechaCorte = null)
-    {
-        if (capital <= 0) return 0;
-
-        var corte = fechaCorte?.Date ?? DateTime.Today;
-        var tasas = await context.Intereses
-            .AsNoTracking()
-            .ToListAsync();
-
-        decimal interes = 0;
-
-        for (var anio = vigencia; anio <= corte.Year; anio++)
-        {
-            var ultimoMes = anio == corte.Year ? corte.Month : 12;
-
-            for (var mes = 1; mes <= ultimoMes; mes++)
-            {
-                var tasa = tasas.FirstOrDefault(i =>
-                    i.Desde.Year == anio &&
-                    mes >= i.Desde.Month &&
-                    mes <= i.Hasta.Month);
-
-                if (tasa == null) continue;
-
-                var dias = anio == corte.Year && mes == corte.Month ? corte.Day : 30;
-                var proporcionDias = dias / 365d;
-                var factor = Math.Pow(1 + ((double)tasa.Porcentaje / 100d), proporcionDias) - 1;
-                interes += capital * (decimal)factor;
-            }
-        }
-
-        return Math.Round((interes * 25m) / 100m, 0, MidpointRounding.AwayFromZero);
-    }
-
-    public async Task<List<ConceptoLiquidacionDto>> LiquidarDeudaPorConceptosAsync(string placa, int hasta)
-    {
-        var detalle = await ObtenerDetalleDeuda(placa, hasta);
-
-        return detalle
-            .GroupBy(c => c.Vigencia)
-            .Select(g => new ConceptoLiquidacionDto
-            {
-                Vigencia = g.Key,
-                ValorRodamiento = g.Where(x => EsConceptoRodamiento(x.Concepto)).Sum(x => x.Valor),
-                ValorCarga = g.Where(x => EsConceptoCarga(x.Concepto)).Sum(x => x.Valor),
-                ValorEstampillas = g.Where(x => EsConceptoEstampillas(x.Concepto)).Sum(x => x.Valor),
-                ValorRecibo = g.Where(x => EsConceptoCostas(x.Concepto)).Sum(x => x.Valor),
-                ValorInteres = g.Sum(x => x.ValorInteres),
-                Descuento = g.Sum(x => x.Descuento),
-                ValorSistema = g.Where(x => EsConceptoSistema(x.Concepto)).Sum(x => x.Valor),
-                ValorTotal = g.Sum(x => x.ValorTotal)
-            })
-            .OrderBy(x => x.Vigencia)
-            .ToList();
-    }
-
     public async Task<(bool Success, string Message, int ReciboId)> GenerarReciboAsync(CrearReciboRequest request)
     {
         try
@@ -92,7 +26,7 @@ public partial class LiquidacionService(MainDataContext context)
                 return (false, "Debe seleccionar al menos un registro de cartera para liquidar.", 0);
             }
 
-            // 2. Traer los registros de cartera solicitados que sigan pendientes de pago
+            // 2. Traer los registros de cartera solicitados que sigan pendientes de pago (Usando context.Cartera en singular)
             var carteraALiquidar = await context.Cartera
                 .Where(c => request.CarteraIdsSeleccionados.Contains(c.Id) && !c.IsPagado)
                 .ToListAsync();
@@ -113,13 +47,14 @@ public partial class LiquidacionService(MainDataContext context)
                 InteresMora = carteraALiquidar.Sum(c => c.ValorInteres),
                 Descuento = carteraALiquidar.Sum(c => c.Descuento),
 
-                // 💡 CORRECCIÓN: Sumamos el .Valor base (Capital) de cada concepto, no el .ValorTotal
-                Estampillas = carteraALiquidar.Where(c => c.Tipo == "ESTAMPILLA").Sum(c => c.Valor),
-                ValorCargaDatos = carteraALiquidar.Where(c => c.Concepto == "CARGA").Sum(c => c.Valor),
-                ValorRodamiento = carteraALiquidar.Where(c => c.Concepto == "RODAMIENTO").Sum(c => c.Valor),
+                // ACTUALIZADO: Sumas tipadas usando el nuevo Enum TipoConceptoCartera
+                Estampillas = carteraALiquidar.Where(c => c.Concepto == TipoConceptoCartera.Estampillas).Sum(c => c.Valor),
+                ValorCargaDatos = carteraALiquidar.Where(c => c.Concepto == TipoConceptoCartera.Carga).Sum(c => c.Valor),
+                ValorRodamiento = carteraALiquidar.Where(c => c.Concepto == TipoConceptoCartera.Rodamiento).Sum(c => c.Valor),
 
                 // El total del sistema es la suma matemática real de todos los totales de las carteras
-                ValorTotalSistema = carteraALiquidar.Sum(c => c.ValorTotal)
+                ValorTotalSistema = carteraALiquidar.Sum(c => c.ValorTotal),
+                Detalles = new List<ReciboDetalle>() // Aseguramos la inicialización de la lista de navegación
             };
 
             // 4. Mapear la cartera elegida al histórico de detalles del recibo
@@ -129,7 +64,7 @@ public partial class LiquidacionService(MainDataContext context)
                 {
                     CarteraId = cartera.Id,
                     Vigencia = cartera.Vigencia,
-                    Concepto = cartera.Concepto,
+                    Concepto = cartera.Concepto, // ACTUALIZADO: Asignación directa del Enum
                     Valor = cartera.Valor,
                     ValorInteres = cartera.ValorInteres,
                     Descuento = cartera.Descuento,
@@ -137,7 +72,7 @@ public partial class LiquidacionService(MainDataContext context)
                 });
             }
 
-            // 5. Guardar todo en una única transacción atómica
+            // 5. Guardar todo en una única transacción atómica (Verificando tu DbSet context.Recibos)
             context.Recibos.Add(nuevoRecibo);
             await context.SaveChangesAsync();
 
@@ -146,60 +81,13 @@ public partial class LiquidacionService(MainDataContext context)
         }
         catch (Exception ex)
         {
-            // Loggear el error con tu servicio de logger si está disponible (ej. _logger.LogError...)
+            logger.LogError(ex, "Error interno al liquidar la cartera para el vehículo {VehiculoId}", request.VehiculoId);
+
             return (false, $"Error interno al liquidar la cartera: {ex.Message}", 0);
         }
     }
 
-
-    public async Task<int> GenerarCarteraVehiculoAsync(string placa, int desde, int hasta)
-    {
-        var vehiculo = await context.Vehiculos.FirstOrDefaultAsync(v => v.Placa == placa);
-
-        if (vehiculo == null) return 0;
-
-        var parametro = await context.Parametros.AsNoTracking().FirstOrDefaultAsync();
-
-        await context.Cartera
-            .Where(c => c.Placa == placa && !c.IsPagado && c.Vigencia >= desde && c.Vigencia <= hasta)
-            .ExecuteDeleteAsync();
-
-        vehiculo.PagoHasta = desde;
-
-        var nuevasDeudas = new List<Cartera>();
-
-        for (var vigencia = desde; vigencia <= hasta; vigencia++)
-        {
-            var valorRodamiento = await ObtenerTarifa(TipoConceptoTarifa.Rodamiento, vigencia);
-            if (valorRodamiento > 0)
-            {
-                nuevasDeudas.Add(CrearCartera(vehiculo.Id, placa, vigencia, ConceptoRodamiento, valorRodamiento, tieneInteres: true));
-            }
-
-            if (parametro?.CobraAdicional == true && parametro.ValorCostasPersuasivo > 0 && vigencia != 2026)
-            {
-                nuevasDeudas.Add(CrearCartera(vehiculo.Id, placa, vigencia, ConceptoCostas, parametro.ValorCostasPersuasivo, tieneInteres: true));
-            }
-
-            var valorCargaPasajeros = await ObtenerValorCargaOPasajero(vehiculo, vigencia);
-            if (valorCargaPasajeros > 0)
-            {
-                nuevasDeudas.Add(CrearCartera(vehiculo.Id, placa, vigencia, ConceptoCarga, valorCargaPasajeros, tieneInteres: true));
-            }
-
-            var valorEstampillas = Math.Round(((valorRodamiento + valorCargaPasajeros) * 2m) / 100m, 0, MidpointRounding.AwayFromZero);
-            if (valorEstampillas > 0)
-            {
-                nuevasDeudas.Add(CrearCartera(vehiculo.Id, placa, vigencia, ConceptoEstampillas, valorEstampillas, tieneInteres: true));
-            }
-        }
-
-        context.Cartera.AddRange(nuevasDeudas);
-
-        return await context.SaveChangesAsync();
-    }
-
-    public async Task<int> Add(string pplaca, DateTime pfecha, string presol, int ptipo, decimal pvalor, int pdesde, int phasta, string pobs, int puser)
+    public async Task<int> Add(string pplaca, DateTime pfecha, string presol, TipoResolucion ptipo, decimal pvalor, int pdesde, int phasta, string pobs, int puser)
     {
         try
         {
@@ -214,121 +102,54 @@ public partial class LiquidacionService(MainDataContext context)
         }
     }
 
-    public async Task<List<Resolucion>> GetResol(string comparendo)
+    public async Task<List<ResolucionResponseDto>> GetResolucionByPlaca(string placa)
     {
         try
         {
-            return await context.Database
-                .SqlQuery<Resolucion>($@"SELECT n.*, t.nombre as ntipo
-                                           FROM resoluciones n
-                                           LEFT JOIN tipos_nov t ON (t.id = n.tipo)
-                                           WHERE n.placa::varchar = {comparendo}")
-                .ToListAsync();
-        }
-        catch (Exception ex)
-        {
-            throw new Exception("Error al obtener las resoluciones", ex);
-        }
-    }
+            // 1. Validar si el vehículo existe y si tiene resoluciones asociadas
+            // Usamos AnyAsync para saber si hay registros antes de hacer la consulta pesada
+            var existeResolucion = await context.Resolucion
+                .AnyAsync(s => s.Vehiculo.Placa == placa);
 
-    public async Task<EstadoCuentaVehiculoDto?> GetCarteraByPlaca(
-        string placa,
-        CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            placa = placa.Trim().ToUpper();
-            var nowYear = DateTime.UtcNow.Year;
-
-            // 1. Obtener los datos del Vehículo y Propietario (Se mantiene igual)
-            var vehiculo = await context.Vehiculos
-                .AsNoTracking()
-                .Where(v => v.Placa == placa)
-                .Select(v => new
-                {
-                    v.Id,
-                    v.Placa,
-                    v.Modelo,
-                    v.Cilindraje,
-                    v.EstadoProcesoId,
-                    v.PagoHasta,
-                    v.TipoServicioVehiculo,
-                    Clase = v.TipoVehiculo != null ? v.TipoVehiculo.Nombre : string.Empty,
-                    Marca = v.Marca != null ? v.Marca.Nombre : string.Empty,
-                    Linea = v.Linea != null ? v.Linea.Nombre : string.Empty,
-                    Color = v.Color != null ? v.Color.Nombre : string.Empty,
-                    Estado = v.EstadoProceso.GetDisplayName(),
-                    Documento = v.Propietario != null ? v.Propietario.Documento : string.Empty,
-                    NombrePropietario = v.Propietario != null ? v.Propietario.Nombre : string.Empty,
-                    Direccion = v.Propietario != null ? v.Propietario.Direccion : string.Empty,
-                    Telefono = v.Propietario != null ? v.Propietario.Telefono : string.Empty,
-                    TipoDocumento = v.Propietario != null ? v.Propietario.TipoDocumento : TipoDocumento.Cc
-                })
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (vehiculo == null)
-                return null;
-
-            // 2. 🚀 CORRECCIÓN: Traemos las filas de cartera pendientes de pago desglosadas
-            var carteraPendiente = await context.Cartera
-                .AsNoTracking()
-                .Where(c => c.Placa == placa && !c.IsPagado)
-                .OrderBy(c => c.Vigencia)
-                .Select(c => new ConceptoCarteraDto(
-                    c.Id,
-                    c.Vigencia,
-                    c.Concepto,
-                    c.Tipo,
-                    c.Valor,
-                    c.ValorInteres,
-                    c.Descuento,
-                    c.ValorTotal
-                ))
-                .ToListAsync(cancellationToken);
-
-            // 3. Calculamos los datos globales basados en la lista obtenida
-            int vigenciaDesde = carteraPendiente.Any() ? carteraPendiente.Min(c => c.Vigencia) : nowYear;
-            int vigenciaHasta = carteraPendiente.Any() ? carteraPendiente.Max(c => c.Vigencia) : nowYear;
-            decimal totalDeuda = carteraPendiente.Sum(c => c.ValorTotal);
-
-            // 4. Armamos la respuesta final unificada
-            return new EstadoCuentaVehiculoDto
+            if (!existeResolucion)
             {
-                // Vehículo
-                VehiculoId = vehiculo.Id,
-                Placa = vehiculo.Placa,
-                Clase = vehiculo.Clase,
-                Modelo = vehiculo.Modelo,
-                Marca = vehiculo.Marca,
-                Linea = vehiculo.Linea,
-                Color = vehiculo.Color,
-                TipoServicio = vehiculo.TipoServicioVehiculo.ToString(),
-                Cilindraje = vehiculo.Cilindraje,
-                EstadoNombre = vehiculo.Estado,
-                EstadoId = vehiculo.EstadoProcesoId,
-                UltimoPago = vehiculo.PagoHasta,
+                throw new Exception("No se encontraron resoluciones para la placa registrada.");
+            }
+            var resolucionesDto = await context.Resolucion
+                .Where(s => s.Vehiculo.Placa == placa)
+                .Select(r => new ResolucionResponseDto(
+                    r.Id,
+                    r.NumeroResolucion,
+                    r.Fecha,
+                    r.FechaProceso,
+                    r.TipoResolucion,
+                    r.Valor,
+                    r.Estado,
+                    r.Observaciones,
+                    r.VehiculoId,
+                    r.Vehiculo.Placa,
+                    r.UsuarioId,
+                    r.Usuario.Nombre,
+                    r.ProcesoId,
 
-                // Propietario
-                Documento = vehiculo.Documento,
-                NombrePropietario = vehiculo.NombrePropietario,
-                Direccion = vehiculo.Direccion,
-                Telefono = vehiculo.Telefono,
-                TipoDocumento = vehiculo.TipoDocumento,
+                    // 🚀 Extraemos únicamente las vigencias numéricas a memoria
+                    r.Carteras.Select(c => c.Vigencia).OrderBy(v => v).ToList(),
 
-                // Liquidación / Deuda
-                VigenciaDesde = vigenciaDesde,
-                VigenciaHasta = vigenciaHasta,
-                TotalDeuda = totalDeuda,
+                    // 🚀 Calculamos el min y max directamente en el motor SQL
+                    r.Carteras.Any() ? r.Carteras.Min(c => c.Vigencia) : (int?)null,
+                    r.Carteras.Any() ? r.Carteras.Max(c => c.Vigencia) : (int?)null
+                ))
+                .ToListAsync();
 
-                // 🔥 El cambio clave: El frontend ahora recibe la lista de deudas desglosada
-                Conceptos = carteraPendiente
-            };
+            return resolucionesDto;
+        }
+        catch (Exception ex) when (ex.Message.Contains("No se encontraron"))
+        {
+            throw;
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error consultando liquidación para placa {Placa}", placa);
-
-            return null;
+            throw new Exception($"Error al obtener las resoluciones para la placa {placa}.", ex);
         }
     }
 
@@ -367,13 +188,20 @@ public partial class LiquidacionService(MainDataContext context)
                 AnioDesde = r.Detalles.Count == 0 ? 0 : r.Detalles.Min(d => d.Vigencia),
                 AnioHasta = r.Detalles.Count == 0 ? 0 : r.Detalles.Max(d => d.Vigencia),
                 ValorTotal = r.Detalles.Sum(d => d.ValorTotal),
-                ValorImpuesto = r.Detalles.Where(d => d.Concepto == ConceptoRodamiento).Sum(d => d.Valor),
-                ValorCarga = r.Detalles.Where(d => d.Concepto == ConceptoCarga).Sum(d => d.Valor),
-                ValorCostas = r.Detalles.Where(d => d.Concepto == ConceptoCostas).Sum(d => d.Valor),
+
+                // ACTUALIZADO: Sumatorias limpias usando TipoConceptoCartera de forma nativa
+                ValorImpuesto = r.Detalles.Where(d => d.Concepto == TipoConceptoCartera.Rodamiento).Sum(d => d.Valor),
+                ValorCarga = r.Detalles.Where(d => d.Concepto == TipoConceptoCartera.Carga).Sum(d => d.Valor),
+                ValorCostas = r.Detalles.Where(d => d.Concepto == TipoConceptoCartera.Costas).Sum(d => d.Valor),
+                ValorEstampillas = r.Detalles.Where(d => d.Concepto == TipoConceptoCartera.Estampillas).Sum(d => d.Valor),
+
+                // ADICIONAL: Si ya registras o tienes pensado soportar Sanción, lo mapeas directamente así:
+                ValorSancion = r.Detalles.Where(d => d.Concepto == TipoConceptoCartera.Sancion).Sum(d => d.Valor),
+
+                // NOTA: Para sistematización puedes usar r.ValorTotalSistema o filtrarlo si sube como concepto
                 ValorSistematizacion = r.ValorTotalSistema,
+
                 ValorInteres = r.Detalles.Sum(d => d.ValorInteres),
-                ValorEstampillas = r.Detalles.Where(d => d.Concepto == ConceptoEstampillas).Sum(d => d.Valor),
-                ValorSancion = 0,
                 Descuento = r.Detalles.Sum(d => d.Descuento),
                 NombrePropietario = r.Vehiculo.Propietario.Nombre
             })
@@ -429,9 +257,9 @@ public partial class LiquidacionService(MainDataContext context)
             {
                 Vigencia = g.Key,
 
-                ValorRodamiento = g.Where(x => x.Concepto == "RODAMIENTO").Sum(x => x.Valor),
-                ValorCarga = g.Where(x => x.Concepto == "CARGA").Sum(x => x.Valor),
-                ValorEstampillas = g.Where(x => x.Concepto == "ESTAMPILLAS").Sum(x => x.Valor),
+                ValorRodamiento = g.Where(x => x.Concepto == TipoConceptoCartera.Rodamiento).Sum(x => x.Valor),
+                ValorCarga = g.Where(x => x.Concepto == TipoConceptoCartera.Carga).Sum(x => x.Valor),
+                ValorEstampillas = g.Where(x => x.Concepto == TipoConceptoCartera.Estampillas).Sum(x => x.Valor),
 
                 ValorRecibo = g.Sum(x => x.Valor),
 
@@ -454,10 +282,10 @@ public partial class LiquidacionService(MainDataContext context)
             .Select(g => new ConceptoLiquidacionDto
             {
                 Vigencia = g.Key,
-                ValorRodamiento = g.Where(x => x.Concepto == ConceptoRodamiento).Sum(x => x.Valor),
-                ValorCarga = g.Where(x => x.Concepto == ConceptoCarga).Sum(x => x.Valor),
-                ValorEstampillas = g.Where(x => x.Concepto == ConceptoEstampillas).Sum(x => x.Valor),
-                ValorRecibo = g.Where(x => x.Concepto == ConceptoCostas).Sum(x => x.Valor),
+                ValorRodamiento = g.Where(x => x.Concepto == TipoConceptoCartera.Rodamiento).Sum(x => x.Valor),
+                ValorCarga = g.Where(x => x.Concepto == TipoConceptoCartera.Carga).Sum(x => x.Valor),
+                ValorEstampillas = g.Where(x => x.Concepto == TipoConceptoCartera.Estampillas).Sum(x => x.Valor),
+                ValorRecibo = g.Where(x => x.Concepto == TipoConceptoCartera.Costas).Sum(x => x.Valor),
                 ValorInteres = g.Sum(x => x.ValorInteres),
                 Descuento = g.Sum(x => x.Descuento),
                 ValorTotal = g.Sum(x => x.ValorTotal)

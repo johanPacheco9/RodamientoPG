@@ -3,10 +3,14 @@ using Domain.Models;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Recibos;
 using Domain.Models.Recibos.Responses;
+using Domain.Models.Resoluciones;
+using Domain.Models.Resoluciones.Requests;
+using Domain.Models.Resoluciones.Responses;
 using Domain.Responses.Liquidacion;
 using Domain.Responses.Recibo;
 using Domain.Responses.Resolucion.Enums;
 using Frontend.Reportes;
+using Infrastructure.Services.Carteras;
 using Infrastructure.Services.Importados;
 using Infrastructure.Services.Liquidaciones;
 using Infrastructure.Services.Pagos;
@@ -14,9 +18,9 @@ using Infrastructure.Services.Parametros;
 using Infrastructure.Services.Procesos.Coactivo;
 using Infrastructure.Services.Procesos.Persuasivo;
 using Infrastructure.Services.Rec2ibos;
+using Infrastructure.Services.Resoluciones;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using Rodamiento.Shared.Components.Pages.PConsulta;
 
@@ -26,26 +30,28 @@ public partial class Dashboard : ComponentBase, IDisposable
 {
     [Inject] private IConfiguration Config { get; set; } = null!;
     [Inject] private BusquedaService BusquedaService { get; set; } = null!;
-    [Inject] private LiquidacionService ComparendoService { get; set; } = null!;
+    [Inject] private LiquidacionService ComparendoService { get; set; } = null!;    
+    [Inject] private CarteraService CarteraService { get; set; } = null!;
     [Inject] private ReciboService ReciboService { get; set; } = null!;
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
     [Inject] private HttpClient HttpClient { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
     [Inject] private ParametroService ParametroService { get; set; } = null!;
-    
     [Inject] private PagoService PagoService{ get; set; } = null!;
     [Inject] private ImportadosService Importadoservice { get; set; } = null!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private PersuasivoService PersuasivoService { get; set; } = null!;
     [Inject] private CoactivoService CoactivoService { get; set; } = null!;
+    [Inject]
+    private ResolucionService ResolucionService { get; set; } = null!;
 
     // ── Estado principal ────────────────────────────────────────────
     private EstadoCuentaVehiculoDto _estadoCuenta = new();
-    private List<VigenciaGrupo> _vigencias = [];
+    private List<VigenciaForm> _vigencias = [];
     private List<ConceptoResumenDto> resumenConceptoslist = [];
     private List<ReciboDto> reciboslist = []; // Inicializado para evitar nulls en renderizado inicial
     private List<DetalleReciboDto> _detalleRecibo = [];
-    private List<Resolucion> resolucioneslist = [];
+    private List<ResolucionResponseDto> resolucioneslist = [];
     private List<Proceso> coactivosList = [];
     private Dictionary<int, int> avisosPorProceso = [];
     private Resolucion resolObj = new();
@@ -70,7 +76,7 @@ public partial class Dashboard : ComponentBase, IDisposable
 
     // ── Selección de vigencias ──────────────────────────────────────
     private decimal totalSeleccionado;
-    private List<int> carterasSeleccionadasIds = []; // Cambiado de vigencias a IDs de carteras
+    private List<int> carterasSeleccionadasIds = [];
 
     // ───────────────────────────────────────────────────────────────
     [Parameter] public string? PlacaParam { get; set; }
@@ -143,7 +149,7 @@ public partial class Dashboard : ComponentBase, IDisposable
             var placa = _estadoCuenta.Placa.Trim().ToUpper();
             
             // 🚀 Clave: Trae vehículo, propietario y todos los conceptos de cartera en una sola consulta
-            var result = await ComparendoService.GetCarteraByPlaca(placa);
+            var result = await CarteraService.GetCarteraByPlaca(placa);
 
             if (result == null || string.IsNullOrEmpty(result.Documento))
             {
@@ -163,7 +169,7 @@ public partial class Dashboard : ComponentBase, IDisposable
             _vigencias = _estadoCuenta.Conceptos
                 .GroupBy(d => d.Vigencia)
                 .OrderBy(g => g.Key)
-                .Select(g => new VigenciaGrupo
+                .Select(g => new VigenciaForm
                 {
                     Vigencia = g.Key,
                     Conceptos = g.ToList(),
@@ -213,7 +219,7 @@ public partial class Dashboard : ComponentBase, IDisposable
     {
         try
         {
-            resolucioneslist = await ComparendoService.GetResol(_estadoCuenta.Placa);
+            resolucioneslist = await ComparendoService.GetResolucionByPlaca(_estadoCuenta.Placa);
         }
         catch (Exception ex)
         {
@@ -358,7 +364,7 @@ public partial class Dashboard : ComponentBase, IDisposable
             return;
         }
 
-        if (_estadoCuenta.EstadoId != 1)
+        if (_estadoCuenta.EstadoId != EstadoProceso.SinProceso)
         {
             await MostrarAlerta("warning", "Vehículo inactivo.");
             return;
@@ -421,54 +427,69 @@ public partial class Dashboard : ComponentBase, IDisposable
     {
         if (!await VerificarPermiso()) return;
 
+        // 1. Desmarcar las vigencias de la cartera para que el usuario elija de cero
+        if (_vigencias != null)
+        {
+            foreach (var v in _vigencias)
+            {
+                v.Seleccionado = false;
+            }
+        }
+
+        // 2. Inicializar el objeto sin las propiedades de rango eliminadas
         resolObj = new Resolucion
         {
             Fecha = DateTime.UtcNow,
-            PeriodoHasta = DateTime.UtcNow.Year
+            Valor = 0, // 🚀 Arranca en 0 hasta que el usuario guarde y el backend sume las carteras
+            Estado = EstadoResolucion.Activa
         };
+
         _mostrarModalr = true;
         StateHasChanged();
     }
 
     private async Task Agregar_resol()
     {
-        if (tipoResolucion == 0) tipoResolucion = 1;
+        // 1. Extraemos la lista exacta de años que el usuario marcó
+        var anosSeleccionados = _vigencias
+            .Where(v => v.Seleccionado)
+            .Select(v => v.Vigencia)
+            .ToList();
 
-        if (string.IsNullOrEmpty(resolObj.NumeroResolucion))
+        if (!anosSeleccionados.Any())
         {
-            await MostrarAlerta("warning", "El número de resolución es obligatorio.");
+            await MostrarAlerta("warning", "Debe seleccionar al menos una vigencia para generar la resolución.");
             return;
         }
 
-        if (tipoResolucion == 2 && _estadoCuenta.TotalDeuda > 0)
+        TipoResolucion tipoSeleccionado = tipoResolucion == 2 
+            ? TipoResolucion.AnulacionDeuda 
+            : TipoResolucion.Traslado;
+
+        // 2. Armamos el comando con la lista exacta de vigencias
+        var command = new CreateResolucionRequest(
+            Tipo: tipoSeleccionado,
+            VehiculoId: _estadoCuenta.VehiculoId,
+            Vigencias: anosSeleccionados, // 🚀 Enviamos la lista tal cual
+            Observaciones: resolObj.Observaciones ?? string.Empty,
+            UsuarioId: 3
+        );
+
+        bool resultado = await ResolucionService.Create(command);
+
+        if (resultado)
         {
-            await MostrarAlerta("warning", "Tiene vigencias pendientes.");
-            return;
+            await MostrarAlerta("success", "Resolución generada con éxito de forma consecutiva.");
+            _mostrarModalr = false;
+            await ObtenerCartera(); 
+            SetTab(1);
         }
-
-        resolObj.TipoResolucionId = tipoResolucion;
-        resolObj.VehiculoId = 0;
-        resolObj.Valor = novTotal;
-        resolObj.Estado = EstadoResolucion.Activa;
-        resolObj.UsuarioId = 3;
-        resolObj.Observaciones ??= string.Empty;
-
-        await ComparendoService.Add(
-            _estadoCuenta.Placa,
-            resolObj.Fecha,
-            resolObj.NumeroResolucion,
-            resolObj.TipoResolucionId,
-            resolObj.Valor,
-            _estadoCuenta.VigenciaDesde,
-            resolObj.PeriodoHasta,
-            resolObj.Observaciones,
-            resolObj.UsuarioId);
-
-        _mostrarModalr = false;
-        await ObtenerCartera();
-        SetTab(1);
+        else
+        {
+            await MostrarAlerta("error", "No se pudo crear la resolución. Verifique las deudas pendientes.");
+        }
     }
-
+    
     private async Task capturar(ChangeEventArgs e)
     {
         tipoResolucion = int.Parse((string)e.Value!);
@@ -508,9 +529,9 @@ public partial class Dashboard : ComponentBase, IDisposable
     private static string Iniciales(string? nombre) =>
         string.IsNullOrEmpty(nombre) ? "?" : string.Concat(nombre.Split(' ').Where(p => p.Length > 0).Take(2).Select(p => p[0]));
 
-    private static string BadgeEstado(int estadoId) => estadoId switch
+    private static string BadgeEstado(EstadoProceso estadoId) => estadoId switch
     {
-        1 => "badge bg-success",
+        EstadoProceso.SinProceso => "badge bg-success",
         _ => "badge bg-secondary"
     };
 
@@ -557,19 +578,7 @@ public partial class Dashboard : ComponentBase, IDisposable
         await JsRuntime.InvokeAsync<bool>("confirm", mensaje);
 
     // ── Clase contenedora UI para la Grilla ─────────────────────────
-    public class VigenciaGrupo
-    {
-        public int Vigencia { get; set; }
-    
-        // Lista de conceptos detallados (IDs reales de la BD) para este año
-        public List<ConceptoCarteraDto> Conceptos { get; set; } = [];
-    
-        // Suma dinámica de todo lo que compone este año específico
-        public decimal TotalVigencia => Conceptos.Sum(c => c.ValorTotal);
 
-        // El checkbox de la interfaz se amarra a esta propiedad
-        public bool Seleccionado { get; set; }
-    }
 
     // ── Dispose ─────────────────────────────────────────────────────
     public void Dispose()

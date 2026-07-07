@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MainDataContext))]
-    [Migration("20260602194254_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20260707022926_VehiculoLimpiezaClase")]
+    partial class VehiculoLimpiezaClase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,76 @@ namespace Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Domain.Models.Avaluo.AvaluoVehiculo", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Capacidad")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Cilindraje")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ClaseVehiculo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Codigo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Linea")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Marca")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Pasajeros")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TipoVehiculoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TipoVehiculoId");
+
+                    b.ToTable("AvaluoVehiculos");
+                });
+
+            modelBuilder.Entity("Domain.Models.Avaluo.AvaluoVigencia", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AnioVigencia")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("AvaluoVehiculoId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("ValorComercial")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ValorUvtVigencia")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AvaluoVehiculoId");
+
+                    b.ToTable("AvaluoVigencias");
+                });
 
             modelBuilder.Entity("Domain.Models.BaseGravable.BaseGravableVehiculo", b =>
                 {
@@ -95,14 +165,24 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Concepto")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("Concepto")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Descuento")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("EstaEnProcesoCoactivo")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_creacion");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_modificacion");
+
+                    b.Property<bool>("IsAnulled")
                         .HasColumnType("boolean");
 
                     b.Property<bool>("IsPagado")
@@ -113,7 +193,7 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(6)
                         .HasColumnType("character varying(6)");
 
-                    b.Property<int?>("ReciboId")
+                    b.Property<int?>("ResolucionId")
                         .HasColumnType("integer");
 
                     b.Property<bool>("TieneInteres")
@@ -122,6 +202,14 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Tipo")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<int>("UsuarioCreo")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_creo");
+
+                    b.Property<int?>("UsuarioModifico")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_modifico");
 
                     b.Property<decimal>("Valor")
                         .HasColumnType("decimal(18,2)");
@@ -140,7 +228,7 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ReciboId");
+                    b.HasIndex("ResolucionId");
 
                     b.HasIndex("VehiculoId");
 
@@ -191,94 +279,7 @@ namespace Infrastructure.Migrations
                     b.ToTable("Intereses");
                 });
 
-            modelBuilder.Entity("Domain.Models.Parametro", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("BancoTercero")
-                        .HasColumnType("text")
-                        .HasColumnName("banco_tercero");
-
-                    b.Property<string>("BancoTransito")
-                        .HasColumnType("text")
-                        .HasColumnName("banco_transito");
-
-                    b.Property<string>("CargoSecretario")
-                        .HasColumnType("text")
-                        .HasColumnName("cargo_secretario");
-
-                    b.Property<string>("Ciudad")
-                        .HasColumnType("text")
-                        .HasColumnName("ciudad");
-
-                    b.Property<bool>("CobraAdicional")
-                        .HasColumnType("boolean")
-                        .HasColumnName("cobra_adicional");
-
-                    b.Property<string>("Correo")
-                        .HasColumnType("text")
-                        .HasColumnName("correo");
-
-                    b.Property<string>("CuentaTercero")
-                        .HasColumnType("text")
-                        .HasColumnName("cuenta_tercero");
-
-                    b.Property<string>("CuentaTransito")
-                        .HasColumnType("text")
-                        .HasColumnName("cuenta_transito");
-
-                    b.Property<string>("Direccion")
-                        .HasColumnType("text")
-                        .HasColumnName("dir");
-
-                    b.Property<DateTime>("FechaLimiteSancion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_limite_san");
-
-                    b.Property<int>("MetodoImpuesto")
-                        .HasColumnType("integer")
-                        .HasColumnName("metodo_impuesto");
-
-                    b.Property<string>("Nit")
-                        .HasColumnType("text")
-                        .HasColumnName("nit");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("nombre");
-
-                    b.Property<string>("NombreSecretario")
-                        .HasColumnType("text")
-                        .HasColumnName("nom_secretario");
-
-                    b.Property<decimal>("PorcentajeSancion")
-                        .HasColumnType("decimal(5,2)")
-                        .HasColumnName("porc_sancion");
-
-                    b.Property<string>("Telefono")
-                        .HasColumnType("text")
-                        .HasColumnName("tel");
-
-                    b.Property<decimal>("ValorRecibo")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("vlr_recibo");
-
-                    b.Property<decimal>("ValorSistema")
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("vlr_sistem");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Parametros");
-                });
-
-            modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.EstadoProceso", b =>
+            modelBuilder.Entity("Domain.Models.Notificaciones.Aviso", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -286,17 +287,125 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("Costas")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<int>("CarteraId")
+                        .HasColumnType("integer");
 
-                    b.Property<string>("Nombre")
+                    b.Property<string>("Estado")
                         .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("FechaEnvio")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("NumeroAviso")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NumeroGuia")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("RutaPdf")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
                     b.HasKey("Id");
 
-                    b.ToTable("EstadoProcesos");
+                    b.HasIndex("CarteraId");
+
+                    b.ToTable("Avisos");
+                });
+
+            modelBuilder.Entity("Domain.Models.Parametro", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("BancoTercero")
+                        .HasColumnType("text");
+
+                    b.Property<string>("BancoTransito")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CargoSecretario")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Ciudad")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("CobraAdicional")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Correo")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CuentaTercero")
+                        .HasColumnType("text");
+
+                    b.Property<string>("CuentaTransito")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Direccion")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_creacion");
+
+                    b.Property<DateTime>("FechaLimiteSancion")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_modificacion");
+
+                    b.Property<int>("MetodoImpuesto")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Nit")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("NombreSecretario")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("PorcentajeInteresACobrar")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("PorcentajeSancion")
+                        .HasColumnType("numeric");
+
+                    b.Property<string>("Telefono")
+                        .HasColumnType("text");
+
+                    b.Property<int>("UsuarioCreo")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_creo");
+
+                    b.Property<int?>("UsuarioModifico")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_modifico");
+
+                    b.Property<decimal>("ValorCostasCoactivo")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ValorCostasPersuasivo")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ValorRecibo")
+                        .HasColumnType("numeric");
+
+                    b.Property<decimal>("ValorSistema")
+                        .HasColumnType("numeric");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Parametros");
                 });
 
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Liquidacion", b =>
@@ -307,8 +416,8 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("Avaluo")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<DateTime>("FechaLiquidacion")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int?>("ProcesoId")
                         .HasColumnType("integer");
@@ -316,7 +425,7 @@ namespace Infrastructure.Migrations
                     b.Property<decimal>("TotalDeuda")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("UltimoPagoVigencia")
+                    b.Property<int?>("UltimoPagoVigencia")
                         .HasColumnType("integer");
 
                     b.Property<int>("VehiculoId")
@@ -337,6 +446,49 @@ namespace Infrastructure.Migrations
                     b.ToTable("Liquidacion");
                 });
 
+            modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.LiquidacionDetalle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("CarteraId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Concepto")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal>("Descuento")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("LiquidacionId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Valor")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ValorInteres")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ValorTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Vigencia")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarteraId");
+
+                    b.HasIndex("LiquidacionId");
+
+                    b.ToTable("LiquidacionDetalles");
+                });
+
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Proceso", b =>
                 {
                     b.Property<int>("Id")
@@ -348,7 +500,7 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("Desde")
                         .HasColumnType("integer");
 
-                    b.Property<int>("EstadoProcesoId")
+                    b.Property<int>("EstadoProceso")
                         .HasColumnType("integer");
 
                     b.Property<DateTime>("Fecha")
@@ -374,10 +526,6 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<string>("TipoProceso")
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
                     b.Property<decimal>("Valor")
                         .HasColumnType("decimal(18,2)");
 
@@ -386,14 +534,12 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("EstadoProcesoId");
-
                     b.HasIndex("VehiculoId");
 
                     b.ToTable("Procesos");
                 });
 
-            modelBuilder.Entity("Domain.Models.Recibo", b =>
+            modelBuilder.Entity("Domain.Models.Recibos.Recibo", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -403,9 +549,6 @@ namespace Infrastructure.Migrations
 
                     b.Property<decimal>("Descuento")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Desde")
-                        .HasColumnType("integer");
 
                     b.Property<int>("Estado")
                         .HasColumnType("integer");
@@ -424,9 +567,6 @@ namespace Infrastructure.Migrations
 
                     b.Property<DateTime?>("FechaProceso")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("Hasta")
-                        .HasColumnType("integer");
 
                     b.Property<decimal>("InteresMora")
                         .HasColumnType("decimal(18,2)");
@@ -453,6 +593,114 @@ namespace Infrastructure.Migrations
                     b.ToTable("Recibos");
                 });
 
+            modelBuilder.Entity("Domain.Models.Recibos.ReciboDetalle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CarteraId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Concepto")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Descuento")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ReciboId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Valor")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ValorInteres")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ValorTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Vigencia")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CarteraId");
+
+                    b.HasIndex("ReciboId");
+
+                    b.ToTable("ReciboDetalle");
+                });
+
+            modelBuilder.Entity("Domain.Models.Resoluciones.Resolucion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Estado")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Fecha")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_creacion");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_modificacion");
+
+                    b.Property<DateTime?>("FechaProceso")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NumeroResolucion")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Observaciones")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("ProcesoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("TipoResolucion")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UsuarioCreo")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_creo");
+
+                    b.Property<int>("UsuarioId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("UsuarioModifico")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_modifico");
+
+                    b.Property<decimal>("Valor")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("VehiculoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcesoId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("VehiculoId");
+
+                    b.ToTable("Resolucion");
+                });
+
             modelBuilder.Entity("Domain.Models.Tarifa", b =>
                 {
                     b.Property<int>("Id")
@@ -466,6 +714,14 @@ namespace Infrastructure.Migrations
 
                     b.Property<int>("ConceptoTarifa")
                         .HasColumnType("integer");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_creacion");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_modificacion");
 
                     b.Property<int>("RangoFinal")
                         .HasColumnType("integer");
@@ -481,6 +737,14 @@ namespace Infrastructure.Migrations
 
                     b.Property<int>("TipoVehiculoId")
                         .HasColumnType("integer");
+
+                    b.Property<int>("UsuarioCreo")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_creo");
+
+                    b.Property<int?>("UsuarioModifico")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_modifico");
 
                     b.Property<decimal>("Valor")
                         .HasColumnType("decimal(18,2)");
@@ -567,6 +831,10 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_creacion");
+
                     b.Property<DateTime>("FechaDesde")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("indesde");
@@ -574,6 +842,18 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("FechaHasta")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("inhasta");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_modificacion");
+
+                    b.Property<int>("UsuarioCreo")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_creo");
+
+                    b.Property<int?>("UsuarioModifico")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_modifico");
 
                     b.Property<decimal>("Valor")
                         .HasColumnType("decimal(18,2)")
@@ -602,6 +882,35 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Colores");
+                });
+
+            modelBuilder.Entity("Domain.Models.Vehiculos.HistorialPropietario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime?>("FechaFin")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("FechaInicio")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("PropietarioId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VehiculoId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PropietarioId");
+
+                    b.HasIndex("VehiculoId");
+
+                    b.ToTable("HistorialPropietarios");
                 });
 
             modelBuilder.Entity("Domain.Models.Vehiculos.Linea", b =>
@@ -656,6 +965,9 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Correo")
+                        .HasColumnType("text");
+
                     b.Property<string>("Direccion")
                         .IsRequired()
                         .HasColumnType("text");
@@ -699,10 +1011,8 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<string>("Tipo")
-                        .IsRequired()
-                        .HasMaxLength(2)
-                        .HasColumnType("character varying(2)");
+                    b.Property<int>("Tipo")
+                        .HasColumnType("integer");
 
                     b.Property<decimal?>("Uvt")
                         .HasColumnType("numeric");
@@ -729,9 +1039,8 @@ namespace Infrastructure.Migrations
                     b.Property<int>("ColorId")
                         .HasColumnType("integer");
 
-                    b.Property<string>("DocumentoPropietario")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("EstadoProceso")
+                        .HasColumnType("integer");
 
                     b.Property<int>("EstadoProcesoId")
                         .HasColumnType("integer");
@@ -762,9 +1071,6 @@ namespace Infrastructure.Migrations
                     b.Property<int>("TipoCarroceriaId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("TipoIdentificacionId")
-                        .HasColumnType("integer");
-
                     b.Property<int>("TipoServicioVehiculo")
                         .HasColumnType("integer");
 
@@ -774,8 +1080,6 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ColorId");
-
-                    b.HasIndex("EstadoProcesoId");
 
                     b.HasIndex("LineaId");
 
@@ -791,6 +1095,28 @@ namespace Infrastructure.Migrations
                     b.ToTable("Vehiculos");
                 });
 
+            modelBuilder.Entity("Domain.Models.Avaluo.AvaluoVehiculo", b =>
+                {
+                    b.HasOne("Domain.Models.Vehiculos.TipoVehiculo", "TipoVehiculo")
+                        .WithMany()
+                        .HasForeignKey("TipoVehiculoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TipoVehiculo");
+                });
+
+            modelBuilder.Entity("Domain.Models.Avaluo.AvaluoVigencia", b =>
+                {
+                    b.HasOne("Domain.Models.Avaluo.AvaluoVehiculo", "AvaluoVehiculo")
+                        .WithMany("Vigencias")
+                        .HasForeignKey("AvaluoVehiculoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AvaluoVehiculo");
+                });
+
             modelBuilder.Entity("Domain.Models.BaseGravable.BaseGravableVigencia", b =>
                 {
                     b.HasOne("Domain.Models.BaseGravable.BaseGravableVehiculo", "BaseGravableVehiculo")
@@ -804,9 +1130,9 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Models.Cartera", b =>
                 {
-                    b.HasOne("Domain.Models.Recibo", "Recibo")
-                        .WithMany()
-                        .HasForeignKey("ReciboId");
+                    b.HasOne("Domain.Models.Resoluciones.Resolucion", "Resolucion")
+                        .WithMany("Carteras")
+                        .HasForeignKey("ResolucionId");
 
                     b.HasOne("Domain.Models.Vehiculos.Vehiculo", "Vehiculo")
                         .WithMany()
@@ -814,9 +1140,20 @@ namespace Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Recibo");
+                    b.Navigation("Resolucion");
 
                     b.Navigation("Vehiculo");
+                });
+
+            modelBuilder.Entity("Domain.Models.Notificaciones.Aviso", b =>
+                {
+                    b.HasOne("Domain.Models.Cartera", "Cartera")
+                        .WithMany("Avisos")
+                        .HasForeignKey("CarteraId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cartera");
                 });
 
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Liquidacion", b =>
@@ -836,32 +1173,85 @@ namespace Infrastructure.Migrations
                     b.Navigation("Vehiculo");
                 });
 
-            modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Proceso", b =>
+            modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.LiquidacionDetalle", b =>
                 {
-                    b.HasOne("Domain.Models.ProcesoLiquidacion.EstadoProceso", "EstadoProceso")
+                    b.HasOne("Domain.Models.Cartera", "Cartera")
                         .WithMany()
-                        .HasForeignKey("EstadoProcesoId")
+                        .HasForeignKey("CarteraId");
+
+                    b.HasOne("Domain.Models.ProcesoLiquidacion.Liquidacion", "Liquidacion")
+                        .WithMany("Detalles")
+                        .HasForeignKey("LiquidacionId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("Cartera");
+
+                    b.Navigation("Liquidacion");
+                });
+
+            modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Proceso", b =>
+                {
                     b.HasOne("Domain.Models.Vehiculos.Vehiculo", "Vehiculo")
                         .WithMany()
                         .HasForeignKey("VehiculoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("EstadoProceso");
 
                     b.Navigation("Vehiculo");
                 });
 
-            modelBuilder.Entity("Domain.Models.Recibo", b =>
+            modelBuilder.Entity("Domain.Models.Recibos.Recibo", b =>
                 {
                     b.HasOne("Domain.Models.Vehiculos.Vehiculo", "Vehiculo")
                         .WithMany()
                         .HasForeignKey("VehiculoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Vehiculo");
+                });
+
+            modelBuilder.Entity("Domain.Models.Recibos.ReciboDetalle", b =>
+                {
+                    b.HasOne("Domain.Models.Cartera", "Cartera")
+                        .WithMany()
+                        .HasForeignKey("CarteraId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Models.Recibos.Recibo", "Recibo")
+                        .WithMany("Detalles")
+                        .HasForeignKey("ReciboId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cartera");
+
+                    b.Navigation("Recibo");
+                });
+
+            modelBuilder.Entity("Domain.Models.Resoluciones.Resolucion", b =>
+                {
+                    b.HasOne("Domain.Models.ProcesoLiquidacion.Proceso", "Proceso")
+                        .WithMany()
+                        .HasForeignKey("ProcesoId");
+
+                    b.HasOne("Domain.Models.Usuario", "Usuario")
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Models.Vehiculos.Vehiculo", "Vehiculo")
+                        .WithMany()
+                        .HasForeignKey("VehiculoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Proceso");
+
+                    b.Navigation("Usuario");
 
                     b.Navigation("Vehiculo");
                 });
@@ -875,6 +1265,25 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("TipoVehiculo");
+                });
+
+            modelBuilder.Entity("Domain.Models.Vehiculos.HistorialPropietario", b =>
+                {
+                    b.HasOne("Domain.Models.Vehiculos.Propietario", "Propietario")
+                        .WithMany()
+                        .HasForeignKey("PropietarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Models.Vehiculos.Vehiculo", "Vehiculo")
+                        .WithMany()
+                        .HasForeignKey("VehiculoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Propietario");
+
+                    b.Navigation("Vehiculo");
                 });
 
             modelBuilder.Entity("Domain.Models.Vehiculos.Linea", b =>
@@ -893,12 +1302,6 @@ namespace Infrastructure.Migrations
                     b.HasOne("Domain.Models.Vehiculos.Color", "Color")
                         .WithMany()
                         .HasForeignKey("ColorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Domain.Models.ProcesoLiquidacion.EstadoProceso", "EstadoProceso")
-                        .WithMany()
-                        .HasForeignKey("EstadoProcesoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -928,8 +1331,6 @@ namespace Infrastructure.Migrations
 
                     b.Navigation("Color");
 
-                    b.Navigation("EstadoProceso");
-
                     b.Navigation("Linea");
 
                     b.Navigation("Marca");
@@ -939,14 +1340,39 @@ namespace Infrastructure.Migrations
                     b.Navigation("TipoVehiculo");
                 });
 
+            modelBuilder.Entity("Domain.Models.Avaluo.AvaluoVehiculo", b =>
+                {
+                    b.Navigation("Vigencias");
+                });
+
             modelBuilder.Entity("Domain.Models.BaseGravable.BaseGravableVehiculo", b =>
                 {
                     b.Navigation("Vigencias");
                 });
 
+            modelBuilder.Entity("Domain.Models.Cartera", b =>
+                {
+                    b.Navigation("Avisos");
+                });
+
+            modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Liquidacion", b =>
+                {
+                    b.Navigation("Detalles");
+                });
+
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Proceso", b =>
                 {
                     b.Navigation("Liquidaciones");
+                });
+
+            modelBuilder.Entity("Domain.Models.Recibos.Recibo", b =>
+                {
+                    b.Navigation("Detalles");
+                });
+
+            modelBuilder.Entity("Domain.Models.Resoluciones.Resolucion", b =>
+                {
+                    b.Navigation("Carteras");
                 });
 
             modelBuilder.Entity("Domain.Models.Vehiculos.Propietario", b =>

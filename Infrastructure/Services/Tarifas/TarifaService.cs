@@ -3,7 +3,7 @@ using Infrastructure.AppDbContext;
 using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Services.Tarifas;
 
-public class TarifaService(MainDataContext context)
+public partial class TarifaService
 {
     /// <summary>
     /// Guarda una nueva configuración de tarifa

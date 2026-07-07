@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Models.Carteras.Enums;
 
 namespace Domain.Models.Recibos;
 
@@ -23,7 +24,7 @@ public class ReciboDetalle
 
     // Copia histórica de los valores en el momento de generar el recibo
     public int Vigencia { get; set; }
-    public string Concepto { get; set; } = string.Empty;
+    public TipoConceptoCartera Concepto { get; set; }
     
     [Column(TypeName = "decimal(18,2)")]
     public decimal Valor { get; set; }

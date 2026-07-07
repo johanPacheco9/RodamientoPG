@@ -78,10 +78,10 @@ public partial class Dashboard
         {
             try
             {
-                //Procesa rec es aplicar pago asi que lo haré de 0 , un update del recibo.
-                //await PagosServices.Procesa_Rec(recibos.Id, recibos.Vehiculo.Placa);
-                await JsRuntime.InvokeVoidAsync("alert", "El pago ha sido asentado y la cartera descargada con éxito.");
                 await PagoService.AplicarPago(_reciboIdBusqueda);
+                
+                
+                await JsRuntime.InvokeVoidAsync("alert", "El pago ha sido asentado y la cartera descargada con éxito.");
             }
             catch (Exception ex)
             {

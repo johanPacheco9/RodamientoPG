@@ -125,7 +125,7 @@ public class ParametroService(MainDataContext context)
                 .Select(d => new EstadisticaVehiculoDto
                 (
                     d.Clase.ToUpper(),
-                    d.Servicio.GetDisplayName(), 
+                    d.Servicio, 
                     d.Total,
                     0
                 ))

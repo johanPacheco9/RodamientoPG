@@ -1,3 +1,4 @@
+using Domain.Models.Carteras.Enums;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Responses.Proceso.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +42,7 @@ public partial  class CoactivoService
                     c.EstaEnProcesoCoactivo &&
                     c.Vigencia >= desde &&
                     c.Vigencia <= hasta &&
-                    c.Concepto == ConceptoCostas)
+                    c.Concepto == TipoConceptoCartera.Costas)
                 .ExecuteUpdateAsync(s => s
                     .SetProperty(c => c.Valor, valorCostasMandamiento)
                     .SetProperty(c => c.ValorTotal, valorCostasMandamiento));

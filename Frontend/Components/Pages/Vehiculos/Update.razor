@@ -1,0 +1,211 @@
+@page "/Vehiculos/Editar/{Id:int}"
+
+@using Domain.Generics
+@using Domain.Responses.Vehiculos.Enums
+@using Domain.Responses.Users.Enums
+
+@rendermode InteractiveServer
+
+<div class="container py-4" style="max-width: 950px;">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-secondary mb-1" @onclick="Volver">
+                <i class="bi bi-arrow-left me-1"></i> Volver a la administración
+            </button>
+            <h4 class="mb-0 fw-bold text-dark text-uppercase tracking-wider">
+                Modificar Registro Técnico
+            </h4>
+        </div>
+        <span class="badge bg-dark px-3 py-2 fs-6 shadow-xs font-monospace">ID VEHI: #@Id</span>
+    </div>
+
+    @if (_isProcessing)
+    {
+        <div class="card border-0 shadow-sm p-5 text-center">
+            <div class="spinner-border text-primary mx-auto mb-3" role="status" style="color: #112366 !important;"></div>
+            <p class="text-muted fw-medium mb-0">Sincronizando actualizaciones con el RUNT...</p>
+        </div>
+    }
+    else if (_formModel == null)
+    {
+        <div class="alert alert-warning border-0 shadow-sm p-4 d-flex align-items-center gap-3">
+            <i class="bi bi-exclamation-triangle-fill display-6 text-warning"></i>
+            <div>
+                <h6 class="fw-bold mb-1">Vehículo no localizado</h6>
+                <p class="small mb-0 text-secondary">El automotor con el identificador solicitado no existe en la base de datos central de rodamiento.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <EditForm Model="@_formModel" OnValidSubmit="ProcesarActualizacion">
+            <DataAnnotationsValidator />
+            
+            <div class="row g-4">
+                <div class="col-md-12">
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 border-bottom-0">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="p-2 rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                    <i class="bi bi-card-text text-primary" style="color: #112366 !important;"></i>
+                                </span>
+                                <h6 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 13px; letter-spacing: 0.5px;">1. Información de Identificación Homologada</h6>
+                            </div>
+                        </div>
+                        <div class="card-body bg-light-subtle pt-0 px-4 pb-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Placa del Vehículo</label>
+                                    <InputText class="form-control text-center fw-bold fs-5 border-secondary-subtle" 
+                                               style="text-transform: uppercase; letter-spacing: 1px;" @bind-Value="_formModel.Placa" />
+                                    <ValidationMessage For="@(() => _formModel.Placa)" class="text-danger small mt-1" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Modelo (Año)</label>
+                                    <InputNumber class="form-control border-secondary-subtle font-monospace" @bind-Value="_formModel.Modelo" />
+                                    <ValidationMessage For="@(() => _formModel.Modelo)" class="text-danger small mt-1" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Cilindraje (cc)</label>
+                                    <InputNumber class="form-control border-secondary-subtle font-monospace" @bind-Value="_formModel.Cilindraje" />
+                                    <ValidationMessage For="@(() => _formModel.Cilindraje)" class="text-danger small mt-1" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 border-bottom-0">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="p-2 rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                    <i class="bi bi-tags-fill text-primary" style="color: #112366 !important;"></i>
+                                </span>
+                                <h6 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 13px; letter-spacing: 0.5px;">2. Clasificación y Catálogos de Tránsito</h6>
+                            </div>
+                        </div>
+                        <div class="card-body bg-light-subtle pt-0 px-4 pb-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Marca</label>
+                                    <InputSelect class="form-select border-secondary-subtle" @bind-Value="_formModel.MarcaId">
+                                        <option value="0">Seleccione Marca...</option>
+                                        @foreach (var m in _marcas)
+                                        {
+                                            <option value="@m.Id">@m.Nombre</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => _formModel.MarcaId)" class="text-danger small mt-1" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Línea Homologada</label>
+                                    <InputSelect class="form-select border-secondary-subtle" @bind-Value="_formModel.LineaId">
+                                        <option value="0">Seleccione Línea...</option>
+                                        @foreach (var l in _lineas)
+                                        {
+                                            <option value="@l.Id">@l.Nombre</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => _formModel.LineaId)" class="text-danger small mt-1" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Clase de Vehículo</label>
+                                    <InputSelect class="form-select border-secondary-subtle" @bind-Value="_formModel.TipoVehiculoId">
+                                        <option value="0">Seleccione Clase...</option>
+                                        @foreach (var c in _clases)
+                                        {
+                                            <option value="@c.Id">@c.Nombre</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => _formModel.TipoVehiculoId)" class="text-danger small mt-1" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 border-bottom-0">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="p-2 rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                    <i class="bi bi-palette-fill text-primary" style="color: #112366 !important;"></i>
+                                </span>
+                                <h6 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 13px; letter-spacing: 0.5px;">3. Operación y Aspectos Técnicos</h6>
+                            </div>
+                        </div>
+                        <div class="card-body bg-light-subtle pt-0 px-4 pb-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Tipo de Servicio</label>
+                                    <InputSelect class="form-select border-secondary-subtle" @bind-Value="_formModel.TipoServicioVehiculo">
+                                        @foreach (TipoServicioVehiculo t in Enum.GetValues(typeof(TipoServicioVehiculo)))
+                                        {
+                                            <option value="@t">@t.ToString()</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Color Registrado</label>
+                                    <InputSelect class="form-select border-secondary-subtle" @bind-Value="_formModel.ColorId">
+                                        <option value="0">Seleccione Color...</option>
+                                        @foreach (var col in _colores)
+                                        {
+                                            <option value="@col.Id">@col.Nombre</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => _formModel.ColorId)" class="text-danger small mt-1" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Estado del Proceso</label>
+                                    <input type="text" readonly class="form-control bg-body-secondary text-dark border-secondary-subtle fw-medium"
+                                           value="@(_vehiculoOriginal?.EstadoProcesoId.GetDisplayName() ?? "Coactivo")" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card border-0 shadow-sm mb-4">
+                        <div class="card-header bg-white py-3 border-bottom-0">
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="p-2 rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                    <i class="bi bi-person-bounding-box text-primary" style="color: #112366 !important;"></i>
+                                </span>
+                                <h6 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 13px; letter-spacing: 0.5px;">4. Propietario o Poseedor Legal</h6>
+                            </div>
+                        </div>
+                        <div class="card-body bg-light-subtle pt-0 px-4 pb-4">
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Tipo de Documento</label>
+                                    <InputSelect class="form-select border-secondary-subtle" @bind-Value="_formModel.TipoDocumentoForm">
+                                        @foreach (TipoDocumento doc in Enum.GetValues(typeof(TipoDocumento)))
+                                        {
+                                            <option value="@doc">@doc.GetDisplayName()</option>
+                                        }
+                                    </InputSelect>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Número Documento</label>
+                                    <InputText maxlength="13" class="form-control border-secondary-subtle font-monospace fw-semibold" 
+                                               @bind-Value="_formModel.DocumentoPropietario" @onblur="BuscarNombrePropietario" />
+                                    <ValidationMessage For="@(() => _formModel.DocumentoPropietario)" class="text-danger small mt-1" />
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label text-secondary small fw-medium">Nombre Completo Titular</label>
+                                    <input type="text" readonly class="form-control bg-body-secondary border-secondary-subtle fw-medium" @bind="_nombrePropietario" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm p-3 d-flex flex-row justify-content-end gap-2 bg-white">
+                <button type="button" class="btn btn-outline-secondary px-4" @onclick="Volver">
+                    Descartar Cambios
+                </button>
+                <button type="submit" class="btn text-white px-5 shadow-sm" style="background-color: #112366;">
+                    <i class="bi bi-save2-fill me-1"></i> Confirmar Actualización
+                </button>
+            </div>
+        </EditForm>
+    }
+</div>

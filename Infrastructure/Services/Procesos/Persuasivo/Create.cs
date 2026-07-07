@@ -1,3 +1,4 @@
+using Domain.Generics;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Notificaciones;
 using Domain.Responses.Proceso.Enums;
@@ -87,7 +88,7 @@ public partial class PersuasivoService
                 LiquidacionId = liquidacion.Id,
                 CarteraId = item.Id,
                 Vigencia = item.Vigencia,
-                Concepto = item.Concepto,
+                Concepto = item.Concepto.GetDisplayName(),
                 ValorTotal = item.Valor,
                 ValorInteres = item.ValorInteres,
                 Descuento = item.Descuento,
@@ -275,7 +276,7 @@ public partial class PersuasivoService
 
                         Vigencia = item.Vigencia,
 
-                        Concepto = item.Concepto,
+                        Concepto = item.Concepto.GetDisplayName(),
 
                         ValorTotal = item.Valor,
 

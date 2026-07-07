@@ -1,25 +1,8 @@
 ﻿@page "/Vehiculos"
-
 @using Domain.Generics
-@using Domain.Models
-@using Domain.Models.Vehiculos
-@using Infrastructure.Services.Colores
-@using Infrastructure.Services.Lineas
-@using Infrastructure.Services.Liquidaciones
-@using Infrastructure.Services.Marcas
-@using Infrastructure.Services.Propietarios
-@using Infrastructure.Services.TiposVehiculos
-@using Infrastructure.Services.Vehiculos
+@using Domain.Responses.Users.Enums
 
-@inject NavigationManager NavigationManager
-@inject VehiculosService VehiculosService
-@inject PropietarioService PropietarioService
-@inject LiquidacionService ComparendoService
-@inject MarcaService GruposService
-@inject LineasService LineasService
-@inject TiposService Claseservice
-@inject ColoresService Clasescolor
-@inject IJSRuntime JsRuntime
+
 @rendermode InteractiveServer
 
 <div class="container-fluid px-4 py-3">
@@ -115,7 +98,8 @@
                                 </td>
                                 <td class="pe-4 text-end">
                                     <button class="btn btn-sm btn-outline-secondary btn-icon-only rounded-circle border-0 me-1" 
-                                            @onclick="() => GestionarEditar(item)" @onclick:stopPropagation="true" title="Editar">
+                                            @onclick='() => NavigationManager.NavigateTo($"/Vehiculos/Editar/{item.Id}")' 
+                                            @onclick:stopPropagation="true" title="Editar">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
                                 </td>
@@ -256,20 +240,17 @@
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Tipo de Documento</label>
-                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.TipoIdentificacionId">
-                                        <option value="1">Cédula Ciudadanía</option>
-                                        <option value="2">Tarjeta Identidad</option>
-                                        <option value="3">Cédula Extranjería</option>
-                                        <option value="4">Nit</option>
-                                        <option value="6">Pasaporte</option>
-                                        <option value="7">Carnet Diplomático</option>
-                                        <option value="9">Cédula Venezolana</option>
+                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.Propietario.TipoDocumento">
+                                        @foreach (TipoDocumento doc in Enum.GetValues(typeof(TipoDocumento)))
+                                        {
+                                            <option value="@doc">@doc.ToString()</option>
+                                        }
                                     </select>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Número Documento</label>
                                     <input type="text" maxlength="13" class="form-control form-control-sm border-secondary-subtle font-monospace fw-semibold" 
-                                           @bind="vehiculo.DocumentoPropietario" @onblur="@(async () => await BuscarNombreInfractor())" />
+                                           @bind="vehiculo.Propietario.Documento" @onblur="@(async () => await BuscarNombreInfractor())" />
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Nombre Completo Titular</label>
@@ -296,13 +277,6 @@
                 <div class="modal-footer border-top p-3 bg-white d-flex justify-content-end gap-2">
                     <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-3" @onclick="CerrarModal">
                         <i class="bi bi-x-circle"></i> Cancelar Operación
-                    </button>
-                    <button type="button" class="btn btn-sm btn-light border border-secondary-subtle d-flex align-items-center gap-1 px-3 text-dark" @onclick="Recalcular">
-                        <i class="bi bi-calculator-fill text-secondary"></i> Recalcular Valores
-                    </button>
-                    <button type="button" class="btn btn-sm text-white d-flex align-items-center gap-1 px-4 shadow-sm" style="background-color: #112366;"
-                            @onclick="() => { if (esModoEditar) Actualizar(vehiculo); else Addveh(); }">
-                        <i class="bi bi-cloud-arrow-up-fill"></i> @(esModoEditar ? "Guardar Cambios" : "Efectuar Registro")
                     </button>
                 </div>
             </div>

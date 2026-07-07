@@ -1,3 +1,4 @@
+using Domain.Generics;
 using Domain.Models.Recibos.Responses;
 using Infrastructure.AppDbContext;
 using Microsoft.EntityFrameworkCore;
@@ -41,7 +42,7 @@ public partial class ReciboService(MainDataContext context, ILogger<ReciboServic
                     d.Id,
                     d.CarteraId,
                     d.Vigencia,
-                    d.Concepto,
+                    d.Concepto.GetDisplayName(),
                     d.ValorTotal
                 )).ToList()
             ))
