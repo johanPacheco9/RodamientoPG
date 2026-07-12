@@ -54,7 +54,6 @@ public static class DependencyInjection
         services.AddTransient<ImportadosService>();
         services.AddTransient<ParametroService>();
         services.AddTransient<TraspasoManager>();
-
         services.AddTransient<ResolucionService>();
         //Recibo
         services.AddTransient<ReciboService>();

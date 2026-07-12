@@ -16,7 +16,6 @@ public record VehiculoDetailDto(
     int ColorId,
     TipoServicioVehiculo TipoServicioVehiculo,
     int TipoCarroceriaId,
-    EstadoProceso EstadoProcesoId,
     int PropietarioId,
     string DocumentoPropietario,
     TipoDocumento TipoDocumentoPropietario

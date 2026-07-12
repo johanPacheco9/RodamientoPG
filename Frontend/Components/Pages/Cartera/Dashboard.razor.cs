@@ -14,7 +14,23 @@ public partial class Dashboard : ComponentBase
     private decimal _totalCartera;
 
     protected async override Task OnInitializedAsync() => await Buscar();
+    private IEnumerable<int> ObtenerRangoPaginas()
+    {
+        int maxBotones = 5;
+        int inicio = Math.Max(1, _pagina - (maxBotones / 2));
+        int fin = Math.Min(_totalPaginas, inicio + maxBotones - 1);
 
+        // Ajuste en caso de estar cerca del final del catálogo
+        if (fin - inicio + 1 < maxBotones)
+        {
+            inicio = Math.Max(1, fin - maxBotones + 1);
+        }
+
+        for (int i = inicio; i <= fin; i++)
+        {
+            yield return i;
+        }
+    }
     private async Task Buscar()
     {
         _pagina = 1;

@@ -1,57 +1,203 @@
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="Principal">Rodamiento</a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<div class="d-flex flex-column h-100 bg-white border-end border-light-subtle shadow-sm nav-sidebar"
+     style="width: 100%; height: 100%;">
+    
+    <div class="d-flex align-items-center justify-content-between px-3 py-3 border-bottom border-light-subtle" style="background-color:#f8f9fa; height:70px;">
+        <div class="d-flex align-items-center gap-2 overflow-hidden">
+            <div class="d-flex align-items-center justify-content-center rounded-circle logo-badge" style="width:36px; height:36px; flex-shrink:0;">
+                <img src="/img/logo.png" alt="Logo" class="logo-img" @onerror="OnLogoError" style="display:@(logoFailed ? "none" : "block");" />
+                <i class="bi bi-bank2 fs-5" style="display:@(logoFailed ? "block" : "none"); color:#112366;"></i>
+            </div>
+            
+            @if (isExpanded)
+            {
+                <div class="overflow-hidden animate__animated animate__fadeIn">
+                    <div class="fw-bold text-dark text-uppercase tracking-wider" style="font-size:0.85rem; line-height:1.1; letter-spacing:0.5px;">Rodamiento</div>
+                    <div class="text-muted fw-medium" style="font-size:0.7rem;">Oficina de Tránsito</div>
+                </div>
+            }
+        </div>
+
+        <button title="Alternar menú" type="button" @onclick="ToggleSidebar"
+                class="btn btn-sm btn-light border border-light-subtle rounded-circle d-flex align-items-center justify-content-center shadow-xs"
+                style="width:26px; height:26px; padding:0; flex-shrink:0;">
+            <i class="bi @(isExpanded ? "bi-chevron-left" : "bi-chevron-right")" style="font-size:0.85rem; color:#495057;"></i>
         </button>
+    </div>
+
+    <div class="nav-scrollable flex-grow-1 overflow-auto py-3 custom-scrollbar">
+        @foreach (var sec in MenuSections)
+        {
+            var key = sec.Key;
+            var open = SectionOpen(key);
+            var interactive = isExpanded;
+            var visuallyOpen = open && isExpanded;
+
+            <div class="mb-2 px-2">
+                <div class="nav-section-header @(visuallyOpen ? "open" : "") @(interactive ? "" : "no-interact")"
+                     style="cursor:@(interactive ? "pointer" : "default");"
+                     @onclick="@(() => { if (interactive) ToggleSection(key); })">
+                    <div class="d-flex align-items-center gap-3">
+                        <i class="bi @sec.Icon fs-6 @(visuallyOpen ? "text-primary-custom" : "text-muted")"></i>
+                        
+                        @if (isExpanded)
+                        {
+                            <span class="fw-bold text-uppercase tracking-wider" style="font-size:0.7rem; letter-spacing:0.3px;">@sec.Title</span>
+                        }
+                    </div>
+                    
+                    @if (isExpanded)
+                    {
+                        <i class="bi @(open ? "bi-chevron-up" : "bi-chevron-down") text-muted" style="font-size:0.65rem;"></i>
+                    }
+                </div>
+
+                @if (open || !isExpanded)
+                {
+                    <div class="nav-section-body-inner @(isExpanded ? "ms-2 border-start border-light-subtle" : "")">
+                        @foreach (var item in sec.Items)
+                        {
+                            @NavItemLink(item.Href, item.Label, item.Icon)
+                        }
+                    </div>
+                }
+            </div>
+        }
     </div>
 </div>
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
-    <nav class="flex-column">
-        <div class="nav-section">Operacion</div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Principal">
-                <span class="oi oi-home" aria-hidden="true"></span> Inicio
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Vehiculospage">
-                <span class="oi oi-spreadsheet" aria-hidden="true"></span> Vehiculos
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Coactivospage">
-                <span class="oi oi-briefcase" aria-hidden="true"></span> Procesos
-            </NavLink>
-        </div>
+<style>
+    .transition-all { transition: all 0.15s ease-in-out; }
+    .text-primary-custom { color: #112366 !important; }
 
-        <div class="nav-section">Catalogos</div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Tarifaspage">
-                <span class="oi oi-dollar" aria-hidden="true"></span> Tarifas
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Uvtspage">
-                <span class="oi oi-calculator" aria-hidden="true"></span> UVT
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="Usuariospage">
-                <span class="oi oi-people" aria-hidden="true"></span> Usuarios
-            </NavLink>
-        </div>
-    </nav>
-</div>
+    .logo-badge { background-color: rgba(17,35,102,0.08); overflow:hidden; }
+    .logo-img { width: 100%; height: 100%; object-fit: contain; }
+
+    .nav-section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        user-select: none;
+        color: #495057;
+        background-color: transparent;
+        transition: background-color .15s ease-in-out, color .15s ease-in-out;
+    }
+    .nav-section-header:not(.no-interact):hover {
+        background-color: #f1f3f5;
+        color: #112366;
+    }
+    .nav-section-header.open {
+        background-color: rgba(17,35,102,0.08);
+        color: #112366;
+        font-weight: 600;
+    }
+    .nav-section-header.no-interact { cursor: default; }
+
+    .nav-section-body-inner { animation: sectionFadeIn .15s ease-out; }
+    .nav-section-body-inner.ms-2 { margin-top: 0.25rem; }
+    @@keyframes sectionFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    .hover-menu-item:hover { background-color: #f1f3f5 !important; color: #112366 !important; }
+
+    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #dee2e6; border-radius: 10px; }
+</style>
 
 @code {
-    private bool collapseNavMenu = true;
+    private bool logoFailed = false;
+    private Dictionary<string, bool> _sectionsOpen = new();
+    private bool isExpanded = true;
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
-    private void ToggleNavMenu()
+    private async Task ToggleSidebar()
     {
-        collapseNavMenu = !collapseNavMenu;
+        isExpanded = !isExpanded;
+        int targetWidth = isExpanded ? 260 : 75;
+        await JS.InvokeVoidAsync("layoutHelpers.setSidebarWidth", targetWidth);
     }
+    
+    private void OnLogoError() => logoFailed = true;
+
+    private List<NavSection> MenuSections { get; } = new()
+    {
+        new NavSection("principal", "Principal", "bi-grid-1x2-fill", new[]
+        {
+            new NavItem("Principal", "Dashboard", "bi-speedometer2"),
+            new NavItem("Consulta", "Liquidaciones", "bi-calculator"),
+            new NavItem("Pagos", "Caja General", "bi-cash-stack"),
+        }),
+        new NavSection("catalogos", "Catálogos", "bi-collection-fill", new[]
+        {
+            new NavItem("Cartera", "Estados de Cartera", "bi-folder-symlink"),
+            new NavItem("Vehiculos", "Parque Automotor", "bi-car-front-fill"),
+            new NavItem("Marcas", "Marcas Registradas", "bi-tags"),
+            new NavItem("Lineas", "Líneas de Tránsito", "bi-bezier2"),
+            new NavItem("Tipos_resol", "Tipos Carrocerías", "bi-truck"),
+            new NavItem("Clases", "Clases de Vehículos", "bi-images"),
+            new NavItem("Intereses", "Intereses de Mora", "bi-percent"),
+            new NavItem("Uvts", "Valores UVT", "bi-calculator-fill"),
+            new NavItem("Propietarios", "Base Propietarios", "bi-person-vcard"),
+        }),
+        new NavSection("procesos", "Procesos", "bi-file-earmark-gavel-fill", new[]
+        {
+            new NavItem("Importacion", "Generación de Deudas", "bi-database-fill-down"),
+            new NavItem("ImpresionLotes", "Liquidaciones Oficiales", "bi-printer-fill"),
+            new NavItem("Coactivos", "Migración a Coactivo", "bi-gavel"),
+            new NavItem("Coactivospage", "Procesos Coactivos", "bi-file-earmark-text-fill"),
+            new NavItem("traspasos", "Traspaso", "bi-arrow-left-right"),
+        }),
+        new NavSection("reportes", "Reportes", "bi-bar-chart-line-fill", new[]
+        {
+            new NavItem("ReporteDiario", "Informe Diario de Caja", "bi-file-earmark-bar-graph"),
+            new NavItem("ReporteCartera", "Debido Cobrar General", "bi-journal-check"),
+            new NavItem("InformeCartera", "Auditoría de Cartera", "bi-shield-shaded"),
+            new NavItem("ReporteMandamientos", "Reporte Mandamientos", "bi-file-text"),
+        }),
+        new NavSection("sistema", "Sistema", "bi-sliders", new[]
+        {
+            new NavItem("Usuarios", "Control de Usuarios", "bi-person-gear"),
+            new NavItem("Usuariospage", "Usuarios (perfil)", "bi-person-gear"),
+            new NavItem("Tarifaspage", "Configurar Tarifas", "bi-bookmarks-fill"),
+            new NavItem("Parametros", "Parámetros Globales", "bi-gear-fill"),
+        }),
+    };
+
+    protected override void OnInitialized()
+    {
+        foreach (var sec in MenuSections) _sectionsOpen[sec.Key] = true;
+        Navigation.LocationChanged += (s, e) => InvokeAsync(StateHasChanged);
+    }
+
+    private bool SectionOpen(string key) => _sectionsOpen.TryGetValue(key, out var open) && open;
+    private void ToggleSection(string key) => _sectionsOpen[key] = !SectionOpen(key);
+
+    private RenderFragment NavItemLink(string href, string label, string iconClass) => __builder =>
+    {
+        var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
+        var hrefNorm = "/" + href.TrimStart('/');
+        var isActive = path.Equals(hrefNorm, StringComparison.OrdinalIgnoreCase) || path.StartsWith(hrefNorm + "/");
+
+        var activeStyle = isActive
+            ? "bg-primary bg-opacity-10 text-primary-custom fw-bold border-end border-3 border-primary-custom"
+            : "text-secondary";
+
+        <a href="@href" title="@label"
+           class="d-flex align-items-center gap-2 px-3 py-2 my-1 text-decoration-none transition-all @activeStyle hover-menu-item"
+           style="font-size:0.8rem; border-top-right-radius:4px; border-bottom-right-radius:4px; margin-left:@(isExpanded ? "8px" : "0"); justify-content:@(isExpanded ? "start" : "center");">
+            
+            <i class="bi @iconClass @(isActive ? "text-primary-custom" : "text-muted")" style="font-size:0.95rem; width:@(isExpanded ? "20px" : "auto");"></i>
+            
+            @if (isExpanded) 
+            { 
+                <span class="text-truncate animate__animated animate__fadeIn" style="animation-duration: 0.2s;">@label</span> 
+            }
+        </a>
+    };
+
+    private sealed record NavItem(string Href, string Label, string Icon);
+    private sealed record NavSection(string Key, string Title, string Icon, IEnumerable<NavItem> Items);
 }

@@ -153,11 +153,6 @@
                                     </InputSelect>
                                     <ValidationMessage For="@(() => _formModel.ColorId)" class="text-danger small mt-1" />
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label text-secondary small fw-medium">Estado del Proceso</label>
-                                    <input type="text" readonly class="form-control bg-body-secondary text-dark border-secondary-subtle fw-medium"
-                                           value="@(_vehiculoOriginal?.EstadoProcesoId.GetDisplayName() ?? "Coactivo")" />
-                                </div>
                             </div>
                         </div>
                     </div>

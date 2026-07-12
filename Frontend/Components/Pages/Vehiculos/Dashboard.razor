@@ -18,13 +18,16 @@
                 <div class="col-md-5 col-sm-8">
                     <div class="input-group">
                         <span class="input-group-text bg-light border-end-0 text-muted">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
-                                <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                                 class="bi bi-search" viewBox="0 0 16 16">
+                                <path
+                                    d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
                             </svg>
                         </span>
-                        <input type="text" class="form-control bg-light border-start-0 ps-1" 
-                               @bind="buscarnit" placeholder="Escriba la placa a buscar..." style="font-size: 14px;" />
-                        <button type="button" @onclick="findbycedula" class="btn text-white px-4" style="background-color: #112366; font-size: 13px;">
+                        <input type="text" class="form-control bg-light border-start-0 ps-1"
+                               @bind="buscarnit" placeholder="Escriba la placa a buscar..." style="font-size: 14px;"/>
+                        <button type="button" @onclick="findbycedula" class="btn text-white px-4"
+                                style="background-color: #112366; font-size: 13px;">
                             Buscar Placa
                         </button>
                     </div>
@@ -44,7 +47,8 @@
             @if (_isLoading)
             {
                 <div class="d-flex flex-column align-items-center justify-content-center p-5 my-4">
-                    <div class="spinner-border text-primary mb-3" role="status" style="width: 2.5rem; height: 2.5rem; color: #112366 !important;"></div>
+                    <div class="spinner-border text-primary mb-3" role="status"
+                         style="width: 2.5rem; height: 2.5rem; color: #112366 !important;"></div>
                     <span class="text-muted fw-medium">Cargando registros automotores...</span>
                 </div>
             }
@@ -52,7 +56,8 @@
             {
                 <div class="text-center p-5 my-4">
                     <i class="bi bi-folder-x text-muted display-4"></i>
-                    <p class="mt-3 text-secondary fw-semibold mb-0">No se encontraron vehículos registrados en la plataforma.</p>
+                    <p class="mt-3 text-secondary fw-semibold mb-0">No se encontraron vehículos registrados en la
+                        plataforma.</p>
                     <small class="text-muted">Use el botón superior para ingresar un nuevo automotor.</small>
                 </div>
             }
@@ -60,17 +65,17 @@
             {
                 <div class="table-responsive">
                     <table class="table table-hover table-striped align-middle mb-0" style="font-size: 13px;">
-                        <thead class="table-light text-secondary uppercase border-bottom" style="font-size: 11px; font-weight: 700; background-color: #f8f9fa;">
-                            <tr>
-                                <th scope="col" class="ps-4 py-3 text-dark">ID</th>
-                                <th scope="col" class="py-3 text-dark">PLACA</th>
-                                <th scope="col" class="py-3 text-dark">MODELO</th>
-                                <th scope="col" class="py-3 text-dark">MARCA</th>
-                                <th scope="col" class="py-3 text-dark">LÍNEA</th>
-                                <th scope="col" class="py-3 text-dark">CLASE</th>
-                                <th scope="col" class="py-3 text-dark">ESTADO</th>
-                                <th scope="col" class="pe-4 py-3 text-end text-dark">ACCIONES</th>
-                            </tr>
+                        <thead class="table-light text-secondary uppercase border-bottom"
+                               style="font-size: 11px; font-weight: 700; background-color: #f8f9fa;">
+                        <tr>
+                            <th scope="col" class="ps-4 py-3 text-dark">ID</th>
+                            <th scope="col" class="py-3 text-dark">PLACA</th>
+                            <th scope="col" class="py-3 text-dark">MODELO</th>
+                            <th scope="col" class="py-3 text-dark">MARCA</th>
+                            <th scope="col" class="py-3 text-dark">LÍNEA</th>
+                            <th scope="col" class="py-3 text-dark">CLASE</th>
+                            <th scope="col" class="pe-4 py-3 text-end text-dark">ACCIONES</th>
+                        </tr>
                         </thead>
                         <tbody>
                         @foreach (var item in ListVehiculos)
@@ -78,12 +83,13 @@
                             <tr @onclick="() => SeleccionarFila(item)" class="cursor-pointer">
                                 <td class="ps-4 fw-semibold text-secondary">#@item.Id</td>
                                 <td>
-                                    <span class="badge bg-warning text-dark border border-dark border-opacity-10 font-monospace px-2 py-1.5 fs-7 rounded-sm fw-bold tracking-wider shadow-xs">
+                                    <span
+                                        class="badge bg-warning text-dark border border-dark border-opacity-10 font-monospace px-2 py-1.5 fs-7 rounded-sm fw-bold tracking-wider shadow-xs">
                                         @item.Placa?.ToUpper()
                                     </span>
                                 </td>
                                 <td class="fw-medium text-dark">@item.Modelo</td>
-        
+
                                 <td class="text-secondary">@item.Marca</td>
                                 <td class="text-secondary">@item.Linea</td>
                                 <td>
@@ -91,15 +97,11 @@
                                         @item.TipoVehiculo
                                     </span>
                                 </td>
-                                <td>
-                                    <span class="badge rounded-pill px-2 py-1 @(item.EstadoProceso == "Coactivo" ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle")">
-                                        @item.EstadoProceso
-                                    </span>
-                                </td>
                                 <td class="pe-4 text-end">
-                                    <button class="btn btn-sm btn-outline-secondary btn-icon-only rounded-circle border-0 me-1" 
-                                            @onclick='() => NavigationManager.NavigateTo($"/Vehiculos/Editar/{item.Id}")' 
-                                            @onclick:stopPropagation="true" title="Editar">
+                                    <button
+                                        class="btn btn-sm btn-outline-secondary btn-icon-only rounded-circle border-0 me-1"
+                                        @onclick='() => NavigationManager.NavigateTo($"/Vehiculos/Editar/{item.Id}")'
+                                        @onclick:stopPropagation="true" title="Editar">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
                                 </td>
@@ -108,13 +110,63 @@
                         </tbody>
                     </table>
                 </div>
-                
-                <div class="card-footer bg-white border-top p-3 d-flex align-items-center justify-content-between">
-                    <small class="text-muted fw-medium">Mostrando registros seleccionados del sistema</small>
-                    <div class="btn-group btn-group-sm shadow-xs" role="group">
-                        <button type="button" class="btn btn-outline-secondary px-3" disabled>Anterior</button>
-                        <button type="button" class="btn btn-outline-secondary px-3 active">1</button>
-                        <button type="button" class="btn btn-outline-secondary px-3" disabled>Siguiente</button>
+
+                <div
+                    class="card-footer bg-white border-top p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="flex-grow-1 min-w-0">
+                        <small class="text-muted fw-medium">
+                            Mostrando <strong>@((_pagina - 1) * _porPagina + 1)</strong> –
+                            <strong>@Math.Min(_pagina * _porPagina, _totalVehiculos)</strong>
+                            de <strong>@_totalVehiculos</strong> registros automotores
+                        </small>
+                    </div>
+
+                    <div class="d-flex justify-content-center align-items-center gap-1">
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-2.5"
+                                disabled="@(_pagina == 1)"
+                                @onclick="() => CambiarPagina(1)" title="Primera página">
+                            <i class="bi bi-chevron-double-left" style="font-size: 0.75rem;"></i>
+                        </button>
+
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-2.5"
+                                disabled="@(_pagina == 1)"
+                                @onclick="() => CambiarPagina(_pagina - 1)">
+                            <i class="bi bi-chevron-left" style="font-size: 0.75rem;"></i>
+                        </button>
+
+                        @foreach (var p in ObtenerRangoPaginas())
+                        {
+                            var pLocal = p;
+                            <button type="button"
+                                    class="btn btn-sm px-3 @(_pagina == pLocal ? "btn-primary fw-bold" : "btn-outline-secondary")"
+                                    style="min-width: 35px;"
+                                    @onclick:preventDefault
+                                    @onclick="() => CambiarPagina(pLocal)">
+                                @pLocal
+                            </button>
+                        }
+
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-2.5"
+                                disabled="@(_pagina == _totalPaginas || _totalPaginas == 0)"
+                                @onclick="() => CambiarPagina(_pagina + 1)">
+                            <i class="bi bi-chevron-right" style="font-size: 0.75rem;"></i>
+                        </button>
+
+                        <button type="button" class="btn btn-outline-secondary btn-sm px-2.5"
+                                disabled="@(_pagina == _totalPaginas || _totalPaginas == 0)"
+                                @onclick="() => CambiarPagina(_totalPaginas)" title="Última página">
+                            <i class="bi bi-chevron-double-right" style="font-size: 0.75rem;"></i>
+                        </button>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 ms-auto ms-md-0">
+                        <small class="text-muted text-nowrap" style="font-size: 12px;">Filas:</small>
+                        <select class="form-select form-select-sm" style="width: 75px;"
+                                @bind="_porPagina" @bind:after="findbycedula">
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
                     </div>
                 </div>
             }
@@ -124,10 +176,12 @@
 
 @if (_mostrarModal)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1050;">
+    <div class="modal fade show d-block" tabindex="-1"
+         style="background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1050;">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header text-white border-0 py-3" style="background: linear-gradient(135deg, #112366, #1d3557);">
+                <div class="modal-header text-white border-0 py-3"
+                     style="background: linear-gradient(135deg, #112366, #1d3557);">
                     <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2">
                         <i class="bi @(esModoEditar ? "bi-pencil-square" : "bi-plus-circle")"></i>
                         @(esModoEditar ? "Modificar Datos del Vehículo" : "Ingresar Nuevo Vehículo al Sistema")
@@ -138,30 +192,38 @@
                     @if (vehiculo != null)
                     {
                         <div class="card card-body border-0 shadow-xs mb-3 p-3">
-                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">1. Datos de Identificación Físicos</h6>
+                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">
+                                1. Datos de Identificación Físicos</h6>
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Placa del Vehículo</label>
-                                    <input type="text" class="form-control form-control-sm text-center fw-bold fs-6 border-secondary-subtle" 
-                                           maxlength="6" style="text-transform: uppercase; letter-spacing: 1px;" @bind="vehiculo.Placa" />
+                                    <input type="text"
+                                           class="form-control form-control-sm text-center fw-bold fs-6 border-secondary-subtle"
+                                           maxlength="6" style="text-transform: uppercase; letter-spacing: 1px;"
+                                           @bind="vehiculo.Placa"/>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Modelo (Año)</label>
-                                    <input type="number" class="form-control form-control-sm border-secondary-subtle font-monospace" @bind="vehiculo.Modelo" />
+                                    <input type="number"
+                                           class="form-control form-control-sm border-secondary-subtle font-monospace"
+                                           @bind="vehiculo.Modelo"/>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Cilindraje (cc)</label>
-                                    <input type="number" class="form-control form-control-sm border-secondary-subtle" @bind="vehiculo.Cilindraje" />
+                                    <input type="number" class="form-control form-control-sm border-secondary-subtle"
+                                           @bind="vehiculo.Cilindraje"/>
                                 </div>
                             </div>
                         </div>
 
                         <div class="card card-body border-0 shadow-xs mb-3 p-3">
-                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">2. Clasificación y Catálogos de Tránsito</h6>
+                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">
+                                2. Clasificación y Catálogos de Tránsito</h6>
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Marca</label>
-                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.MarcaId">
+                                    <select class="form-select form-select-sm border-secondary-subtle"
+                                            @bind="vehiculo.MarcaId">
                                         <option value="0">Seleccione Marca...</option>
                                         @if (customers != null)
                                         {
@@ -174,7 +236,8 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Línea Homologada</label>
-                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.LineaId">
+                                    <select class="form-select form-select-sm border-secondary-subtle"
+                                            @bind="vehiculo.LineaId">
                                         <option value="0">Seleccione Línea...</option>
                                         @if (lines != null)
                                         {
@@ -187,7 +250,8 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Clase de Vehículo</label>
-                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.TipoVehiculoId">
+                                    <select class="form-select form-select-sm border-secondary-subtle"
+                                            @bind="vehiculo.TipoVehiculoId">
                                         <option value="0">Seleccione Clase...</option>
                                         @if (Clasesveh != null)
                                         {
@@ -202,11 +266,13 @@
                         </div>
 
                         <div class="card card-body border-0 shadow-xs mb-3 p-3">
-                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">3. Operación y Aspecto Técnico</h6>
+                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">
+                                3. Operación y Aspecto Técnico</h6>
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Tipo de Servicio</label>
-                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.TipoServicioVehiculo">
+                                    <select class="form-select form-select-sm border-secondary-subtle"
+                                            @bind="vehiculo.TipoServicioVehiculo">
                                         <option value="1">Oficial</option>
                                         <option value="2">Público</option>
                                         <option value="3">Particular</option>
@@ -216,7 +282,8 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Color Registrado</label>
-                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.ColorId">
+                                    <select class="form-select form-select-sm border-secondary-subtle"
+                                            @bind="vehiculo.ColorId">
                                         <option value="0">Seleccione Color...</option>
                                         @if (ClasesColores != null)
                                         {
@@ -227,20 +294,17 @@
                                         }
                                     </select>
                                 </div>
-                                <div class="col-md-4">
-                                    <label class="form-label text-secondary small fw-medium">Estado Coactivo</label>
-                                    <input type="text" readonly class="form-control form-control-sm bg-body-secondary text-dark border-secondary-subtle fw-medium"
-                                           value="@(vehiculo.EstadoProceso.GetDisplayName() ?? "Coactivo")" />
-                                </div>
                             </div>
                         </div>
 
                         <div class="card card-body border-0 shadow-xs mb-3 p-3">
-                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">4. Propietario o Poseedor Legal</h6>
+                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">
+                                4. Propietario o Poseedor Legal</h6>
                             <div class="row g-3">
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Tipo de Documento</label>
-                                    <select class="form-select form-select-sm border-secondary-subtle" @bind="vehiculo.Propietario.TipoDocumento">
+                                    <select class="form-select form-select-sm border-secondary-subtle"
+                                            @bind="vehiculo.Propietario.TipoDocumento">
                                         @foreach (TipoDocumento doc in Enum.GetValues(typeof(TipoDocumento)))
                                         {
                                             <option value="@doc">@doc.ToString()</option>
@@ -249,33 +313,43 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Número Documento</label>
-                                    <input type="text" maxlength="13" class="form-control form-control-sm border-secondary-subtle font-monospace fw-semibold" 
-                                           @bind="vehiculo.Propietario.Documento" @onblur="@(async () => await BuscarNombreInfractor())" />
+                                    <input type="text" maxlength="13"
+                                           class="form-control form-control-sm border-secondary-subtle font-monospace fw-semibold"
+                                           @bind="vehiculo.Propietario.Documento"
+                                           @onblur="@(async () => await BuscarNombreInfractor())"/>
                                 </div>
                                 <div class="col-md-4">
-                                    <label class="form-label text-secondary small fw-medium">Nombre Completo Titular</label>
-                                    <input type="text" readonly class="form-control form-control-sm bg-body-secondary border-secondary-subtle fw-medium" @bind="rnombre" />
+                                    <label class="form-label text-secondary small fw-medium">Nombre Completo
+                                        Titular</label>
+                                    <input type="text" readonly
+                                           class="form-control form-control-sm bg-body-secondary border-secondary-subtle fw-medium"
+                                           @bind="rnombre"/>
                                 </div>
                             </div>
                         </div>
 
                         <div class="card card-body border-0 shadow-xs p-3">
-                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">5. Capacidades Oficiales RUNT</h6>
+                            <h6 class="text-uppercase tracking-wider fw-bold text-muted mb-3" style="font-size: 11px;">
+                                5. Capacidades Oficiales RUNT</h6>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    <label class="form-label text-secondary small fw-medium">Capacidad de Carga (Kilos)</label>
-                                    <input type="number" class="form-control form-control-sm border-secondary-subtle" @bind="vehiculo.CapacidadCarga" />
+                                    <label class="form-label text-secondary small fw-medium">Capacidad de Carga
+                                        (Kilos)</label>
+                                    <input type="number" class="form-control form-control-sm border-secondary-subtle"
+                                           @bind="vehiculo.CapacidadCarga"/>
                                 </div>
                                 <div class="col-md-6">
                                     <label class="form-label text-secondary small fw-medium">Cupo Pasajeros</label>
-                                    <input type="number" class="form-control form-control-sm border-secondary-subtle" @bind="vehiculo.Pasajeros" />
+                                    <input type="number" class="form-control form-control-sm border-secondary-subtle"
+                                           @bind="vehiculo.Pasajeros"/>
                                 </div>
                             </div>
                         </div>
                     }
                 </div>
                 <div class="modal-footer border-top p-3 bg-white d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-3" @onclick="CerrarModal">
+                    <button type="button" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1 px-3"
+                            @onclick="CerrarModal">
                         <i class="bi bi-x-circle"></i> Cancelar Operación
                     </button>
                 </div>
@@ -286,46 +360,58 @@
 
 @if (_mostrarModal2)
 {
-    <div class="modal fade show d-block" tabindex="-1" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 1060;">
+    <div class="modal fade show d-block" tabindex="-1"
+         style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 1060;">
         <div class="modal-dialog modal-dialog-centered shadow-lg" style="max-width: 500px;">
             <div class="modal-content border-0">
                 <div class="modal-header bg-dark text-white border-0 py-3">
                     <h5 class="modal-title fw-bold fs-6 d-flex align-items-center gap-2">
                         <i class="bi bi-person-plus-fill text-warning"></i> Vinculación de Propietario Nuevo
                     </h5>
-                    <button type="button" class="btn-close btn-close-white shadow-none" @onclick="CerrarModal2"></button>
+                    <button type="button" class="btn-close btn-close-white shadow-none"
+                            @onclick="CerrarModal2"></button>
                 </div>
                 <div class="modal-body bg-light p-4">
                     @if (_propietario != null)
                     {
                         <div class="mb-3">
                             <label class="form-label text-secondary small fw-medium">Documento de Identidad</label>
-                            <input type="text" readonly class="form-control bg-body-secondary font-monospace fw-bold" 
-                                   style="width: 170px;" @bind="_propietario.Documento" />
+                            <input type="text" readonly class="form-control bg-body-secondary font-monospace fw-bold"
+                                   style="width: 170px;" @bind="_propietario.Documento"/>
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-12">
-                                <label class="form-label text-secondary small fw-medium">Nombres y Apellidos Completos</label>
-                                <input type="text" class="form-control form-control-sm border-secondary-subtle" maxlength="40" @bind="_propietario.Nombre" />
+                                <label class="form-label text-secondary small fw-medium">Nombres y Apellidos
+                                    Completos</label>
+                                <input type="text" class="form-control form-control-sm border-secondary-subtle"
+                                       maxlength="40" @bind="_propietario.Nombre"/>
                             </div>
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-12">
-                                <label class="form-label text-secondary small fw-medium">Número Telefónico / Celular</label>
-                                <input type="text" class="form-control form-control-sm border-secondary-subtle" maxlength="15" @bind="_propietario.Telefono" />
+                                <label class="form-label text-secondary small fw-medium">Número Telefónico /
+                                    Celular</label>
+                                <input type="text" class="form-control form-control-sm border-secondary-subtle"
+                                       maxlength="15" @bind="_propietario.Telefono"/>
                             </div>
                         </div>
                         <div class="row g-3">
                             <div class="col-md-12">
-                                <label class="form-label text-secondary small fw-medium">Dirección de Notificación Urbana</label>
-                                <input type="text" class="form-control form-control-sm border-secondary-subtle" maxlength="50" @bind="_propietario.Direccion" />
+                                <label class="form-label text-secondary small fw-medium">Dirección de Notificación
+                                    Urbana</label>
+                                <input type="text" class="form-control form-control-sm border-secondary-subtle"
+                                       maxlength="50" @bind="_propietario.Direccion"/>
                             </div>
                         </div>
                     }
                 </div>
                 <div class="modal-footer border-top p-3 bg-white d-flex justify-content-end gap-2">
-                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" @onclick="CerrarModal2">Descartar</button>
-                    <button type="button" class="btn btn-sm btn-success px-4 shadow-sm" @onclick="Agregar_Prop">Vincular Ciudadano</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary px-3" @onclick="CerrarModal2">
+                        Descartar
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success px-4 shadow-sm" @onclick="Agregar_Prop">Vincular
+                        Ciudadano
+                    </button>
                 </div>
             </div>
         </div>

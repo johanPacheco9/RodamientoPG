@@ -138,7 +138,7 @@ public partial class Dashboard
         try
         {
             await ShowLoading();
-            Procesoslist = await PersuasivoService.List(SelectedItem, vig, "") ?? new List<Proceso>();
+            Procesoslist = await PersuasivoService.List("") ?? new List<Proceso>();
             PaginaTab2 = 1;
         }
         catch (Exception ex)

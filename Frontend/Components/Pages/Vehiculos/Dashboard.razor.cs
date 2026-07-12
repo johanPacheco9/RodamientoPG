@@ -1,4 +1,5 @@
 using Domain.Models.Vehiculos;
+using Domain.Models.Vehiculos.Requests;
 using Domain.Models.Vehiculos.Responses;
 using Infrastructure.Services.Carteras;
 using Infrastructure.Services.Colores;
@@ -22,7 +23,6 @@ public partial class Dashboard
     [Inject] private LineasService LineasService { get; set; } = null!;
     [Inject] private TiposService Claseservice { get; set; } = null!;
     [Inject] private ColoresService Clasescolor { get; set; } = null!;
-    
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
 
     // Variables de Estado de la UI
@@ -36,11 +36,17 @@ public partial class Dashboard
     private string alertaMensaje = string.Empty;
     private string alertaTipo = "danger";
 
+    // Variables de Control para Paginación Server-Side
+    private int _pagina = 1;
+    private int _porPagina = 20;
+    private int _totalVehiculos = 0;
+    private int _totalPaginas => (int)Math.Ceiling((double)_totalVehiculos / _porPagina);
+
     // Modelos de Datos
     private Vehiculo vehiculo = new();
     private Propietario _propietario = new();
 
-    // Grilla basada en DTOs ligeros
+    // Grilla basada en DTOs ligeros (Actualizada dinámicamente)
     private List<VehiculoDetalleDto> ListVehiculos = new();
     private IList<VehiculoDetalleDto>? selectedEmployees;
     private IList<Linea> lines = new List<Linea>();
@@ -56,16 +62,10 @@ public partial class Dashboard
         LimpiarAlerta();
         try
         {
-            // Carga inicial de DTOs para la grilla principal
-            var todosLosVehiculos = await VehiculosService.GetAll();
-            ListVehiculos = todosLosVehiculos ?? new List<VehiculoDetalleDto>();
+            // Carga inicial paginada real desde la base de datos
+            await CargarVehiculosPaginados();
 
-            if (ListVehiculos.Any())
-            {
-                selectedEmployees = ListVehiculos.Take(1).ToList();
-            }
-
-            // Carga paralela de catálogos maestros de tránsito (Útil para el registro nuevo)
+            // Carga paralela de catálogos maestros de tránsito (Para optimizar rendimiento)
             Task<List<Marca>> tareaMarcas = GruposService.GetAll();
             Task<List<TipoVehiculo>> tareaClases = Claseservice.GetAll();
             Task<List<Color>> tareaColores = Clasescolor.GetAll();
@@ -85,13 +85,99 @@ public partial class Dashboard
             _isLoading = false;
         }
     }
+    
+    private IEnumerable<int> ObtenerRangoPaginas()
+    {
+        int maxBotones = 5;
+        int inicio = Math.Max(1, _pagina - (maxBotones / 2));
+        int fin = Math.Min(_totalPaginas, inicio + maxBotones - 1);
+    
+        if (fin - inicio + 1 < maxBotones)
+        {
+            inicio = Math.Max(1, fin - maxBotones + 1);
+        }
+    
+        for (int i = inicio; i <= fin; i++)
+        {
+            yield return i;
+        }
+    }
 
-    // 🔥 CORREGIDO: Redirige de forma nativa a la nueva página independiente al dar clic en la fila o editar
+    /// <summary>
+    /// Centraliza la comunicación con el Backend mapeando el filtro e índices de paginación.
+    /// </summary>
+    private async Task CargarVehiculosPaginados()
+    {
+        var filtro = new GetVehiculosRequest
+        {
+            Placa = buscarnit,
+            Pagina = _pagina,
+            PorPagina = _porPagina
+        };
+
+        var resultado = await VehiculosService.GetPaged(filtro);
+        
+        ListVehiculos = resultado.Items ?? new List<VehiculoDetalleDto>();
+        _totalVehiculos = resultado.TotalRegistros;
+
+        if (ListVehiculos.Any())
+        {
+            selectedEmployees = ListVehiculos.Take(1).ToList();
+        }
+        else
+        {
+            selectedEmployees = null;
+        }
+    }
+
+    /// <summary>
+    /// Disparador del botón de búsqueda o evento onchange del filtro.
+    /// </summary>
+    private async Task findbycedula()
+    {
+        _isLoading = true;
+        LimpiarAlerta();
+        try
+        {
+            _pagina = 1; // Reseteamos a la primera página al cambiar la placa buscada
+            await CargarVehiculosPaginados();
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al filtrar la consulta en la base de datos: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    /// <summary>
+    /// Gestiona el cambio de página desde los controles del paginador HTML.
+    /// </summary>
+    private async Task CambiarPagina(int nuevaPagina)
+    {
+        if (nuevaPagina < 1 || nuevaPagina > _totalPaginas) return;
+        
+        _pagina = nuevaPagina;
+        _isLoading = true;
+        try
+        {
+            await CargarVehiculosPaginados();
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al navegar a la página {nuevaPagina}: {ex.Message}", "danger");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
     private void GestionarEditar(VehiculoDetalleDto item)
     {
         if (item == null) return;
-        
-        // Navegamos directamente al componente dedicado pasando el ID por URL
         NavigationManager.NavigateTo($"/Vehiculos/Editar/{item.Id}");
     }
 
@@ -164,8 +250,8 @@ public partial class Dashboard
             else
             {
                 await CerrarModal();
-                var todos = await VehiculosService.GetAll();
-                ListVehiculos = todos?.ToList() ?? new();
+                _pagina = 1; // Regresamos a la primera plana para visualizar el nuevo cambio
+                await CargarVehiculosPaginados();
                 MostrarAlerta("Vehículo guardado y registrado correctamente de forma oficial.", "success");
             }
         }
@@ -185,33 +271,6 @@ public partial class Dashboard
         if (v.Propietario.TipoDocumento <= 0) return false;
 
         return true;
-    }
-
-    private async Task findbycedula()
-    {
-        _isLoading = true;
-        LimpiarAlerta();
-        try
-        {
-            if (string.IsNullOrWhiteSpace(buscarnit))
-            {
-                var todos = await VehiculosService.GetAll();
-                ListVehiculos = todos ?? new();
-            }
-            else
-            {
-                var todos = await VehiculosService.GetAll();
-                ListVehiculos = todos?.Where(x => x.Placa.Contains(buscarnit.ToUpper())).ToList() ?? new();
-            }
-        }
-        catch (Exception ex)
-        {
-            MostrarAlerta($"Error al filtrar la consulta en la grilla: {ex.Message}", "danger");
-        }
-        finally
-        {
-            _isLoading = false;
-        }
     }
 
     private async Task Agregar_Prop()

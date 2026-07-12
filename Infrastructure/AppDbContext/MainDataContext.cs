@@ -39,6 +39,8 @@ public class MainDataContext(DbContextOptions<MainDataContext> options) : DbCont
     
     public DbSet<AvaluoVehiculo>AvaluoVehiculos { get; set; }
     
+    public DbSet<HistorialEstadoProceso> HistorialEstadoProceso {get; set;}
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

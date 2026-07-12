@@ -1,4 +1,5 @@
 using Domain.Generics;
+using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Resoluciones;
 using Domain.Responses.Liquidacion;
 using Domain.Responses.Users.Enums;
@@ -27,14 +28,16 @@ public partial class CarteraService
                     v.Placa,
                     v.Modelo,
                     v.Cilindraje,
-                    v.EstadoProcesoId,
                     v.PagoHasta,
                     v.TipoServicioVehiculo,
                     Clase = v.TipoVehiculo != null ? v.TipoVehiculo.Nombre : string.Empty,
                     Marca = v.Marca != null ? v.Marca.Nombre : string.Empty,
                     Linea = v.Linea != null ? v.Linea.Nombre : string.Empty,
                     Color = v.Color != null ? v.Color.Nombre : string.Empty,
-                    Estado = v.EstadoProceso.GetDisplayName(),
+                    ProcesoActivo = context.Procesos
+                        .Where(p => p.VehiculoId == v.Id && p.EstadoProceso != EstadoProceso.SinProceso)
+                        .Select(p => new { p.Id, p.EstadoProceso })
+                        .FirstOrDefault(),
                     Documento = v.Propietario != null ? v.Propietario.Documento : string.Empty,
                     NombrePropietario = v.Propietario != null ? v.Propietario.Nombre : string.Empty,
                     Direccion = v.Propietario != null ? v.Propietario.Direccion : string.Empty,
@@ -85,7 +88,7 @@ public partial class CarteraService
             int vigenciaDesde = carteraPendiente.Any() ? carteraPendiente.Min(c => c.Vigencia) : nowYear;
             int vigenciaHasta = carteraPendiente.Any() ? carteraPendiente.Max(c => c.Vigencia) : nowYear;
             decimal totalDeuda = carteraPendiente.Sum(c => c.ValorTotal);
-
+            var estadoProceso = vehiculo.ProcesoActivo?.EstadoProceso ?? EstadoProceso.SinProceso;
             // 4. Armamos la respuesta final unificada para el frontend
             return new EstadoCuentaVehiculoDto
             {
@@ -98,8 +101,8 @@ public partial class CarteraService
                 Color = vehiculo.Color,
                 TipoServicio = vehiculo.TipoServicioVehiculo.ToString(),
                 Cilindraje = vehiculo.Cilindraje,
-                EstadoNombre = vehiculo.Estado,
-                EstadoId = vehiculo.EstadoProcesoId,
+                Estado = estadoProceso,
+                ProcesoId = vehiculo.ProcesoActivo?.Id,
                 UltimoPago = vehiculo.PagoHasta,
 
                 Documento = vehiculo.Documento,

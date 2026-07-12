@@ -2,13 +2,13 @@ using Domain.Generics;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Resoluciones;
 using Domain.Responses.Carteras;
+using Domain.Responses.Proceso.Enums;
 using Microsoft.EntityFrameworkCore;
 namespace Infrastructure.Services.Carteras;
 
 public partial class CarteraService
 {
-    
-     public async Task<PaginadoCarteraDto> GetDeudores(FiltroCarteraDto filtro, int pagina, int porPagina)
+    public async Task<PaginadoCarteraDto> GetDeudores(FiltroCarteraDto filtro, int pagina, int porPagina)
     {
         // 1. 🚀 FILTRO CLAVE: Excluir las carteras afectadas por Resoluciones de Anulación o Traslado
         var query = context.Cartera
@@ -32,13 +32,20 @@ public partial class CarteraService
         if (filtro.VigenciaDesde.HasValue)
             query = query.Where(c => c.Vigencia <= filtro.VigenciaDesde.Value);
 
+        // El estado ya no vive en Vehiculo: se consulta contra Proceso vía VehiculoId
         if (!string.IsNullOrEmpty(filtro.Proceso))
         {
             query = filtro.Proceso.ToLower() switch
             {
-                "ninguno" => query.Where(c => c.Vehiculo.EstadoProceso == EstadoProceso.SinProceso),
-                "persuasivo" => query.Where(c => c.Vehiculo.EstadoProceso == EstadoProceso.Persuasivo),
-                "coactivo" => query.Where(c => c.Vehiculo.EstadoProceso == EstadoProceso.Coactivo),
+                "ninguno" => query.Where(c =>
+                    !context.Procesos.Any(p => p.VehiculoId == c.VehiculoId && p.EstadoProceso != EstadoProceso.SinProceso)),
+
+                "persuasivo" => query.Where(c =>
+                    context.Procesos.Any(p => p.VehiculoId == c.VehiculoId && p.EstadoProceso == EstadoProceso.Persuasivo)),
+
+                "coactivo" => query.Where(c =>
+                    context.Procesos.Any(p => p.VehiculoId == c.VehiculoId && p.EstadoProceso == EstadoProceso.Coactivo)),
+
                 _ => query
             };
         }
@@ -54,7 +61,12 @@ public partial class CarteraService
                 TipoDocumento = c.Vehiculo.Propietario.TipoDocumento.ToString(),
                 Documento = c.Vehiculo.Propietario.Documento,
                 NombrePropietario = c.Vehiculo.Propietario.Nombre,
-                EstadoProceso = c.Vehiculo.EstadoProceso
+
+                // Estado activo del vehículo, resuelto por subconsulta a Proceso
+                EstadoProceso = context.Procesos
+                    .Where(p => p.VehiculoId == c.VehiculoId && p.EstadoProceso != EstadoProceso.SinProceso)
+                    .Select(p => (EstadoProceso?)p.EstadoProceso)
+                    .FirstOrDefault() ?? EstadoProceso.SinProceso
             })
             .ToListAsync();
 

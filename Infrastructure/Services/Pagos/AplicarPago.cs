@@ -34,7 +34,6 @@ public partial class PagoService
             foreach (var itemCartera in carterasAAplicar)
             { 
                 itemCartera.IsPagado = true;
-                itemCartera.EstaEnProcesoCoactivo = false; 
             }
 
             // 5. 🔥 CORREGIDO: Asignación del estado del recibo usando el operador '='

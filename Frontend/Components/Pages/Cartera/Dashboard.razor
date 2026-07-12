@@ -14,28 +14,36 @@
 <!-- Métricas -->
 <div class="row g-3 mb-3">
     <div class="col-6 col-md-3">
-        <div class="card"><div class="card-body py-2 px-3">
-            <small class="text-muted d-block">Total deudores</small>
-            <span class="fw-medium fs-5">@_totalDeudores</span>
-        </div></div>
+        <div class="card">
+            <div class="card-body py-2 px-3">
+                <small class="text-muted d-block">Total deudores</small>
+                <span class="fw-medium fs-5">@_totalDeudores</span>
+            </div>
+        </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card"><div class="card-body py-2 px-3">
-            <small class="text-muted d-block">Deuda total cartera</small>
-            <span class="fw-medium fs-5 text-danger">@_totalCartera.ToString("C0")</span>
-        </div></div>
+        <div class="card">
+            <div class="card-body py-2 px-3">
+                <small class="text-muted d-block">Deuda total cartera</small>
+                <span class="fw-medium fs-5 text-danger">@_totalCartera.ToString("C0")</span>
+            </div>
+        </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card"><div class="card-body py-2 px-3">
-            <small class="text-muted d-block">Con proceso activo</small>
-            <span class="fw-medium fs-5">@_conProceso</span>
-        </div></div>
+        <div class="card">
+            <div class="card-body py-2 px-3">
+                <small class="text-muted d-block">Con proceso activo</small>
+                <span class="fw-medium fs-5">@_conProceso</span>
+            </div>
+        </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card"><div class="card-body py-2 px-3">
-            <small class="text-muted d-block">Sin proceso</small>
-            <span class="fw-medium fs-5">@(_totalDeudores - _conProceso)</span>
-        </div></div>
+        <div class="card">
+            <div class="card-body py-2 px-3">
+                <small class="text-muted d-block">Sin proceso</small>
+                <span class="fw-medium fs-5">@(_totalDeudores - _conProceso)</span>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -47,18 +55,18 @@
                 <label class="form-label mb-1" style="font-size:11px;">Búsqueda</label>
                 <input class="form-control form-control-sm"
                        placeholder="Placa o documento..."
-                       @bind="_filtro.Busqueda" @bind:event="oninput" />
+                       @bind="_filtro.Busqueda" @bind:event="oninput"/>
             </div>
             <div class="col-md-2">
                 <label class="form-label mb-1" style="font-size:11px;">Vigencia desde</label>
                 <input class="form-control form-control-sm" type="number"
-                       @bind="_filtro.VigenciaDesde" />
+                       @bind="_filtro.VigenciaDesde"/>
             </div>
             <div class="col-md-2">
                 <label class="form-label mb-1" style="font-size:11px;">Deuda mínima</label>
                 <input class="form-control form-control-sm" type="number"
                        placeholder="$ 0"
-                       @bind="_filtro.DeudaMinima" />
+                       @bind="_filtro.DeudaMinima"/>
             </div>
             <div class="col-md-2">
                 <label class="form-label mb-1" style="font-size:11px;">Proceso activo</label>
@@ -88,74 +96,95 @@
     <div class="table-responsive">
         <table class="table table-sm table-hover align-middle mb-0">
             <thead class="table-light">
-                <tr>
-                    <th style="width:55px;">Tipo doc.</th>
-                    <th style="width:120px;">Documento</th>
-                    <th>Propietario</th>
-                    <th style="width:90px;">Placa</th>
-                    <th style="width:100px;" class="text-center">Vigencias pend.</th>
-                    <th style="width:130px;" class="text-end">Total deuda</th>
-                    <th style="width:120px;" class="text-center">Proceso</th>
-                    <th style="width:50px;"></th>
-                </tr>
+            <tr>
+                <th style="width:55px;">Tipo doc.</th>
+                <th style="width:120px;">Documento</th>
+                <th>Propietario</th>
+                <th style="width:90px;">Placa</th>
+                <th style="width:100px;" class="text-center">Vigencias pend.</th>
+                <th style="width:130px;" class="text-end">Total deuda</th>
+                <th style="width:120px;" class="text-center">Proceso</th>
+                <th style="width:50px;"></th>
+            </tr>
             </thead>
             <tbody>
-                @foreach (var item in _deudores)
-                {
-                    <tr style="cursor:pointer;" @onclick="() => VerDetalle(item.Placa)">
-                        <td><span class="badge bg-secondary">@item.TipoDocumento</span></td>
-                        <td>@item.Documento</td>
-                        <td>@item.NombrePropietario</td>
-                        <td><strong class="text-primary">@item.Placa</strong></td>
-                        <td class="text-center">
+            @foreach (var item in _deudores)
+            {
+                <tr style="cursor:pointer;" @onclick="() => VerDetalle(item.Placa)">
+                    <td><span class="badge bg-secondary">@item.TipoDocumento</span></td>
+                    <td>@item.Documento</td>
+                    <td>@item.NombrePropietario</td>
+                    <td><strong class="text-primary">@item.Placa</strong></td>
+                    <td class="text-center">
                             <span class="badge @BadgeVigencias(item.VigenciasPendientes)">
                                 @item.VigenciasPendientes año(s)
                             </span>
-                        </td>
-                        <td class="text-end fw-medium text-danger">@item.TotalDeuda.ToString("C")</td>
-                        <td class="text-center">
+                    </td>
+                    <td class="text-end fw-medium text-danger">@item.TotalDeuda.ToString("C")</td>
+                    <td class="text-center">
                             <span class="badge @BadgeProceso(item.Proceso)">
                                 @(string.IsNullOrEmpty(item.Proceso) ? "Ninguno" : item.Proceso)
                             </span>
-                        </td>
-                        <td class="text-center">
-                            <i class="bi bi-arrow-right text-primary"></i>
-                        </td>
-                    </tr>
-                }
+                    </td>
+                    <td class="text-center">
+                        <i class="bi bi-arrow-right text-primary"></i>
+                    </td>
+                </tr>
+            }
             </tbody>
         </table>
     </div>
 
     <!-- Paginación -->
-    <div class="d-flex align-items-center justify-content-between px-3 py-2 border-top">
-        <small class="text-muted">
-            Mostrando @((_pagina - 1) * _porPagina + 1)–@Math.Min(_pagina * _porPagina, _totalDeudores)
-            de @_totalDeudores deudores
-        </small>
-        <div class="d-flex gap-1">
-            <button class="btn btn-outline-secondary btn-sm"
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 px-3 py-2 border-top bg-light-subtle">
+        <div class="flex-grow-1 min-w-0">
+            <small class="text-muted text-truncate d-block">
+                Mostrando <strong>@((_pagina - 1) * _porPagina + 1)</strong> –
+                <strong>@Math.Min(_pagina * _porPagina, _totalDeudores)</strong>
+                de <strong>@_totalDeudores</strong> deudores
+            </small>
+        </div>
+
+        <div class="d-flex justify-content-center align-items-center gap-1">
+            <button class="btn btn-outline-secondary btn-sm px-2"
+                    disabled="@(_pagina == 1)"
+                    @onclick="() => CambiarPagina(1)" title="Primera página">
+                <i class="bi bi-chevron-double-left" style="font-size: 0.75rem;"></i>
+            </button>
+
+            <button class="btn btn-outline-secondary btn-sm px-2"
                     disabled="@(_pagina == 1)"
                     @onclick="() => CambiarPagina(_pagina - 1)">
-                <i class="bi bi-chevron-left"></i>
+                <i class="bi bi-chevron-left" style="font-size: 0.75rem;"></i>
             </button>
-            @for (int p = 1; p <= _totalPaginas; p++)
+
+            @foreach (var p in ObtenerRangoPaginas())
             {
                 var pLocal = p;
-                <button class="btn btn-sm @(_pagina == pLocal ? "btn-primary" : "btn-outline-secondary")"
+                <button class="btn btn-sm px-2.5 @(_pagina == pLocal ? "btn-primary fw-bold" : "btn-outline-secondary")"
+                        style="min-width: 32px;"
+                        @onclick:preventDefault
                         @onclick="() => CambiarPagina(pLocal)">
                     @pLocal
                 </button>
             }
-            <button class="btn btn-outline-secondary btn-sm"
+
+            <button class="btn btn-outline-secondary btn-sm px-2"
                     disabled="@(_pagina == _totalPaginas)"
                     @onclick="() => CambiarPagina(_pagina + 1)">
-                <i class="bi bi-chevron-right"></i>
+                <i class="bi bi-chevron-right" style="font-size: 0.75rem;"></i>
+            </button>
+
+            <button class="btn btn-outline-secondary btn-sm px-2"
+                    disabled="@(_pagina == _totalPaginas)"
+                    @onclick="() => CambiarPagina(_totalPaginas)" title="Última página">
+                <i class="bi bi-chevron-double-right" style="font-size: 0.75rem;"></i>
             </button>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <small class="text-muted">Filas:</small>
-            <select class="form-select form-select-sm" style="width:70px;"
+
+        <div class="d-flex align-items-center gap-2 ms-auto ms-md-0">
+            <small class="text-muted text-nowrap">Filas:</small>
+            <select class="form-select form-select-sm" style="width:75px;"
                     @bind="_porPagina" @bind:after="Buscar">
                 <option value="20">20</option>
                 <option value="50">50</option>

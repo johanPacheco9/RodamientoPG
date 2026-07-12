@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Models.ProcesoLiquidacion;
 namespace Domain.Models.Notificaciones;
 
 public class Aviso
@@ -8,7 +9,7 @@ public class Aviso
     public int Id { get; set; }
 
     [Required]
-    public int CarteraId { get; set; } // El cobro al que se le está haciendo el aviso
+    public int ProcesoId { get; set; } // El expediente al que corresponde el aviso
 
     [Required]
     public int NumeroAviso { get; set; } // 1, 2, 3 o 4
@@ -24,6 +25,6 @@ public class Aviso
 
     public string Estado { get; set; } = "Enviado"; // Enviado, Entregado, Devuelto
 
-    [ForeignKey(nameof(CarteraId))]
-    public virtual Cartera Cartera { get; set; } = null!;
+    [ForeignKey(nameof(ProcesoId))]
+    public virtual Proceso Proceso { get; set; } = null!;
 }

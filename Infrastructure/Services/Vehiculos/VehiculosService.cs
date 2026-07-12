@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.Spreadsheet;
 using Domain.Models.Vehiculos;
 using Domain.Models;
+using Domain.Models.Generics;
 using Domain.Models.Vehiculos.Requests;
 using Domain.Models.Vehiculos.Responses;
 using Infrastructure.AppDbContext;
@@ -29,12 +30,13 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
             return 0;
         }
     }
+
     public async Task<int> Edit(UpdateVehiculoRequest request)
     {
         try
         {
             using var ctx = await contextFactory.CreateDbContextAsync();
-        
+
             // 1. Buscar el vehículo existente en la base de datos
             var vehiculoDb = await ctx.Vehiculos
                 .FirstOrDefaultAsync(v => v.Id == request.Id);
@@ -42,7 +44,8 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
             if (vehiculoDb == null)
             {
                 logger.LogWarning("Se intentó editar un vehículo que no existe. ID: {Id}", request.Id);
-                return 0; 
+
+                return 0;
             }
 
             // 2. Actualizar las propiedades con los datos del Request
@@ -59,7 +62,7 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
             vehiculoDb.PropietarioId = request.PropietarioId;
             vehiculoDb.FechaModificacion = DateTime.UtcNow;
             vehiculoDb.UsuarioModifico = 1;
-            
+
             vehiculoDb.TipoServicioVehiculo = (Domain.Responses.Vehiculos.Enums.TipoServicioVehiculo)request.TipoServicioVehiculo;
 
             // 3. Guardar cambios (EF ya trackea las modificaciones automáticamente)
@@ -68,6 +71,7 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
         catch (Exception ex)
         {
             logger.LogError(ex, "Error crítico al editar el vehículo con ID {Id}", request.Id);
+
             throw;
         }
     }
@@ -92,23 +96,33 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
                 v.ColorId,
                 v.TipoServicioVehiculo,
                 v.TipoCarroceriaId,
-                v.EstadoProcesoId,
                 v.PropietarioId,
                 v.Propietario.Documento,
                 v.Propietario.TipoDocumento))
             .FirstOrDefaultAsync();
     }
-    
 
-    public async Task<List<VehiculoDetalleDto>> GetAll()
+
+    public async Task<PagedResult<VehiculoDetalleDto>> GetPaged(GetVehiculosRequest filtro)
     {
         try
         {
             using var ctx = await contextFactory.CreateDbContextAsync();
 
-            return await ctx.Vehiculos
-                .AsNoTracking()
-                .Take(30)
+            var query = ctx.Vehiculos.AsNoTracking().AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(filtro.Placa))
+            {
+                string placaBusqueda = filtro.Placa.ToUpper().Trim();
+                query = query.Where(v => v.Placa.Contains(placaBusqueda));
+            }
+
+            int totalRegistros = await query.CountAsync();
+            
+            var items = await query
+                .OrderBy(v => v.Placa)
+                .Skip((filtro.Pagina - 1) * filtro.PorPagina)
+                .Take(filtro.PorPagina)
                 .Select(v => new VehiculoDetalleDto(
                     v.Id,
                     v.Placa,
@@ -118,15 +132,21 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
                     v.Propietario.Documento,
                     v.TipoVehiculo.Nombre,
                     v.Marca.Nombre,
-                    v.Linea.Nombre,
-                    v.EstadoProceso.ToString()
+                    v.Linea.Nombre
                 ))
                 .ToListAsync();
+
+            return new PagedResult<VehiculoDetalleDto>
+            {
+                Items = items,
+                TotalRegistros = totalRegistros
+            };
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Ocurrió un fallo al consultar el listado general de vehículos.");
-            throw new Exception("Error al obtener el listado general de vehículos optimizado.", ex);
+            logger.LogError(ex, "Ocurrió un fallo al consultar el listado paginado de vehículos.");
+
+            throw new Exception("Error al obtener el listado de vehículos optimizado desde el servidor.", ex);
         }
     }
 
@@ -134,6 +154,7 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
     public async Task<Vehiculo?> GetByIdCompleto(int id)
     {
         using var ctx = await contextFactory.CreateDbContextAsync();
+
         return await ctx.Vehiculos
             .Include(v => v.Propietario)
             .FirstOrDefaultAsync(v => v.Id == id);
@@ -158,7 +179,6 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
             .Include(v => v.Marca)
             .Include(v => v.Linea)
             .Include(v => v.TipoVehiculo)
-            .Include(v => v.EstadoProceso)
             .Where(v => v.Propietario.Documento == documento)
             .ToListAsync();
     }

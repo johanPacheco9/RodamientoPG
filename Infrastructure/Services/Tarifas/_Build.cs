@@ -36,7 +36,7 @@ public partial class TarifaService(MainDataContext context, ILogger<TarifaServic
             var listadoTarifasGlobales = await context.Tarifas.ToListAsync();
             
             var vehiculosParaProcesar = await context.Vehiculos
-                .Where(v => v.EstadoProcesoId == (int)EstadoProceso.SinProceso)
+                .Where(v => !context.Procesos.Any(p => p.VehiculoId == v.Id && p.EstadoProceso != EstadoProceso.SinProceso))
                 .ToListAsync();
 
             // 3. Indexar la cartera existente usando context.Cartera (Singular) y ToString() del Enum

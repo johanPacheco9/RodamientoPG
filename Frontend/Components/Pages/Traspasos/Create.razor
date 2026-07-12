@@ -1,10 +1,14 @@
 @page "/traspasos"
 @using Domain.Models.Vehiculos
+@using Domain.Responses.Users.Enums
 @using Infrastructure.Services.Traspasos
-@using System.Globalization
+@using Infrastructure.Services.Propietarios
+@using Microsoft.AspNetCore.Components.Web
 
 @inject TraspasoManager TraspasoMgr
+@inject PropietarioService PropietarioService
 @inject IJSRuntime JsRuntime
+@rendermode InteractiveServer
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -91,28 +95,132 @@
                     </div>
 
                     <div class="col-12">
-                        <hr class="text-muted opacity-25 my-1"/>
+                        <hr class="text-muted opacity-25 my-3"/>
                     </div>
 
                     <div class="col-12">
-                        <div class="form-group-custom">
-                            <label class="form-label-small">ID Interno del Nuevo Adquirente (Ciudadano)</label>
-                            <div class="input-group">
-                                    <span class="input-group-text bg-white text-secondary">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14"
-                                             fill="currentColor" class="bi bi-hash" viewBox="0 0 16 16">
-                                            <path
-                                                d="M8.39 12.648a1 1 0 0 0-.015-.18l.773-4.744a1 1 0 0 0-.015-.18l-.773 4.744zm-.88-.415a1 1 0 0 1 .016.18l-.773 4.744a1 1 0 0 1-.016-.18l.773-4.744zm2.148-7.39a1 1 0 0 0-.016-.18l.773-4.744a1 1 0 0 0-.015-.18l-.773 4.744zm-.88-.415a1 1 0 0 1 .016.18l-.773 4.744a1 1 0 0 1-.016-.18l.773-4.744z"/>
-                                            <path
-                                                d="M5.213 6.088a1 1 0 0 1 .753-.915l7.396-1.603a1 1 0 0 1 1.187.753l.307 1.416a1 1 0 0 1-.753.915l-7.396 1.603a1 1 0 0 1-1.187-.753zm-1.6 7.396a1 1 0 0 1 .753-.915l7.396-1.603a1 1 0 0 1 1.187.753l.307 1.416a1 1 0 0 1-.753.915l-7.396 1.603a1 1 0 0 1-1.187-.753z"/>
-                                        </svg>
-                                    </span>
-                                <input type="number" class="form-control fw-bold"
-                                       placeholder="Ingrese el Id del propietario en base de datos"
-                                       @bind="_nuevoPropietarioId"/>
+                        <label class="form-label-small mb-2 d-block">Nuevo Propietario</label>
+
+                        @if (_propietarioSeleccionado == null)
+                        {
+                            <div class="row g-2 align-items-end">
+                                <div class="col-5 col-md-4">
+                                    <select class="form-select form-control" style="font-size: 13px;"
+                                            @bind="_tipoDocumentoBusqueda" disabled="@_buscando">
+                                        @foreach (var tipo in _tiposDocumento)
+                                        {
+                                            <option value="@tipo.Value">@tipo.Label</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="col-7 col-md-5">
+                                    <input type="text" class="form-control" placeholder="Número de documento"
+                                           @bind="_documentoBusqueda" @bind:event="oninput"
+                                           @onkeyup="OnKeyUpBuscar" disabled="@_buscando"/>
+                                </div>
+                                <div class="col-12 col-md-3 mt-2 mt-md-0">
+                                    <button type="button"
+                                            class="btn btn-save-custom w-100 d-inline-flex align-items-center justify-content-center gap-1"
+                                            style="font-size: 13px;" disabled="@_buscando" @onclick="BuscarPropietario">
+                                        @if (_buscando)
+                                        {
+                                            <span class="spinner-border spinner-border-sm" role="status"></span>
+                                        }
+                                        else
+                                        {
+                                            <span>Buscar</span>
+                                        }
+                                    </button>
+                                </div>
                             </div>
-                            <span class="text-muted ms-1" style="font-size: 11px;">El ciudadano ya debe estar registrado previamente en el sistema central.</span>
-                        </div>
+
+                            @if (_busquedaRealizada && !_mostrarFormularioRegistro)
+                            {
+                                <div
+                                    class="alert alert-warning border-0 shadow-sm rounded-3 mt-3 mb-0 d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                    <span class="small fw-semibold">No se encontró ningún propietario con ese documento.</span>
+                                    <button type="button" class="btn btn-sm btn-outline-dark" @onclick="AbrirFormularioRegistro">
+                                        Registrar nuevo
+                                    </button>
+                                </div>
+                            }
+
+                            @if (_mostrarFormularioRegistro)
+                            {
+                                <div class="border rounded-3 p-3 mt-3 bg-white">
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <span class="fw-bold small text-uppercase text-muted">Registrar Nuevo Propietario</span>
+                                        <button type="button" class="btn-close" @onclick="CerrarFormularioRegistro"></button>
+                                    </div>
+
+                                    <div class="row g-3">
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label-small">Nombre Completo</label>
+                                            <input type="text" class="form-control" @bind="_nuevoNombre"
+                                                   placeholder="Nombre y apellidos"/>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label-small">Teléfono</label>
+                                            <input type="text" class="form-control" @bind="_nuevoTelefono"
+                                                   placeholder="Teléfono de contacto"/>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label-small">Dirección</label>
+                                            <input type="text" class="form-control" @bind="_nuevoDireccion"
+                                                   placeholder="Dirección de residencia"/>
+                                        </div>
+                                        <div class="col-12 col-md-6">
+                                            <label class="form-label-small">Correo (opcional)</label>
+                                            <input type="email" class="form-control" @bind="_nuevoCorreo"
+                                                   placeholder="correo@ejemplo.com"/>
+                                        </div>
+                                    </div>
+
+                                    @if (!string.IsNullOrEmpty(_errorRegistro))
+                                    {
+                                        <div class="text-danger small fw-semibold mt-2">@_errorRegistro</div>
+                                    }
+
+                                    <div class="d-flex justify-content-end mt-3">
+                                        <button type="button"
+                                                class="btn btn-save-custom d-inline-flex align-items-center gap-2"
+                                                style="font-size: 13px;" disabled="@_guardandoPropietario"
+                                                @onclick="GuardarNuevoPropietario">
+                                            @if (_guardandoPropietario)
+                                            {
+                                                <span class="spinner-border spinner-border-sm" role="status"></span>
+                                                <span>Guardando...</span>
+                                            }
+                                            else
+                                            {
+                                                <span>Guardar y Continuar</span>
+                                            }
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="border rounded-3 p-3 bg-white d-flex justify-content-between align-items-center shadow-sm">
+                                <div>
+                                    <div class="fw-bold" style="font-size: 14px; color: var(--c-text-main);">
+                                        @_propietarioSeleccionado.Nombre
+                                    </div>
+                                    <div class="text-muted" style="font-size: 12px;">
+                                        @ObtenerLabelTipoDocumento(_propietarioSeleccionado.TipoDocumento)
+                                        @_propietarioSeleccionado.Documento
+                                        @if (!string.IsNullOrWhiteSpace(_propietarioSeleccionado.Telefono))
+                                        {
+                                            <span> · @_propietarioSeleccionado.Telefono</span>
+                                        }
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="CambiarPropietario">
+                                    Cambiar
+                                </button>
+                            </div>
+                        }
                     </div>
                 </div>
             </div>
@@ -124,7 +232,7 @@
                 </button>
                 <button type="button"
                         class="btn btn-save-custom btn-sm px-4 fw-semibold d-inline-flex align-items-center gap-2"
-                        disabled="@_isLoading" @onclick="ProcesarTraspaso">
+                        disabled="@(_isLoading || _propietarioSeleccionado == null)" @onclick="ProcesarTraspaso">
                     @if (_isLoading)
                     {
                         <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -194,7 +302,7 @@
         letter-spacing: 0.03em;
     }
 
-    .form-control {
+    .form-control, .form-select {
         font-size: 13.5px;
         border-radius: 8px;
         border: 1px solid var(--c-border-soft);
@@ -202,7 +310,7 @@
         color: var(--c-text-main);
     }
 
-    .form-control:focus {
+    .form-control:focus, .form-select:focus {
         border-color: #94a3b8;
         box-shadow: none;
     }
@@ -246,34 +354,179 @@
 
 @code {
     private string _placa = string.Empty;
-    private int _nuevoPropietarioId;
     private DateTime _fechaTraspaso = DateTime.Today;
 
-    private bool _isLoading = false;
+    private bool _isLoading;
     private string _alertMessage = string.Empty;
     private string _alertClass = string.Empty;
 
+    // ---- Búsqueda de propietario ----
+    private static readonly List<(TipoDocumento Value, string Label)> _tiposDocumento = new()
+    {
+        (TipoDocumento.Cc, "Cédula de Ciudadanía"),
+        (TipoDocumento.Ti, "Tarjeta de Identidad"),
+        (TipoDocumento.Ce, "Cédula de Extranjería"),
+        (TipoDocumento.Nit, "NIT"),
+        (TipoDocumento.Pasaporte, "Pasaporte"),
+        (TipoDocumento.CarnetDiplomatico, "Carnet Diplomático"),
+        (TipoDocumento.CedulaVenezolana, "Cédula Venezolana")
+    };
+
+    private TipoDocumento _tipoDocumentoBusqueda = TipoDocumento.Cc;
+    private string _documentoBusqueda = string.Empty;
+    private bool _buscando;
+    private bool _busquedaRealizada;
+    private Propietario? _propietarioSeleccionado;
+
+    // ---- Registro de nuevo propietario ----
+    private bool _mostrarFormularioRegistro;
+    private bool _guardandoPropietario;
+    private string _nuevoNombre = string.Empty;
+    private string _nuevoDireccion = string.Empty;
+    private string _nuevoTelefono = string.Empty;
+    private string? _nuevoCorreo;
+    private string _errorRegistro = string.Empty;
+
+    private async Task OnKeyUpBuscar(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await BuscarPropietario();
+    }
+
+    private async Task BuscarPropietario()
+    {
+        if (string.IsNullOrWhiteSpace(_documentoBusqueda))
+        {
+            AsignarAlerta("alert-danger", "Por favor, digite el número de documento a buscar.");
+            return;
+        }
+
+        _buscando = true;
+        _errorRegistro = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var documento = _documentoBusqueda.Trim();
+
+            // GetByCedula hace un StartsWith; filtramos en memoria por coincidencia
+            // exacta de documento + tipo de documento.
+            var resultados = await PropietarioService.GetByCedula(documento);
+
+            _propietarioSeleccionado = resultados.FirstOrDefault(p =>
+                p.Documento == documento && p.TipoDocumento == _tipoDocumentoBusqueda);
+
+            _busquedaRealizada = true;
+            _mostrarFormularioRegistro = false;
+            _alertMessage = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            AsignarAlerta("alert-danger", $"Error al buscar el propietario: {ex.Message}");
+        }
+        finally
+        {
+            _buscando = false;
+        }
+    }
+
+    private void AbrirFormularioRegistro()
+    {
+        _mostrarFormularioRegistro = true;
+        _nuevoNombre = string.Empty;
+        _nuevoDireccion = string.Empty;
+        _nuevoTelefono = string.Empty;
+        _nuevoCorreo = null;
+        _errorRegistro = string.Empty;
+    }
+
+    private void CerrarFormularioRegistro()
+    {
+        _mostrarFormularioRegistro = false;
+    }
+
+    private async Task GuardarNuevoPropietario()
+    {
+        if (string.IsNullOrWhiteSpace(_nuevoNombre))
+        {
+            _errorRegistro = "El nombre es obligatorio.";
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(_documentoBusqueda))
+        {
+            _errorRegistro = "El documento es obligatorio.";
+            return;
+        }
+
+        _guardandoPropietario = true;
+        _errorRegistro = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var nuevoPropietario = new Propietario
+            {
+                Documento = _documentoBusqueda.Trim(),
+                TipoDocumento = _tipoDocumentoBusqueda,
+                Nombre = _nuevoNombre.Trim(),
+                Direccion = _nuevoDireccion.Trim(),
+                Telefono = _nuevoTelefono.Trim(),
+                Correo = string.IsNullOrWhiteSpace(_nuevoCorreo) ? null : _nuevoCorreo.Trim()
+            };
+
+            await PropietarioService.Add(nuevoPropietario);
+
+            // Tras el SaveChanges, EF Core rellena el Id generado en el mismo objeto.
+            _propietarioSeleccionado = nuevoPropietario;
+            _mostrarFormularioRegistro = false;
+            _busquedaRealizada = true;
+
+            AsignarAlerta("alert-success", "Propietario registrado correctamente.");
+        }
+        catch (Exception ex)
+        {
+            _errorRegistro = $"Error al registrar el propietario: {ex.Message}";
+        }
+        finally
+        {
+            _guardandoPropietario = false;
+        }
+    }
+
+    private void CambiarPropietario()
+    {
+        _propietarioSeleccionado = null;
+        _busquedaRealizada = false;
+        _documentoBusqueda = string.Empty;
+        _alertMessage = string.Empty;
+    }
+
+    private static string ObtenerLabelTipoDocumento(TipoDocumento tipo)
+    {
+        var match = _tiposDocumento.FirstOrDefault(t => t.Value == tipo);
+        return match.Label ?? tipo.ToString();
+    }
+
     private async Task ProcesarTraspaso()
     {
-// Validaciones básicas de front-end antes de ir al Manager
         if (string.IsNullOrWhiteSpace(_placa))
         {
             AsignarAlerta("alert-danger", "Por favor, digite la placa del vehículo.");
-
             return;
         }
 
-        if (_nuevoPropietarioId <= 0)
+        if (_propietarioSeleccionado == null)
         {
-            AsignarAlerta("alert-danger", "Debe ingresar un Id de propietario válido.");
-
+            AsignarAlerta("alert-danger", "Debe buscar o registrar un propietario antes de continuar.");
             return;
         }
 
-        var confirmación = await JsRuntime.InvokeAsync<bool>("confirm",
-            $"¿Está seguro de radicar el traspaso del vehículo con placa {_placa.ToUpper().Trim()}?");
+        var confirmacion = await JsRuntime.InvokeAsync<bool>("confirm",
+            $"¿Está seguro de radicar el traspaso del vehículo con placa {_placa.ToUpper().Trim()} " +
+            $"a nombre de {_propietarioSeleccionado.Nombre}?");
 
-        if (!confirmación) return;
+        if (!confirmacion) return;
 
         try
         {
@@ -281,21 +534,16 @@
             _alertMessage = string.Empty;
             StateHasChanged();
 
-// Ejecuta el método nativo que me pasaste por parámetro
             var resultado = await TraspasoMgr.TraspasoVehiculoAsync(
                 _placa.Trim().ToUpper(),
-                _nuevoPropietarioId,
+                _propietarioSeleccionado.Id,
                 _fechaTraspaso);
 
             if (resultado.Success)
             {
-// Si tiene la advertencia de deuda, pintamos la alerta amarilla (warning), si no, verde (success)
-                string claseAlerta = resultado.Message.Contains("⚠️") ? "alert-warning" : "alert-success";
+                var claseAlerta = resultado.Message.Contains("⚠️") ? "alert-warning" : "alert-success";
                 AsignarAlerta(claseAlerta, resultado.Message);
-
-// Si sale bien, podemos resetear la placa e ID para un nuevo registro
-                _placa = string.Empty;
-                _nuevoPropietarioId = 0;
+                LimpiarCampos();
             }
             else
             {
@@ -322,9 +570,10 @@
     private void LimpiarCampos()
     {
         _placa = string.Empty;
-        _nuevoPropietarioId = 0;
         _fechaTraspaso = DateTime.Today;
-        _alertMessage = string.Empty;
+        _propietarioSeleccionado = null;
+        _busquedaRealizada = false;
+        _documentoBusqueda = string.Empty;
+        _mostrarFormularioRegistro = false;
     }
-
 }

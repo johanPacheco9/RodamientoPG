@@ -1,5 +1,7 @@
 using Domain.Models.Vehiculos;
+using Domain.Responses.Users.Enums;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
 namespace Frontend.Components.Pages.Propietarios;
@@ -54,6 +56,18 @@ public partial class Dashboard : ComponentBase
         esModoEditar = true;
         _mostrarModal = true;
         return Task.CompletedTask;
+    }
+
+    private async Task OnKeyUpBuscar(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await Findbycedula();
+    }
+
+    private async Task LimpiarBusqueda()
+    {
+        _buscarnit = string.Empty;
+        await CargarListaPropietarios();
     }
 
     private async Task Findbycedula()
@@ -132,7 +146,7 @@ public partial class Dashboard : ComponentBase
         {
             infractoresobj = new Propietario
             {
-                TipoDocumento = Domain.Responses.Users.Enums.TipoDocumento.Cc,
+                TipoDocumento = TipoDocumento.Cc,
                 Documento = string.Empty,
                 Nombre = string.Empty,
                 Telefono = string.Empty,
@@ -141,11 +155,29 @@ public partial class Dashboard : ComponentBase
         }
         _mostrarModal = true;
     }
-    
+
     private void CerrarModal()
     {
         _mostrarModal = false;
     }
+
+    // ── Helpers de vista ────────────────────────────────────────────
+    private static string Iniciales(string? nombre) =>
+        string.IsNullOrEmpty(nombre)
+            ? "?"
+            : string.Concat(nombre.Split(' ').Where(p => p.Length > 0).Take(2).Select(p => char.ToUpper(p[0])));
+
+    private static string TipoDocumentoCorto(TipoDocumento tipo) => tipo switch
+    {
+        TipoDocumento.Cc => "CC",
+        TipoDocumento.Ti => "TI",
+        TipoDocumento.Ce => "CE",
+        TipoDocumento.Nit => "NIT",
+        TipoDocumento.Pasaporte => "PAS",
+        TipoDocumento.CarnetDiplomatico => "CD",
+        TipoDocumento.CedulaVenezolana => "CV",
+        _ => tipo.ToString().ToUpper()
+    };
 
     // Helpers Lógicos de Paginación en Memoria
     private IEnumerable<Propietario> ObtenerItemsPaginados()

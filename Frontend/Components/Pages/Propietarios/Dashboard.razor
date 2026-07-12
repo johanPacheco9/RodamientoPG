@@ -8,122 +8,187 @@
 @inject Infrastructure.Services.Propietarios.PropietarioService InfractoresService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime js
+@rendermode InteractiveServer
 
-<div class="container-fluid py-3">
-    <div class="card shadow-sm">
-        <div class="card-header text-white d-flex align-items-center justify-content-between py-2" style="background-color: #112366;">
-            <h5 class="card-title mb-0 fs-6">Propietarios</h5>
-            
-            <div class="d-flex align-items-center gap-2">
-                <div class="input-group input-group-sm" style="max-width: 250px;">
-                    <input type="text" id="buscarnit" name="searchString" class="form-control" 
-                           @bind="_buscarnit" placeholder="Buscar por cédula" />
-                    <button type="button" @onclick="Findbycedula" class="btn btn-light btn-sm border-start-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search text-primary" viewBox="0 0 16 16">
-                            <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"></path>
-                        </svg>
-                    </button>
-                </div>
-                
-                <button type="button" class="btn btn-primary btn-sm px-3 fw-semibold" style="font-size: 11px;" @onclick="() => MostrarModal(false)">
-                    + Crear
-                </button>
-            </div>
-        </div>
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-12 col-xl-10">
 
-        <div class="card-body p-0 position-relative">
-            @if (isLoading)
-            {
-                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center bg-white bg-opacity-75" style="z-index: 10;">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
+            <div class="card main-card shadow-sm border-0">
+
+                <div class="card-header main-header text-white p-3">
+                    <div class="d-flex align-items-center flex-wrap gap-3">
+                        <div class="d-flex align-items-center flex-grow-1">
+                            <div class="badge-icon me-3">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-people-fill" viewBox="0 0 16 16">
+                                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h4 class="h5 fw-bold mb-0">Propietarios</h4>
+                                <p class="opacity-75 mb-0 small">Base de datos de propietarios registrados en el sistema</p>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <div class="input-group input-group-sm search-group">
+                                <span class="input-group-text bg-white border-end-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-search text-muted" viewBox="0 0 16 16">
+                                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                                    </svg>
+                                </span>
+                                <input type="text" class="form-control border-start-0"
+                                       @bind="_buscarnit" @bind:event="oninput"
+                                       @onkeyup="OnKeyUpBuscar"
+                                       placeholder="Buscar por cédula..." />
+                                @if (!string.IsNullOrEmpty(_buscarnit))
+                                {
+                                    <button type="button" class="btn btn-clear-search" @onclick="LimpiarBusqueda" title="Limpiar búsqueda">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" class="bi bi-x-lg" viewBox="0 0 16 16">
+                                            <path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>
+                                        </svg>
+                                    </button>
+                                }
+                                <button type="button" @onclick="Findbycedula" class="btn btn-search-action">
+                                    Buscar
+                                </button>
+                            </div>
+
+                            <button type="button" class="btn btn-save-custom d-inline-flex align-items-center gap-1" @onclick="() => MostrarModal(false)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" fill="currentColor" class="bi bi-plus-lg" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/>
+                                </svg>
+                                Nuevo propietario
+                            </button>
+                        </div>
                     </div>
                 </div>
-            }
 
-            <div class="table-responsive" style="min-height: 200px;">
-                <table class="table table-sm table-hover table-striped align-middle mb-0 text-nowrap">
-                    <thead class="table-light">
-                        <tr style="font-size: 13px;">
-                            <th class="ps-3" style="width: 150px;">Documento</th>
-                            <th>Nombre</th>
-                            <th>Dirección</th>
-                            <th style="width: 140px;">Teléfono</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @if (infractores == null || !infractores.Any())
-                        {
+                <div class="card-body p-0 position-relative bg-light bg-opacity-25">
+                    @if (isLoading)
+                    {
+                        <div class="loading-overlay">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Cargando...</span>
+                            </div>
+                        </div>
+                    }
+
+                    <div class="table-responsive" style="min-height: 260px;">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                            <thead>
                             <tr>
-                                <td colspan="4" class="text-center text-muted py-4 fs-7">
-                                    No se encontraron registros de propietarios.
-                                </td>
+                                <th class="ps-4">Propietario</th>
+                                <th>Documento</th>
+                                <th>Dirección</th>
+                                <th style="width: 150px;">Teléfono</th>
+                                <th style="width: 40px;" class="pe-4"></th>
                             </tr>
-                        }
-                        else
-                        {
-                            @foreach (var propietario in ObtenerItemsPaginados())
+                            </thead>
+                            <tbody>
+                            @if (infractores == null || !infractores.Any())
                             {
-                                <tr @onclick="() => OnRowSelect(propietario)" style="cursor: pointer; font-size: 13px;">
-                                    <td class="ps-3 fw-bold text-primary">@propietario.Documento</td>
-                                    <td>@propietario.Nombre</td>
-                                    <td>@propietario.Direccion</td>
-                                    <td>@propietario.Telefono</td>
+                                <tr class="no-hover">
+                                    <td colspan="5" class="text-center py-5">
+                                        <div class="empty-state">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" class="bi bi-person-badge mb-2 opacity-50" viewBox="0 0 16 16">
+                                                <path d="M6.5 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1zM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0"/>
+                                                <path d="M4.5 0A2.5 2.5 0 0 0 2 2.5V14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2.5A2.5 2.5 0 0 0 11.5 0zM3 2.5A1.5 1.5 0 0 1 4.5 1h7A1.5 1.5 0 0 1 13 2.5v10.795a4.2 4.2 0 0 0-2.475-1.208C10.399 11.856 9.484 12 8 12s-2.399-.144-2.525-.913A4.2 4.2 0 0 0 3 12.295V2.5z"/>
+                                            </svg>
+                                            <p class="fw-semibold text-secondary mb-1">
+                                                @(string.IsNullOrEmpty(_buscarnit) ? "Aún no hay propietarios registrados" : "Sin resultados para esa cédula")
+                                            </p>
+                                            <p class="text-muted small mb-0">
+                                                @(string.IsNullOrEmpty(_buscarnit) ? "Crea el primer registro con el botón \"Nuevo propietario\"." : "Verifica el número o crea uno nuevo con ese documento.")
+                                            </p>
+                                        </div>
+                                    </td>
                                 </tr>
                             }
-                        }
-                    </tbody>
-                </table>
-            </div>
-
-            @if (TotalPaginas > 1)
-            {
-                <div class="d-flex justify-content-between align-items-center p-2 bg-light border-top" style="font-size: 12px;">
-                    <div class="ms-2 text-muted">
-                        Mostrando de @(((PaginaActual - 1) * TamanoPagina) + 1) a @(Math.Min(PaginaActual * TamanoPagina, infractores.Count)) de @infractores.Count registros
-                    </div>
-                    <nav>
-                        <ul class="pagination pagination-sm m-0 me-2">
-                            <li class="page-item @(PaginaActual == 1 ? "disabled" : "")">
-                                <button type="button" class="page-link" @onclick="() => CambiarPagina(PaginaActual - 1)">Anterior</button>
-                            </li>
-                            @for (int i = 1; i <= TotalPaginas; i++)
+                            else
                             {
-                                var paginaAsignada = i;
-                                <li class="page-item @(PaginaActual == paginaAsignada ? "active" : "")">
-                                    <button type="button" class="page-link" @onclick="() => CambiarPagina(paginaAsignada)">@paginaAsignada</button>
-                                </li>
+                                @foreach (var propietario in ObtenerItemsPaginados())
+                                {
+                                    <tr @onclick="() => OnRowSelect(propietario)" class="fila-propietario">
+                                        <td class="ps-4">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="avatar-circle">@Iniciales(propietario.Nombre)</div>
+                                                <span class="fw-medium">@propietario.Nombre</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge-doc me-1">@TipoDocumentoCorto(propietario.TipoDocumento)</span>
+                                            <span class="font-monospace">@propietario.Documento</span>
+                                        </td>
+                                        <td class="text-secondary">@propietario.Direccion</td>
+                                        <td class="text-secondary">@propietario.Telefono</td>
+                                        <td class="pe-4 text-end text-muted">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" class="bi bi-chevron-right" viewBox="0 0 16 16">
+                                                <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
+                                            </svg>
+                                        </td>
+                                    </tr>
+                                }
                             }
-                            <li class="page-item @(PaginaActual == TotalPaginas ? "disabled" : "")">
-                                <button type="button" class="page-link" @onclick="() => CambiarPagina(PaginaActual + 1)">Siguiente</button>
-                            </li>
-                        </ul>
-                    </nav>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (TotalPaginas > 1)
+                    {
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-top flex-wrap gap-2">
+                            <div class="text-muted small">
+                                Mostrando @(((PaginaActual - 1) * TamanoPagina) + 1)–@(Math.Min(PaginaActual * TamanoPagina, infractores.Count)) de @infractores.Count
+                            </div>
+                            <nav>
+                                <ul class="pagination pagination-sm m-0">
+                                    <li class="page-item @(PaginaActual == 1 ? "disabled" : "")">
+                                        <button type="button" class="page-link" @onclick="() => CambiarPagina(PaginaActual - 1)">‹</button>
+                                    </li>
+                                    @for (int i = 1; i <= TotalPaginas; i++)
+                                    {
+                                        var paginaAsignada = i;
+                                        <li class="page-item @(PaginaActual == paginaAsignada ? "active" : "")">
+                                            <button type="button" class="page-link" @onclick="() => CambiarPagina(paginaAsignada)">@paginaAsignada</button>
+                                        </li>
+                                    }
+                                    <li class="page-item @(PaginaActual == TotalPaginas ? "disabled" : "")">
+                                        <button type="button" class="page-link" @onclick="() => CambiarPagina(PaginaActual + 1)">›</button>
+                                    </li>
+                                </ul>
+                            </nav>
+                        </div>
+                    }
                 </div>
-            }
+            </div>
         </div>
     </div>
 </div>
 
 @if (_mostrarModal)
 {
-    <div class="modal-backdrop fade show" style="z-index: 1040;"></div>
-    <div class="modal fade show d-block" tabindex="-1" style="z-index: 1050; overflow-y: auto;">
+    <div class="modal-backdrop fade show"></div>
+    <div class="modal fade show d-block" tabindex="-1" style="overflow-y: auto;">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow border-0">
-                <div class="modal-header text-white" style="background-color: #112366;">
-                    <h6 class="modal-title fw-bold m-0" style="font-size: 14px;">
-                        @(esModoEditar ? "Editar Propietario" : "Registrar Propietario")
-                    </h6>
+            <div class="modal-content shadow border-0" style="border-radius: 16px; overflow: hidden;">
+                <div class="modal-header main-header text-white border-0">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="avatar-circle avatar-circle-modal">
+                            @Iniciales(infractoresobj?.Nombre)
+                        </div>
+                        <h6 class="fw-bold m-0" style="font-size: 14px;">
+                            @(esModoEditar ? "Editar propietario" : "Registrar propietario")
+                        </h6>
+                    </div>
                     <button type="button" class="btn-close btn-close-white" @onclick="CerrarModal"></button>
                 </div>
-                <div class="modal-body bg-light p-3">
+                <div class="modal-body p-4">
                     @if (infractoresobj != null)
                     {
                         <div class="row g-3">
                             <div class="col-sm-5">
-                                <label class="form-label mb-1 text-secondary" style="font-size: 12px;">Tipo Identificación</label>
-                                <select class="form-select form-select-sm fw-bold text-dark" style="font-size: 12px;" @bind="infractoresobj.TipoDocumento">
+                                <label class="form-label-small">Tipo Identificación</label>
+                                <select class="form-select" @bind="infractoresobj.TipoDocumento">
                                     @foreach (TipoDocumento tipo in Enum.GetValues(typeof(TipoDocumento)))
                                     {
                                         <option value="@tipo">@tipo.GetDisplayName()</option>
@@ -132,36 +197,205 @@
                             </div>
 
                             <div class="col-sm-7">
-                                <label class="form-label mb-1 text-secondary" style="font-size: 12px;">Cédula Infractor</label>
-                                <input type="text" class="form-select form-select-sm fw-bold" maxlength="13" style="font-size: 12px;"
+                                <label class="form-label-small">Número de Documento</label>
+                                <input type="text" class="form-control fw-bold" maxlength="13"
                                        @bind-value="infractoresobj.Documento" disabled="@esModoEditar" />
                             </div>
 
                             <div class="col-12">
-                                <label class="form-label mb-1 text-secondary" style="font-size: 12px;">Nombre Infractor</label>
-                                <input type="text" class="form-control form-control-sm" maxlength="65" style="font-size: 12px;" @bind="infractoresobj.Nombre" />
+                                <label class="form-label-small">Nombre Completo</label>
+                                <input type="text" class="form-control" maxlength="65" @bind="infractoresobj.Nombre" />
                             </div>
 
                             <div class="col-sm-6">
-                                <label class="form-label mb-1 text-secondary" style="font-size: 12px;">Teléfono</label>
-                                <input type="text" class="form-control form-control-sm" maxlength="15" style="font-size: 12px;" @bind="infractoresobj.Telefono" />
+                                <label class="form-label-small">Teléfono</label>
+                                <input type="text" class="form-control" maxlength="15" @bind="infractoresobj.Telefono" />
                             </div>
 
                             <div class="col-sm-6">
-                                <label class="form-label mb-1 text-secondary" style="font-size: 12px;">Dirección</label>
-                                <input type="text" class="form-control form-control-sm" maxlength="40" style="font-size: 12px;" @bind="infractoresobj.Direccion" />
+                                <label class="form-label-small">Dirección</label>
+                                <input type="text" class="form-control" maxlength="40" @bind="infractoresobj.Direccion" />
                             </div>
                         </div>
                     }
                 </div>
-                <div class="modal-footer bg-white border-top-0 pt-0">
-                    <button type="button" class="btn btn-secondary btn-sm px-3 rounded-pill" style="font-size: 12px;" @onclick="CerrarModal">Cerrar</button>
-                    <button type="button" class="btn btn-success btn-sm px-4 text-white rounded-pill" style="font-size: 12px;"
+                <div class="modal-footer bg-light border-top">
+                    <button type="button" class="btn btn-secondary-custom" @onclick="CerrarModal">Cancelar</button>
+                    <button type="button" class="btn btn-save-custom"
                             @onclick="() => esModoEditar ? Actualizar(infractoresobj) : Agregar()">
-                        <span>@(esModoEditar ? "Actualizar" : "Agregar")</span>
+                        @(esModoEditar ? "Guardar cambios" : "Agregar propietario")
                     </button>
                 </div>
             </div>
         </div>
     </div>
 }
+
+<style>
+    :root {
+        --c-main-dark: #112366;
+        --c-header-gradient: linear-gradient(135deg, #1a2b4c 0%, #0f1a2f 100%);
+        --c-border-soft: #cbd5e1;
+        --c-text-main: #1e293b;
+        --c-text-muted: #64748b;
+    }
+
+    .main-card { border-radius: 16px; overflow: hidden; }
+    .main-header { background: var(--c-header-gradient); }
+
+    .badge-icon {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 0.5rem;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .form-label-small {
+        font-size: 11px;
+        font-weight: 700;
+        color: var(--c-text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        display: block;
+        margin-bottom: 6px;
+    }
+
+    .form-control, .form-select {
+        font-size: 13.5px;
+        border-radius: 8px;
+        border: 1px solid var(--c-border-soft);
+        padding: 0.5rem 0.75rem;
+        color: var(--c-text-main);
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--c-main-dark);
+        box-shadow: 0 0 0 3px rgba(17, 35, 102, 0.12);
+    }
+
+    .btn-save-custom {
+        background: var(--c-main-dark);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        padding: 0.5rem 1.1rem;
+        white-space: nowrap;
+        transition: all .15s ease;
+    }
+    .btn-save-custom:hover { background: #1e3a8a; color: #fff; transform: translateY(-0.5px); }
+
+    .btn-secondary-custom {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid var(--c-border-soft);
+        border-radius: 8px;
+        font-size: 13px;
+        padding: 0.5rem 1.1rem;
+    }
+    .btn-secondary-custom:hover { background: #e2e8f0; }
+
+    /* ── Buscador ── */
+    .search-group { max-width: 320px; }
+    .search-group .input-group-text { border-color: #fff; border-radius: 8px 0 0 8px; }
+    .search-group .form-control { border-color: #fff; font-size: 13px; }
+    .btn-clear-search {
+        background: #fff;
+        border: 1px solid #fff;
+        border-left: none;
+        color: var(--c-text-muted);
+        padding: 0 8px;
+    }
+    .btn-search-action {
+        background: #fff;
+        color: var(--c-main-dark);
+        border: 1px solid #fff;
+        border-radius: 0 8px 8px 0;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 0 14px;
+    }
+    .btn-search-action:hover { background: #eef1fa; }
+
+    /* ── Tabla ── */
+    .table thead th {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--c-text-muted);
+        background: #f8fafc;
+        border-bottom: 1px solid var(--c-border-soft);
+        padding-top: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+    .table td { font-size: 13.5px; vertical-align: middle; }
+    .fila-propietario { cursor: pointer; transition: background-color .1s ease; }
+    .fila-propietario:hover { background-color: #eef1fa; }
+    tr.no-hover:hover { background: none; }
+
+    .avatar-circle {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        border-radius: 50%;
+        background: rgba(17, 35, 102, 0.1);
+        color: var(--c-main-dark);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .avatar-circle-modal {
+        width: 30px; height: 30px; min-width: 30px;
+        background: rgba(255,255,255,0.15);
+        color: #fff;
+        font-size: 11px;
+    }
+
+    .badge-doc {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--c-main-dark);
+        background: rgba(17, 35, 102, 0.08);
+        border-radius: 4px;
+        padding: 2px 6px;
+    }
+
+    .empty-state { display: inline-flex; flex-direction: column; align-items: center; color: var(--c-text-muted); }
+
+    .loading-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.7);
+        z-index: 10;
+    }
+    .loading-overlay .spinner-border { color: var(--c-main-dark); }
+
+    .pagination .page-link {
+        border-radius: 6px !important;
+        margin: 0 2px;
+        font-size: 12px;
+        color: var(--c-text-main);
+        border-color: var(--c-border-soft);
+    }
+    .pagination .page-item.active .page-link {
+        background: var(--c-main-dark);
+        border-color: var(--c-main-dark);
+    }
+
+    @@media (max-width: 767px) {
+        .search-group { max-width: 100%; width: 100%; }
+    }
+</style>

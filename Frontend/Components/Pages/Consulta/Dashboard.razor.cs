@@ -30,18 +30,19 @@ public partial class Dashboard : ComponentBase, IDisposable
 {
     [Inject] private IConfiguration Config { get; set; } = null!;
     [Inject] private BusquedaService BusquedaService { get; set; } = null!;
-    [Inject] private LiquidacionService ComparendoService { get; set; } = null!;    
+    [Inject] private LiquidacionService ComparendoService { get; set; } = null!;
     [Inject] private CarteraService CarteraService { get; set; } = null!;
     [Inject] private ReciboService ReciboService { get; set; } = null!;
     [Inject] private NavigationManager NavigationManager { get; set; } = null!;
     [Inject] private HttpClient HttpClient { get; set; } = null!;
     [Inject] private AuthenticationStateProvider AuthenticationStateProvider { get; set; } = null!;
     [Inject] private ParametroService ParametroService { get; set; } = null!;
-    [Inject] private PagoService PagoService{ get; set; } = null!;
+    [Inject] private PagoService PagoService { get; set; } = null!;
     [Inject] private ImportadosService Importadoservice { get; set; } = null!;
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private PersuasivoService PersuasivoService { get; set; } = null!;
     [Inject] private CoactivoService CoactivoService { get; set; } = null!;
+
     [Inject]
     private ResolucionService ResolucionService { get; set; } = null!;
 
@@ -102,9 +103,16 @@ public partial class Dashboard : ComponentBase, IDisposable
     }
 
     // ── Tabs ────────────────────────────────────────────────────────
-    private void SetTab(int n)
+    private async Task SetTab(int n)
     {
         tab = n;
+
+        // Si es la pestaña de procesos (tab 5), cargar los datos
+        if (n == 5 && !string.IsNullOrEmpty(_estadoCuenta?.Placa))
+        {
+            await CargarCoactivos(_estadoCuenta.Placa);
+        }
+
         StateHasChanged();
     }
 
@@ -147,7 +155,7 @@ public partial class Dashboard : ComponentBase, IDisposable
         {
             _isLoading = true;
             var placa = _estadoCuenta.Placa.Trim().ToUpper();
-            
+
             // 🚀 Clave: Trae vehículo, propietario y todos los conceptos de cartera en una sola consulta
             var result = await CarteraService.GetCarteraByPlaca(placa);
 
@@ -178,7 +186,7 @@ public partial class Dashboard : ComponentBase, IDisposable
                 .ToList();
 
             RecalcularTotal();
-            SetTab(1);
+            await SetTab(1);
         }
         catch (Exception ex)
         {
@@ -231,12 +239,16 @@ public partial class Dashboard : ComponentBase, IDisposable
     {
         try
         {
-            coactivosList = await PersuasivoService.List(5, 0, placa);
-            avisosPorProceso = [];
-
-            foreach (var proceso in coactivosList)
+            if (tab == 5)
             {
-                avisosPorProceso[proceso.Id] = await PersuasivoService.ContarAvisosProceso(proceso.Id);
+                coactivosList = await PersuasivoService.List(placa);
+
+                avisosPorProceso = [];
+
+                foreach (var proceso in coactivosList)
+                {
+                    avisosPorProceso[proceso.Id] = await PersuasivoService.ContarAvisosProceso(proceso.Id);
+                }
             }
         }
         catch (Exception ex)
@@ -299,7 +311,7 @@ public partial class Dashboard : ComponentBase, IDisposable
                                ?? throw new Exception("No se ha encontrado el recibo");
 
             reciboActual = await PagoService.GetRecibo(ultimoRecibo.Num);
-            
+
             // 🚀 Consume el método pivoteado por año que renderiza el reporte
             _detalleRecibo = await ComparendoService.Items_x_Recibo(ultimoRecibo.Num);
 
@@ -342,11 +354,11 @@ public partial class Dashboard : ComponentBase, IDisposable
     }
 
     // ── Proceso persuasivo ──────────────────────────────────────────
-    public void MostrarModal()
+    public async Task MostrarModal()
     {
         if (string.IsNullOrEmpty(_estadoCuenta.Placa))
         {
-            MostrarAlerta("warning", "Ingresa una placa.");
+            await MostrarAlerta("warning", "Ingresa una placa.");
             return;
         }
 
@@ -356,17 +368,21 @@ public partial class Dashboard : ComponentBase, IDisposable
         StateHasChanged();
     }
 
-    private async Task Agregar()
+    // ── Proceso coactivo directo (pendiente de implementar) ──────────
+    private async Task MostrarModalCoactivoDirecto()
+    {
+        // TODO: implementar cuando esté definido el método correspondiente
+        // en CoactivoService (crear un Proceso directo en estado Coactivo,
+        // aplicando la misma validación de solapamiento de vigencias que
+        // CrearProcesoPersuasivoPorPlaca).
+        await MostrarAlerta("warning", "Esta función está pendiente de implementación.");
+    }
+
+    private async Task CrearProcesoPersuasivo()
     {
         if (vigenciaDesde == 0 || vigenciaHasta == 0)
         {
             await MostrarAlerta("warning", "La vigencia no puede ser cero.");
-            return;
-        }
-
-        if (_estadoCuenta.EstadoId != EstadoProceso.SinProceso)
-        {
-            await MostrarAlerta("warning", "Vehículo inactivo.");
             return;
         }
 
@@ -391,7 +407,7 @@ public partial class Dashboard : ComponentBase, IDisposable
 
         _mostrarModal = false;
         await ObtenerCartera();
-        SetTab(5);
+        await SetTab(5);
         await MostrarAlerta("success", resultado.Message);
     }
 
@@ -409,17 +425,27 @@ public partial class Dashboard : ComponentBase, IDisposable
     {
         if (!await MostrarConfirmacion($"¿Pasar el proceso {proceso.NumeroProceso} a coactivo?")) return;
 
-        try
+        var usuarioActual = await ObtenerUsuarioActual();
+
+        var resultado = await PersuasivoService.EscalarACoactivo(
+            proceso.Id,
+            esAutomatico: false,
+            usuarioResponsable: usuarioActual,
+            motivo: "Escalado manual desde consulta");
+
+        await MostrarAlerta(resultado.Success ? "success" : "warning", resultado.Message);
+
+        if (resultado.Success)
         {
-            await CoactivoService.Procesar(1, proceso.NumeroProceso ?? 0);
-            await MostrarAlerta("success", "Proceso trasladado a coactivo.");
             await ObtenerCartera();
-            SetTab(5);
+            await SetTab(5);
         }
-        catch (Exception ex)
-        {
-            await MostrarAlerta("warning", ex.InnerException?.Message ?? ex.Message);
-        }
+    }
+
+    private async Task<string?> ObtenerUsuarioActual()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        return authState.User.Identity?.Name;
     }
 
     // ── Resolución ──────────────────────────────────────────────────
@@ -462,8 +488,8 @@ public partial class Dashboard : ComponentBase, IDisposable
             return;
         }
 
-        TipoResolucion tipoSeleccionado = tipoResolucion == 2 
-            ? TipoResolucion.AnulacionDeuda 
+        TipoResolucion tipoSeleccionado = tipoResolucion == 2
+            ? TipoResolucion.AnulacionDeuda
             : TipoResolucion.Traslado;
 
         // 2. Armamos el comando con la lista exacta de vigencias
@@ -481,15 +507,15 @@ public partial class Dashboard : ComponentBase, IDisposable
         {
             await MostrarAlerta("success", "Resolución generada con éxito de forma consecutiva.");
             _mostrarModalr = false;
-            await ObtenerCartera(); 
-            SetTab(1);
+            await ObtenerCartera();
+            await SetTab(1);
         }
         else
         {
             await MostrarAlerta("error", "No se pudo crear la resolución. Verifique las deudas pendientes.");
         }
     }
-    
+
     private async Task capturar(ChangeEventArgs e)
     {
         tipoResolucion = int.Parse((string)e.Value!);
@@ -549,7 +575,23 @@ public partial class Dashboard : ComponentBase, IDisposable
         _ => "badge bg-secondary"
     };
 
-    private static string BadgeEstadoProceso(object estado) => "badge bg-warning text-dark";
+    private static string BadgeEstadoProceso(EstadoProceso estado) => estado switch
+    {
+        EstadoProceso.SinProceso => "badge bg-secondary",
+        EstadoProceso.Persuasivo => "badge bg-warning text-dark",
+        EstadoProceso.MandamientoPago => "badge bg-info text-dark",
+        EstadoProceso.Coactivo => "badge bg-danger",
+        _ => "badge bg-secondary"
+    };
+
+    // NOTA: solo se mapeó "Activa" porque es el único valor de EstadoResolucion
+    // confirmado hasta ahora (usado en MostrarModal_R). Comparte el enum completo
+    // si quieres los demás estados con su propio color en vez del gris por defecto.
+    private static string BadgeEstadoResolucion(EstadoResolucion estado) => estado switch
+    {
+        EstadoResolucion.Activa => "badge bg-success",
+        _ => "badge bg-secondary"
+    };
 
     private int AvisosProceso(Proceso proceso) =>
         avisosPorProceso.TryGetValue(proceso.Id, out var total) ? total : 0;
@@ -576,9 +618,6 @@ public partial class Dashboard : ComponentBase, IDisposable
 
     private async Task<bool> MostrarConfirmacion(string mensaje) =>
         await JsRuntime.InvokeAsync<bool>("confirm", mensaje);
-
-    // ── Clase contenedora UI para la Grilla ─────────────────────────
-
 
     // ── Dispose ─────────────────────────────────────────────────────
     public void Dispose()

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Models.Notificaciones;
 using Domain.Models.Vehiculos;
 namespace Domain.Models.ProcesoLiquidacion;
 /// <summary>
@@ -38,4 +39,8 @@ public class Proceso
     // 📂 COLECCIÓN NATIVA: Lo que este proceso agrupó y congeló
     // =========================================================
     public virtual ICollection<Liquidacion> Liquidaciones { get; set; } = new List<Liquidacion>();
+    
+    public virtual ICollection<Aviso> Avisos { get; set; } = new List<Aviso>();
+    
+    public virtual ICollection<HistorialEstadoProceso> Historial { get; set; } = new List<HistorialEstadoProceso>();
 }

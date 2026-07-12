@@ -6,208 +6,102 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject ParametroService ParametroService;
 
-<div class="d-flex min-vh-100 bg-white"> @* El fondo del body vuelve a ser blanco *@
-    
-    <div class="d-flex flex-column flex-shrink-0 shadow-lg"
-         style="width:@(sidebarExpanded ? "260px" : "75px"); background-color:#1a2035; position:fixed; top:0; left:0; bottom:0; transition:all .25s cubic-bezier(0.4, 0, 0.2, 1); z-index:100; border-right: 1px solid #2d3748;">
-
-        <div class="d-flex align-items-center justify-content-between p-3 mb-2" style="height: 70px;">
-            <div class="d-flex align-items-center gap-2 overflow-hidden">
-                
-                @if (sidebarExpanded)
-                {
-                    <div class="animate__animated animate__fadeIn">
-                        <div class="fw-bold text-white" style="font-size:1.1rem; line-height: 1;">Derecho Transito ®</div>
-                        <div class="text-secondary" style="font-size:0.75rem;">Gestión de Tránsito</div>
-                    </div>
-                }
-            </div>
-            <button @onclick="@(() => sidebarExpanded = !sidebarExpanded)"
-                    class="btn btn-sm btn-dark rounded-circle border-secondary d-flex align-items-center justify-content-center" 
-                    style="width: 28px; height: 28px; padding: 0; background: #0f172a;">
-                <i class="bi @(sidebarExpanded ? "bi-chevron-left" : "bi-chevron-right")" style="font-size: 0.7rem; color: white;"></i>
-            </button>
-        </div>
-
-        <div class="flex-grow-1 overflow-auto py-2 custom-scrollbar">
-            @foreach (var sec in MenuSections)
-            {
-                var sectionKey = sec.Key;
-                var isSectionOpen = SectionOpen(sectionKey);
-
-                <div class="mb-1 px-2">
-                    <div class="d-flex align-items-center justify-content-between px-3 py-2 rounded-3 transition-all @(isSectionOpen ? "bg-white bg-opacity-10 text-white" : "text-secondary hover-dark")"
-                         style="cursor:pointer; user-select:none;"
-                         @onclick="@(() => ToggleSection(sectionKey))">
-
-                        <div class="d-flex align-items-center gap-3">
-                            <i class="bi @sec.Icon fs-5 @(isSectionOpen? sec.ColorClass.Replace("border-", "text-") : "")"></i>
-                            @if (sidebarExpanded)
-                            {
-                                <span class="small fw-bold text-uppercase" style="letter-spacing: 0.5px; font-size: 0.75rem;">@sec.Title</span>
-                            }
-                        </div>
-                        @if (sidebarExpanded) { <i class="bi @(isSectionOpen ? "bi-chevron-up" : "bi-chevron-down")" style="font-size: 0.7rem;"></i> }
-                    </div>
-
-                    @if (isSectionOpen || !sidebarExpanded)
-                    {
-                        <div class="@(sidebarExpanded ? "ms-3 mt-1 border-start" : "") @(sidebarExpanded? "border-secondary border-opacity-25": "border-0")">
-                            @foreach (var item in sec.Items)
-                            {
-                                @NavLink(item.Href, item.Label, item.Icon, sec.ColorClass.Replace("border-", "text-"))
-                            }
-                        </div>
-                    }
-                </div>
-            }
-        </div>
-
-        <div class="p-3 border-top border-secondary border-opacity-25" style="background-color: rgba(0,0,0,0.2);">
-            <div class="d-flex align-items-center gap-3 p-2 rounded-3 hover-dark transition-all"
-                 style="cursor:pointer;" @onclick="NavegarPerfil">
-                <i class="bi bi-person-circle fs-3 text-secondary"></i>
-                @if (sidebarExpanded)
-                {
-                    <div class="overflow-hidden">
-                        <div class="small fw-bold text-white text-truncate">Dataset Software</div>
-                    </div>
-                }
-            </div>
-        </div>
+<div class="app-layout-container">
+    <div id="sidebarContainer" class="sidebar-wrapper">
+        <NavMenu />
     </div>
-
-    <div class="flex-grow-1"
-         style="margin-left:@(sidebarExpanded ? "260px" : "75px"); transition:margin-left .25s ease;">
-
-        <nav class="navbar navbar-expand shadow-sm px-4 py-0 sticky-top" 
-             style="height: 70px; background-color: #1a2035; border-bottom: 1px solid #2d3748;">
-            <div class="container-fluid">
-                <div class="text-white-50 m-0 fw-medium">
-                    <i class="bi bi-geo-alt me-2 text-warning"></i> @_parametro.Ciudad
+    <div class="content-wrapper">
+        <nav class="navbar navbar-expand shadow-sm px-4 py-0 sticky-top bg-white border-bottom border-light-subtle" 
+             style="height: 70px;">
+            <div class="container-fluid p-0">
+                <div class="text-secondary m-0 fw-semibold" style="font-size: 0.9rem;">
+                    <i class="bi bi-geo-alt me-2 text-warning fs-5"></i> @_parametro.Ciudad
                 </div>
 
                 <div class="d-flex align-items-center gap-4">
-                    <div class="text-success small d-flex align-items-center gap-2">
-                        <span class="pulse-green"></span> En línea
+                    <div class="text-success small fw-medium d-flex align-items-center gap-2" style="font-size: 0.85rem;">
+                        <span class="pulse-green"></span> Servidor Conectado
                     </div>
 
-                    <div class="dropdown @(userDropdownOpen ? "show" : "")">
-                        <a class="d-flex align-items-center text-decoration-none dropdown-toggle text-white" 
-                           style="cursor:pointer;" @onclick="ToggleUserDropdown" @onclick:stopPropagation="true">
-                            <span class="me-2 fw-bold">@userName</span>
+                    <div class="dropdown">
+                        <a class="d-flex align-items-center text-decoration-none dropdown-toggle text-dark fw-semibold"
+                           href="#" role="button" id="userMenuToggle"
+                           data-bs-toggle="dropdown" aria-expanded="false"
+                           style="cursor:pointer; font-size: 0.85rem;">
+                            <span class="me-1">@userName</span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end shadow-lg animated fadeIn @(userDropdownOpen ? "show" : "")" 
-                            style="display: @(userDropdownOpen ? "block" : "none"); background-color: #1a2035; border: 1px solid #2d3748;">
-                            <li><a class="dropdown-item py-2 text-white-50 hover-dark" href="/Usuariospage"><i class="bi bi-person me-2"></i> Perfil</a></li>
-                            <li><hr class="dropdown-divider border-secondary border-opacity-25"></li>
-                            <li><a class="dropdown-item py-2 text-danger hover-dark" href="/PLogOut/CerrarSesion" target="_top"><i class="bi bi-box-arrow-right me-2"></i> Salir</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end shadow-sm animated fadeIn"
+                            aria-labelledby="userMenuToggle"
+                            style="background-color: #ffffff; border: 1px solid rgba(0,0,0,.1); font-size: 0.85rem;">
+                            <li><a class="dropdown-item py-2 text-secondary" href="/Usuariospage"><i class="bi bi-person me-2"></i> Mi Perfil</a></li>
+                            <li><hr class="dropdown-divider border-light-subtle"></li>
+                            <li><a class="dropdown-item py-2 text-danger" href="/PLogOut/CerrarSesion" target="_top"><i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión</a></li>
                         </ul>
                     </div>
                 </div>
             </div>
         </nav>
 
-        <main class="p-4 bg-white" style="min-height: calc(100vh - 70px);" @onclick="CloseDropdown">
+        <main class="p-4 flex-grow-1" style="background-color: #f8f9fa;">
             @Body
         </main>
     </div>
 </div>
 
 <style>
-    .transition-all { transition: all 0.2s ease; }
-    .hover-dark:hover { background-color: rgba(255,255,255,0.05) !important; color: white !important; }
-    .dropdown-item:hover { background-color: rgba(255,255,255,0.1) !important; color: white !important; }
+    /* Estructura Base */
+    .app-layout-container {
+        display: flex;
+        min-height: 100vh;
+        width: 100%;
+        background-color: #f8f9fa;
+    }
+
+    /* Comportamiento del Sidebar Wrapper */
+    .sidebar-wrapper {
+        width: 260px; /* Ancho expandido por defecto */
+        transition: width .25s cubic-bezier(0.4, 0, 0.2, 1);
+        flex-shrink: 0;
+        z-index: 1040;
+    }
+
+    /* CUANDO BOOTSTRAP LE AGREGUE LA CLASE .collapse, PASA A MEDIR 75PX (Modo íconos) */
+    .sidebar-wrapper.collapse {
+        width: 75px !important;
+        display: block !important; /* Evita que Bootstrap lo oculte del todo */
+    }
+
+    /* Comportamiento del Contenido del Sistema */
+    .content-wrapper {
+        flex-grow: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Estilos Adicionales del Layout */
+    .dropdown-item:hover { background-color: #f8f9fa !important; color: #112366 !important; }
+
     .pulse-green { width: 8px; height: 8px; background: #198754; border-radius: 50%; animation: pulse 2s infinite; }
-    @@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(25, 135, 84, 0); } 100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); } }
-    .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #2d3748; border-radius: 10px; }
-    .animated.fadeIn { animation: fadeIn 0.3s ease-in-out; }
-    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.4); } 70% { box-shadow: 0 0 0 8px rgba(25, 135, 84, 0); } 100% { box-shadow: 0 0 0 0 rgba(25, 135, 84, 0); } }
+
+    .animated.fadeIn { animation: fadeIn 0.2s ease-out; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 
 @code {
-    private Parametro _parametro = new Parametro ();
-    private bool sidebarExpanded = true;
-    private bool userDropdownOpen = false;
-    private Dictionary<string, bool> _sectionsOpen = new();
-
-    private void ToggleUserDropdown() => userDropdownOpen = !userDropdownOpen;
-    private void CloseDropdown() => userDropdownOpen = false;
-
-    private List<NavSection> MenuSections { get; } = new()
-    {
-        new NavSection("principal", "Principal", "bi-house-door", "border-primary", new[]
-        {
-            new NavItem("/Principal", "Dashboard", "bi-speedometer2"),
-            new NavItem("/Consulta", "Liquidaciones", ""),
-            new NavItem("/Pagos", "Pagos", ""),
-        }),
-        new NavSection("catalogos", "Catálogos", "bi-collection", "border-success", new[]
-        {
-            new NavItem("/Cartera", "Cartera", ""),
-            new NavItem("/Vehiculos", "Vehiculos", ""),
-            new NavItem("/Marcas", "Marcas", ""),
-            new NavItem("/Lineas", "Lineas", ""),
-            new NavItem("/Tipos_resol", "Tipos Carrocerias", ""),
-            new NavItem("/Clases", "Clases Vehiculos", ""),
-            new NavItem("/Intereses", "Intereses mora", ""),
-            new NavItem("/Uvts", "Valores uvts", ""),
-            new NavItem("/Propietarios", "Propietarios", ""),
-        }),
-        new NavSection("procesos", "Procesos", "bi-file-earmark-ruled", "border-danger", new[]
-        {
-            new NavItem("/Pagos", "Pagos", ""),
-            new NavItem("/Importacion", "Generar deudas", ""),
-            new NavItem("/ImpresionLotes", "Liquidaciones oficiales", ""),
-            new NavItem("/Coactivos", "Pasar a coactivo", ""),
-            
-        }),
-        new NavSection("reportes", "Reportes", "bi-graph-up", "border-info", new[]
-        {
-            new NavItem("/ReporteDiario", "Informe diario", ""),
-            new NavItem("/ReporteCartera", "Debido cobrar", ""),
-            new NavItem("/InformeCartera", "Informe cartera", ""),
-            new NavItem("/ReporteMandamientos", "Reporte mandamientos", ""),
-        }),
-        new NavSection("sistema", "Sistema", "bi-gear", "border-secondary", new[]
-        {
-            new NavItem("/Usuarios", "Usuarios", "bi-person-gear"),
-            new NavItem("/Parametros", "Parámetros", "bi-gear"),
-        }),
-    };
+    private Parametro _parametro = new Parametro { Ciudad = "Municipio" };
+    private string userName = "Usuario";
 
     protected async override Task OnInitializedAsync()
     {
         // await GetClaimsPrincipalData();
         // _parametro = await ParametroService.GetParametroById(1);
-        foreach (var sec in MenuSections) _sectionsOpen[sec.Key] = true;
     }
 
-    private bool SectionOpen(string key) => _sectionsOpen.TryGetValue(key, out var open) && open;
-    private void ToggleSection(string key) { _sectionsOpen[key] = !SectionOpen(key); StateHasChanged(); }
-    private void NavegarPerfil() => Navigation.NavigateTo("/Usuariospage");
-
-    private RenderFragment NavLink(string href, string label, string iconClass, string textColorClass) => __builder =>
+    private async Task GetClaimsPrincipalData()
     {
-        var path = new Uri(Navigation.Uri).AbsolutePath.TrimEnd('/');
-        var hrefNorm = href.TrimEnd('/');
-        var isActive = path.Equals(hrefNorm, StringComparison.OrdinalIgnoreCase) || path.StartsWith(hrefNorm + "/");
-        var activeStyle = isActive ? $"bg-white bg-opacity-10 {textColorClass} fw-bold shadow-sm" : "text-white-50";
-
-        <a href="@href" title="@label" @onclick="CloseDropdown"
-           class="d-flex align-items-center gap-2 px-3 py-2 my-1 text-decoration-none rounded-end transition-all @activeStyle hover-dark"
-           style="font-size: 0.85rem; margin-left: @(sidebarExpanded ? "-1px" : "0");">
-            @if (sidebarExpanded) { <i class="bi bi-dot fs-4 @(isActive? textColorClass : "text-transparent")"></i> }
-            <i class="bi @iconClass @(isActive? textColorClass : "")" style="font-size: 1.1rem;"></i>
-            @if (sidebarExpanded) { <span class="text-truncate">@label</span> }
-        </a>
-    };
-
-    private sealed record NavItem(string Href, string Label, string Icon);
-    private sealed record NavSection(string Key, string Title, string Icon, string ColorClass, IEnumerable<NavItem> Items);
-    private string userName = "Usuario";
-    private async Task GetClaimsPrincipalData() {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (user.Identity?.IsAuthenticated == true) userName = user.Identity.Name;

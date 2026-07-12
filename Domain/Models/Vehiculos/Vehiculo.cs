@@ -38,8 +38,6 @@ public class Vehiculo : EntityWithTraceability
     public TipoServicioVehiculo TipoServicioVehiculo { get; set; }
 
     public int TipoCarroceriaId { get; set; }
-
-    public EstadoProceso EstadoProcesoId { get; set; } 
     
     public int PropietarioId { get; set; }
 
@@ -54,8 +52,6 @@ public class Vehiculo : EntityWithTraceability
     public virtual Linea Linea { get; set; } = null!;
 
     public virtual Color Color { get; set; } = null!; 
-
-    public EstadoProceso EstadoProceso { get; set; }
     
     public virtual Propietario Propietario { get; set; } = null!;
 }

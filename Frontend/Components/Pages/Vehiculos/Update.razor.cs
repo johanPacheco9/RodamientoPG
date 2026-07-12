@@ -72,7 +72,6 @@ public partial class Update
                     ColorId = _vehiculoOriginal.ColorId,
                     TipoServicioVehiculo = _vehiculoOriginal.TipoServicioVehiculo,
                     TipoCarroceriaId = _vehiculoOriginal.TipoCarroceriaId,
-                    EstadoProcesoId = _vehiculoOriginal.EstadoProcesoId,
                     PropietarioId = _vehiculoOriginal.PropietarioId
                 };
 

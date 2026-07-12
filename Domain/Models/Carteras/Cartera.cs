@@ -31,9 +31,7 @@ public class Cartera : EntityWithTraceability
     public int VehiculoId { get; set; }
 
     public bool TieneInteres { get; set; }
-
-    public bool EstaEnProcesoCoactivo { get; set; }
-
+    
     public string Tipo { get; set; } = string.Empty;
 
     // =========================================================
@@ -63,6 +61,4 @@ public class Cartera : EntityWithTraceability
     
     [ForeignKey(nameof(VehiculoId))]
     public virtual Vehiculo Vehiculo { get; set; } = null!;
-    
-    public virtual ICollection<Aviso> Avisos { get; set; } = new List<Aviso>();
 }

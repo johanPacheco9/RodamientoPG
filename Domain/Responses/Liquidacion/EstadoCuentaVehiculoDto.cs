@@ -17,8 +17,8 @@ public class EstadoCuentaVehiculoDto
     public int Cilindraje { get; set; }
     public string Carroceria { get; set; } = string.Empty;
     public string Carga { get; set; } = string.Empty;
-    public string EstadoNombre { get; set; } = string.Empty;
-    public EstadoProceso EstadoId { get; set; }
+    public EstadoProceso Estado { get; set; }
+    public int? ProcesoId { get; set; }
 
     // Propietario
     public TipoDocumento TipoDocumento { get; set; }

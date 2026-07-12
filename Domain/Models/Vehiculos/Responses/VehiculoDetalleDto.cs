@@ -1,3 +1,4 @@
+using Domain.Models.ProcesoLiquidacion;
 namespace Domain.Models.Vehiculos.Responses;
 
 
@@ -10,7 +11,6 @@ public record VehiculoDetalleDto(
     string DocumentoPropietario,
     string TipoVehiculo,
     string Marca,
-    string Linea,
-    string EstadoProceso
+    string Linea
 );
 

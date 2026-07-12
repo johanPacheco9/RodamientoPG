@@ -46,8 +46,8 @@
                     <small class="text-muted">@_estadoCuenta.TipoDocumento · @_estadoCuenta.Documento</small>
                 </div>
                 <div class="ms-auto">
-                    <span class="badge @BadgeEstado(_estadoCuenta.EstadoId)">
-                        @_estadoCuenta.EstadoNombre
+                    <span class="badge @BadgeEstado(_estadoCuenta.Estado)">
+                        @_estadoCuenta.Estado.GetDisplayName()
                     </span>
                 </div>
             </div>
@@ -133,11 +133,11 @@
             <div class="card h-100">
                 <div class="card-body py-2 px-3">
                     <small class="text-muted d-block">Proceso activo</small>
-                    @if (coactivosList.Any(p => p.EstadoProceso.GetDisplayName().ToLower() == "coactivo"))
+                    @if (coactivosList.Any(p => p.EstadoProceso == EstadoProceso.Coactivo))
                     {
                         <span class="badge bg-danger">Coactivo</span>
                     }
-                    else if (coactivosList.Any(p => p.EstadoProceso.GetDisplayName().ToLower() == "persuasivo"))
+                    else if (coactivosList.Any(p => p.EstadoProceso == EstadoProceso.Persuasivo))
                     {
                         <span class="badge bg-warning text-dark">Persuasivo</span>
                     }
@@ -445,7 +445,7 @@
                                     }
                                 </td>
                                 <td class="text-muted small">@r.Observaciones</td>
-                                <td><span class="badge @BadgeEstadoProceso(r.Estado)">@r.Estado</span></td>
+                                <td><span class="badge @BadgeEstadoResolucion(r.Estado)">@r.Estado</span></td>
                                 <td class="text-end">@r.Valor.ToString("C")</td>
                             </tr>
                         }
@@ -456,11 +456,17 @@
 
             @if (tab == 5)
             {
-                <div class="d-flex justify-content-end mb-2">
-                    <button class="btn btn-success btn-sm" @onclick="MostrarModal">
-                        <i class="bi bi-plus"></i> Iniciar cobro persuasivo
-                    </button>
+                <div class="row">
+                    <div class="d-flex justify-content-end mb-2 gap-2 flex-wrap">
+                        <button class="btn btn-success btn-sm" @onclick="MostrarModal">
+                            <i class="bi bi-plus"></i> Iniciar cobro persuasivo
+                        </button>
+                        <button class="btn btn-warning btn-sm" @onclick="MostrarModalCoactivoDirecto">
+                            <i class="bi bi-plus"></i> Iniciar cobro Coactivo sin haber pasado por persuasivo
+                        </button>
+                    </div>
                 </div>
+
                 <div class="table-responsive">
                     <table class="table table-sm table-hover align-middle">
                         <thead class="table-light">
@@ -468,7 +474,6 @@
                             <th>Id</th>
                             <th>Fecha</th>
                             <th>No. proceso</th>
-                            <th>Tipo</th>
                             <th>Resolución</th>
                             <th>Período</th>
                             <th>Estado</th>
@@ -484,23 +489,17 @@
                                 <td>@p.Id</td>
                                 <td>@p.Fecha.ToString("dd/MM/yyyy")</td>
                                 <td><strong>@p.NumeroProceso</strong></td>
-                                <td>
-                                    <span class="badge @BadgeProceso(p.EstadoProceso.GetDisplayName())">
-                                        @p.EstadoProceso.GetDisplayName()
-                                    </span>
-                                </td>
                                 <td>@p.Resolucion</td>
                                 <td>@p.Desde – @p.Hasta</td>
                                 <td>
-                                            <span class="badge @BadgeEstadoProceso(p.EstadoProceso)">
-                                                @p.EstadoProceso.GetDisplayName()
-                                            </span>
+                                    <span class="badge @BadgeEstadoProceso(p.EstadoProceso)">
+                                        @p.EstadoProceso.GetDisplayName()
+                                    </span>
                                 </td>
                                 <td class="text-center">
-                                            <span
-                                                class="badge @(AvisosProceso(p) >= 4 ? "bg-success" : "bg-secondary")">
-                                                @AvisosProceso(p)/4
-                                            </span>
+                                    <span class="badge @(AvisosProceso(p) >= 4 ? "bg-success" : "bg-secondary")">
+                                        @AvisosProceso(p)/4
+                                    </span>
                                 </td>
                                 <td class="text-end">@p.Valor.ToString("C")</td>
                                 <td class="text-end">
@@ -577,7 +576,7 @@
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-secondary btn-sm" @onclick="CerrarModal">Cancelar</button>
-                    <button class="btn btn-success btn-sm" @onclick="Agregar">
+                    <button class="btn btn-success btn-sm" @onclick="CrearProcesoPersuasivo">
                         <i class="bi bi-check"></i> Confirmar
                     </button>
                 </div>
