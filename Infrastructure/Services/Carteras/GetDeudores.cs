@@ -4,125 +4,107 @@ using Domain.Models.Resoluciones;
 using Domain.Responses.Carteras;
 using Domain.Responses.Proceso.Enums;
 using Microsoft.EntityFrameworkCore;
+
 namespace Infrastructure.Services.Carteras;
 
 public partial class CarteraService
 {
     public async Task<PaginadoCarteraDto> GetDeudores(FiltroCarteraDto filtro, int pagina, int porPagina)
     {
-        // 1. 🚀 FILTRO CLAVE: Excluir las carteras afectadas por Resoluciones de Anulación o Traslado
-        var query = context.Cartera
+        var queryCarteras = context.Cartera
             .Where(c => !c.IsPagado
+                        && !c.IsAnulled
                         && (c.ResolucionId == null
                             || (c.Resolucion!.TipoResolucion != TipoResolucion.AnulacionDeuda
-                                && c.Resolucion.TipoResolucion != TipoResolucion.Traslado)))
-            .Include(c => c.Vehiculo)
-            .ThenInclude(v => v.Propietario)
-            .AsQueryable();
+                                && c.Resolucion.TipoResolucion != TipoResolucion.Traslado)));
 
-        // ── Filtros ──────────────────────────────────────────────
         if (!string.IsNullOrWhiteSpace(filtro.Busqueda))
         {
             var b = filtro.Busqueda.Trim().ToUpper();
-            query = query.Where(c =>
+            queryCarteras = queryCarteras.Where(c =>
                 c.Placa.Contains(b) ||
                 c.Vehiculo.Propietario.Documento.Contains(b));
         }
 
         if (filtro.VigenciaDesde.HasValue)
-            query = query.Where(c => c.Vigencia <= filtro.VigenciaDesde.Value);
-
-        // El estado ya no vive en Vehiculo: se consulta contra Proceso vía VehiculoId
-        if (!string.IsNullOrEmpty(filtro.Proceso))
         {
-            query = filtro.Proceso.ToLower() switch
-            {
-                "ninguno" => query.Where(c =>
-                    !context.Procesos.Any(p => p.VehiculoId == c.VehiculoId && p.EstadoProceso != EstadoProceso.SinProceso)),
-
-                "persuasivo" => query.Where(c =>
-                    context.Procesos.Any(p => p.VehiculoId == c.VehiculoId && p.EstadoProceso == EstadoProceso.Persuasivo)),
-
-                "coactivo" => query.Where(c =>
-                    context.Procesos.Any(p => p.VehiculoId == c.VehiculoId && p.EstadoProceso == EstadoProceso.Coactivo)),
-
-                _ => query
-            };
+            queryCarteras = queryCarteras.Where(c => c.Vigencia <= filtro.VigenciaDesde.Value);
         }
 
-        // ── Agrupar por vehículo en memoria ──────────────────────
-        var raw = await query
-            .Select(c => new
+        var queryAgrupada = queryCarteras
+            .GroupBy(c => new
             {
                 c.VehiculoId,
                 c.Placa,
-                c.Vigencia,
-                c.ValorTotal,
-                TipoDocumento = c.Vehiculo.Propietario.TipoDocumento.ToString(),
-                Documento = c.Vehiculo.Propietario.Documento,
-                NombrePropietario = c.Vehiculo.Propietario.Nombre,
-
-                // Estado activo del vehículo, resuelto por subconsulta a Proceso
+                c.Vehiculo.Propietario.Nombre,
+                c.Vehiculo.Propietario.Documento,
+                TipoDocumento = c.Vehiculo.Propietario.TipoDocumento
+            })
+            .Select(g => new
+            {
+                g.Key.VehiculoId,
+                g.Key.Placa,
+                NombrePropietario = g.Key.Nombre,
+                g.Key.Documento,
+                TipoDocumento = g.Key.TipoDocumento.ToString(),
+                VigenciasPendientes = g.Select(c => c.Vigencia).Distinct().Count(),
+                // Ahora (Suma Capital + Intereses)
+                TotalDeuda = g.Sum(c => c.ValorTotal + c.ValorInteres),
                 EstadoProceso = context.Procesos
-                    .Where(p => p.VehiculoId == c.VehiculoId && p.EstadoProceso != EstadoProceso.SinProceso)
+                    .Where(p => p.VehiculoId == g.Key.VehiculoId && p.EstadoProceso != EstadoProceso.SinProceso)
                     .Select(p => (EstadoProceso?)p.EstadoProceso)
                     .FirstOrDefault() ?? EstadoProceso.SinProceso
-            })
-            .ToListAsync();
+            });
 
-        var agrupado = raw
-            .GroupBy(c => c.VehiculoId)
-            .Select(g =>
+        if (!string.IsNullOrEmpty(filtro.Proceso))
+        {
+            queryAgrupada = filtro.Proceso.ToLower() switch
             {
-                var primero = g.First();
+                "ninguno" => queryAgrupada.Where(x => x.EstadoProceso == EstadoProceso.SinProceso),
+                "persuasivo" => queryAgrupada.Where(x => x.EstadoProceso == EstadoProceso.Persuasivo),
+                "coactivo" => queryAgrupada.Where(x => x.EstadoProceso == EstadoProceso.Coactivo),
+                _ => queryAgrupada
+            };
+        }
 
-                return new
-                {
-                    primero.Placa,
-                    primero.TipoDocumento,
-                    primero.Documento,
-                    primero.NombrePropietario,
-                    VigenciasPendientes = g.Select(c => c.Vigencia).Distinct().Count(),
-                    TotalDeuda = g.Sum(c => c.ValorTotal),
-                    Proceso = primero.EstadoProceso == EstadoProceso.SinProceso
-                        ? null
-                        : primero.EstadoProceso.GetDisplayName()
-                };
-            })
-            .ToList();
-
-        // ── Filtro deuda mínima (post-agrupación) ─────────────────
         if (filtro.DeudaMinima.HasValue && filtro.DeudaMinima > 0)
-            agrupado = agrupado.Where(x => x.TotalDeuda >= filtro.DeudaMinima.Value).ToList();
+        {
+            queryAgrupada = queryAgrupada.Where(x => x.TotalDeuda >= filtro.DeudaMinima.Value);
+        }
 
-        // ── Métricas Globales (Reflejan la realidad sin deudas anuladas) ──
-        var totalDeudores = agrupado.Count;
-        var totalCartera = agrupado.Sum(x => x.TotalDeuda);
-        var conProceso = agrupado.Count(x => !string.IsNullOrEmpty(x.Proceso));
+        var stats = await queryAgrupada
+            .GroupBy(x => 1)
+            .Select(g => new
+            {
+                Total = g.Count(),
+                TotalCartera = g.Sum(x => x.TotalDeuda),
+                ConProceso = g.Count(x => x.EstadoProceso != EstadoProceso.SinProceso)
+            })
+            .FirstOrDefaultAsync();
 
-        // ── Paginación ────────────────────────────────────────────
-        var items = agrupado
+        var itemsDb = await queryAgrupada
             .OrderByDescending(x => x.TotalDeuda)
             .Skip((pagina - 1) * porPagina)
             .Take(porPagina)
-            .Select(x => new DeudorDto
-            {
-                TipoDocumento = x.TipoDocumento,
-                Documento = x.Documento,
-                NombrePropietario = x.NombrePropietario,
-                Placa = x.Placa,
-                VigenciasPendientes = x.VigenciasPendientes,
-                TotalDeuda = x.TotalDeuda,
-                Proceso = x.Proceso
-            })
-            .ToList();
+            .ToListAsync();
+
+        var items = itemsDb.Select(x => new DeudorDto
+        {
+            TipoDocumento = x.TipoDocumento,
+            Documento = x.Documento,
+            NombrePropietario = x.NombrePropietario,
+            Placa = x.Placa,
+            VigenciasPendientes = x.VigenciasPendientes,
+            TotalDeuda = x.TotalDeuda,
+            Proceso = x.EstadoProceso == EstadoProceso.SinProceso ? null : x.EstadoProceso.GetDisplayName()
+        }).ToList();
 
         return new PaginadoCarteraDto
         {
             Items = items,
-            Total = totalDeudores,
-            TotalCartera = totalCartera,
-            ConProceso = conProceso
+            Total = stats?.Total ?? 0,
+            TotalCartera = stats?.TotalCartera ?? 0,
+            ConProceso = stats?.ConProceso ?? 0
         };
     }
 }

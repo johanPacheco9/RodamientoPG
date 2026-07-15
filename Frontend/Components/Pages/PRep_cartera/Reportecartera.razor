@@ -1,180 +1,159 @@
-﻿<!--
-@page "/ReporteCartera"
+﻿@page "/ReporteCartera"
+@using Infrastructure.Services.Reportes
+@using Infrastructure.Services.Reportes.Responses
+@rendermode InteractiveServer
+@inject ReportesManager ReportesManager
+@inject IJSRuntime JsRuntime
 
-@using Rodamiento.Models;
-@using Rodamiento.Shared.Models;
-@using Rodamiento.Shared.Services;
-@using System.Diagnostics
-@using Rodamiento.Application.Services.SLiquidaciones
-@inject NavigationManager NavigationManager
-@inject DialogService DialogService
-@inject ILiquidacionService Rep_resolServices;
-
-
-<meta name="viewport" content="width=device-width,inicial-scale=1.0">
-<div class="content-wrapper">
-    <ul class="nav nav-tabs" id="custom-content-below-tab" role="tablist">
+<div class="container-fluid px-4 py-3">
+    <ul class="nav nav-tabs mb-4" id="reportTabs" role="tablist">
         <li class="nav-item">
-            <button type="button" class="nav-link @(tab1 ? "active" : "")" id="pestañaLiquidacion" data-toggle="pill" href="#contenidoLiquidacion" role="tab" aria-controls="contenidoLiquidacion" aria-selected="true" @onclick="() => displayTabs(1)">Cartera Por Vigencias</button>
+            <button class="nav-link @(_tabActiva == 1 ? "active fw-bold text-primary" : "text-secondary")" 
+                    @onclick="() => SeleccionarTab(1)">
+                <i class="bi bi-calendar3 me-2"></i>Cartera Por Vigencias
+            </button>
         </li>
         <li class="nav-item">
-            <button type="button" class="nav-link @(tab2 ? "active" : "")" id="pestañaLiquidacion" data-toggle="pill" href="#contenidoLiquidacion" role="tab" aria-controls="contenidoLiquidacion" aria-selected="true" @onclick="() => displayTabs(2)">Deudas Por Clase Vehiculo</button>
+            <button class="nav-link @(_tabActiva == 2 ? "active fw-bold text-primary" : "text-secondary")" 
+                    @onclick="() => SeleccionarTab(2)">
+                <i class="bi bi-car-front me-2"></i>Deudas Por Clase Vehículo
+            </button>
         </li>
     </ul>
-    @if (tab1)
-    {
-            <section class="content-header">
-            <div class="container-fluid">
-                <div class="row bg-transparent">
-                    <div class="col-lg-4 col-md-4 flex-container">
-                        <RadzenButton style="font-size:12px;" Size="ButtonSize.Small" Click="@(()=>Carga_datos())">Consultar</RadzenButton>
-                        <RadzenButton style="font-size:12px" Size="ButtonSize.Small" Click="@(()=>Imprime_Rep())">Imprimir</RadzenButton>
-                    </div>
 
-                </div>
-            </div>
-        
-        <div class="container-fluid mt-1">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header p-0" style="background-color:#112366;  height: 27px; ">
-                            <h6 class="card-title ms-2 mt-1" style="font-size:17px; color:white">Informe Deudas Por Vigencia</h6>
-                        </div>
-                        <div class="card-body  mt-1">
-                            <RadzenDataGrid AllowFiltering="true" AllowColumnResize="true" AllowAlternatingRows="false" FilterMode="FilterMode.Advanced" AllowGrouping="false" AllowSorting="true" PageSize="9"
-                                            AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" Data="@Itemlist" TItem="Rcon"
-                                            ColumnWidth="350px" LogicalFilterOperator="LogicalFilterOperator.Or" ShowPagingSummary="true"
-                                            IsLoading="@isLoading">
-                                <Columns>
-                                    <RadzenDataGridColumn TItem="Rcon" Property="pvigencia" Title="Vigencia" Frozen="true" Width="100px" Filterable="false" HeaderCssClass="rz-background-color-primary-lighter" />
-                                    <RadzenDataGridColumn TItem="Rcon" Property="vlr_rod" Title="Derecho Transito" Width="160px" Filterable="false" HeaderCssClass="rz-background-color-primary-lighter">
-                                        <Template Context="data">
-                                            <span>@data.vlr_rod.ToString("C")</span>
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                    <RadzenDataGridColumn TItem="Rcon" Property="vlr_rod" Title="Impuesto Carga" Width="160px" Filterable="false" HeaderCssClass="rz-background-color-primary-lighter">
-                                        <Template Context="data">
-                                            <span>@data.vlr_carga.ToString("C")</span>
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                    <RadzenDataGridColumn TItem="Rcon" Property="vlr_estamp" Title="Estampillas" Width="160px" Filterable="false" HeaderCssClass="rz-background-color-primary-lighter">
-                                        <Template Context="data">
-                                            <span>@data.vlr_estamp.ToString("C")</span>
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                    <RadzenDataGridColumn TItem="Rcon" Property="vlr_recibo" Title="Costas" Width="160px" Filterable="false" HeaderCssClass="rz-background-color-primary-lighter">
-                                        <Template Context="data">
-                                            <span>@data.vlr_recibo.ToString("C")</span>
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                    <RadzenDataGridColumn TItem="Rcon" Property="vlr_interes" Title="Intereses" Width="160px" Filterable="false" HeaderCssClass="rz-background-color-primary-lighter">
-                                        <Template Context="data">
-                                            <span>@data.vlr_interes.ToString("C")</span>
-                                        </Template>
-                                    </RadzenDataGridColumn>
-                                        <RadzenDataGridColumn TItem="Rcon" Property="vlr_total" TextAlign="TextAlign.Right" Title="Todal" Width="350px" Filterable="false" HeaderCssClass="rz-background-color-primary-lighter">
-                                        <Template Context="data">
-                                            <span>@data.vlr_total.ToString("C")</span>
-                                        </Template>
-                                        <FooterTemplate>
-                                            Total Deuda: <b>@String.Format(new System.Globalization.CultureInfo("en-US"), "{0:C}", Itemlist.Sum(o => o.vlr_total))</b>
-                                        </FooterTemplate>
-                                    </RadzenDataGridColumn>
-                                </Columns>
-                            </RadzenDataGrid>
-                        </div>
+    @if (_tabActiva == 1)
+    {
+        <div class="card border-0 shadow-sm mb-3">
+            <div class="card-body p-3" style="border-left: 4px solid #112366;">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div>
+                        <h5 class="mb-0 fw-bold text-dark text-uppercase" style="font-size: 15px;">
+                            Informe Deudas Por Vigencia
+                        </h5>
+                        <small class="text-muted">Estado del "Debido Cobrar" global consolidado por año gravable</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm text-white" style="background-color: #112366;" @onclick="CargarDatos" disabled="@_isLoading">
+                            @if (_isLoading)
+                            {
+                                <span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <i class="bi bi-search me-1"></i>
+                            }
+                            Consultar Cartera
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" @onclick="Imprimir" disabled="@(!_items.Any())">
+                            <i class="bi bi-printer me-1"></i> Imprimir Reporte
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0" style="font-size: 13px;">
+                    <thead class="table-light">
+                        <tr style="border-bottom: 2px solid #112366;">
+                            <th class="ps-3 py-2">VIGENCIA</th>
+                            <th class="py-2 text-end">DERECHO TRÁNSITO</th>
+                            <th class="py-2 text-end">IMPUESTO CARGA</th>
+                            <th class="py-2 text-end">ESTAMPILLAS</th>
+                            <th class="py-2 text-end">COSTAS</th>
+                            <th class="py-2 text-end">INTERESES</th>
+                            <th class="pe-3 py-2 text-end fw-bold">TOTAL DEUDA</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (_isLoading)
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5">
+                                    <div class="spinner-border text-primary" role="status"></div>
+                                    <div class="text-muted mt-2">Procesando registros de cartera...</div>
+                                </td>
+                            </tr>
+                        }
+                        else if (!_items.Any())
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-info-circle display-6"></i>
+                                    <p class="mt-2 mb-0 fw-medium">No hay datos de cartera consultados.</p>
+                                    <small>Haga clic en "Consultar Cartera" para procesar el debido cobrar.</small>
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var item in _items)
+                            {
+                                <tr>
+                                    <td class="ps-3 py-2 fw-bold text-dark">@item.Vigencia</td>
+                                    <td class="text-end text-secondary">@item.ValorRodamiento.ToString("C0")</td>
+                                    <td class="text-end text-secondary">@item.ValorCarga.ToString("C0")</td>
+                                    <td class="text-end text-secondary">@item.ValorEstampillas.ToString("C0")</td>
+                                    <td class="text-end text-secondary">@item.ValorCostas.ToString("C0")</td>
+                                    <td class="text-end text-danger">@item.ValorInteres.ToString("C0")</td>
+                                    <td class="pe-3 text-end fw-bold text-dark">@item.ValorTotal.ToString("C0")</td>
+                                </tr>
+                            }
+                            <tr class="table-light fw-bold border-top" style="border-bottom: 2px solid #dee2e6;">
+                                <td class="ps-3 py-2 text-uppercase">Total General</td>
+                                <td class="text-end">@_items.Sum(x => x.ValorRodamiento).ToString("C0")</td>
+                                <td class="text-end">@_items.Sum(x => x.ValorCarga).ToString("C0")</td>
+                                <td class="text-end">@_items.Sum(x => x.ValorEstampillas).ToString("C0")</td>
+                                <td class="text-end">@_items.Sum(x => x.ValorCostas).ToString("C0")</td>
+                                <td class="text-end text-danger">@_items.Sum(x => x.ValorInteres).ToString("C0")</td>
+                                <td class="pe-3 text-end text-success fs-6">@_items.Sum(x => x.ValorTotal).ToString("C0")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else if (_tabActiva == 2)
+    {
+        <div class="card border-0 shadow-sm p-4 text-center">
+            <i class="bi bi-tools display-5 text-muted"></i>
+            <h6 class="mt-3 fw-bold">Reporte de Deudas por Clase de Vehículo</h6>
+            <p class="text-muted mb-0 small">Este reporte se encuentra actualmente en desarrollo o pendiente de migración.</p>
+        </div>
     }
 </div>
 
+@code {
+    private int _tabActiva = 1;
+    private bool _isLoading = false;
+    private List<CarteraVigenciaDto> _items = [];
 
-
-
-
-@code
-{
-    private bool mostrarModal = false;
-    public List<Rcon> Itemlist { get; set; } = new List<Rcon>();
-    public DateTime desde;
-    public DateTime hasta;
-
-    IQueryable<Rcon> data;
-    bool isLoading = false;
-    bool tab1 = true;
-    bool tab2 = false;
-
-
-
-
-    protected override async Task OnInitializedAsync()
+    private void SeleccionarTab(int tabIndex)
     {
-        desde = DateTime.Now; hasta = DateTime.Now;
+        _tabActiva = tabIndex;
     }
 
-
-    public void displayTabs(int TabNumber)
+    private async Task CargarDatos()
     {
-        switch (TabNumber)
-        {
-            case 1:
-                this.tab1 = true;
-                this.tab2 = false;
-                break;
-            case 2:
-                this.tab1 = false;
-                this.tab2 = true;
-                break;
-        }
-
-    }
-
-    async Task ShowLoading()
-    {
-        isLoading = true;
-
-        await Task.Yield();
-
-        isLoading = false;
-    }
-
-    private async Task Imprime_Rep()
-    {
-        var confirmationResult = await this.DialogService.Confirm("Esta seguro..?", "Imprimir Reporte ", new ConfirmOptions { OkButtonText = "Si", CancelButtonText = "No" });
-        if (confirmationResult == true)
-        {
-            try
-            {
-//                Imprime_rec();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al generar el recibo:{ex}");
-            }
-        }
-    }
-
-    
-    
-    
-    private async Task Carga_datos()
-    {
+        _isLoading = true;
         try
         {
-            await ShowLoading();
-            Itemlist = await Rep_resolServices.Debido_Cobrar();
-            data = Itemlist.AsQueryable();
-            //            Console.WriteLine($"Valor seleccionado: {SelectedItem},{pcomp}");
-            //Console.WriteLine($"Resoluciones obtenidas: {Itemlist.Count}");
+            _items = await ReportesManager.ObtenerCarteraPorVigencias();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error en getresoluciones: {ex.Message}");
+            Console.WriteLine($"Error al consultar el debido cobrar: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
         }
     }
+
+    private async Task Imprimir()
+    {
+        await JsRuntime.InvokeVoidAsync("window.print");
+    }
 }
--->

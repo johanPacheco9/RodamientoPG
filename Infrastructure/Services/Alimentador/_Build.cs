@@ -1,3 +1,4 @@
+using Domain.Generics;
 using Domain.Models;
 using Domain.Models.Carteras.Enums;
 using Domain.Models.Notificaciones;
@@ -158,40 +159,69 @@ public static class DbInitializer
     {
         var existentes = context.Vehiculos.Count();
 
-        // Ahora evaluará contra el nuevo límite de 1000
         if (existentes >= TargetVehiculosTesting) return;
 
-        // Usamos una semilla fija para reproducibilidad pero expandimos el pool de aleatoriedad
         var random = new Random(1098825894);
 
-        var nombres = new[] { "Juan", "Carlos", "Diana", "Sandra", "Camila", "Jorge", "Luis", "Pedro", "Maria", "Andres", "Diego", "Paula", "marta", "Fabian", "Nelson", "Gloria" };
+        var nombres = new[] { "Juan", "Carlos", "Diana", "Sandra", "Camila", "Jorge", "Luis", "Pedro", "Maria", "Andres", "Diego", "Paula", "Marta", "Fabian", "Nelson", "Gloria" };
         var apellidos = new[] { "Gomez", "Rodriguez", "Lopez", "Perez", "Castro", "Silva", "Diaz", "Ortiz", "Mendoza", "Velez", "Chinchilla", "Duarte", "Sarmiento", "Rios" };
         var direcciones = new[] { "Calle 10 # 5-20", "Carrera 7 # 12-45", "Barrio Centro", "Avenida Principal", "Calle 3 # 8-19", "Zona Industrial Lt 4", "Avenida Los Patios" };
         var placasBase = new[] { "ALB", "TST", "RDM", "JHN", "CAR", "IMP", "VEH", "TAX", "COL", "MZN", "BGA", "CUC" };
+
+        // Prefijos reales colombianos para simular cédulas variadas (antiguas y nuevas)
+        var prefijosCedulas = new[]
+        {
+            "72",   // Pasto / Nariño
+            "19",   // Cauca
+            "91",   // Amazonas
+            "37",   // Santander
+            "51",   // Antioquia
+            "1098", // Cédulas nuevas (Santander)
+            "1143", // Cédulas nuevas (Bolívar)
+            "1015"  // Cédulas nuevas (Bogotá)
+        };
 
         var marcas = context.Marcas.AsNoTracking().OrderBy(m => m.Id).ToList();
         var lineas = context.Lineas.AsNoTracking().OrderBy(l => l.Id).ToList();
         var colores = context.Colores.AsNoTracking().OrderBy(c => c.Id).ToList();
         var tipos = context.TipoVehiculos.AsNoTracking().OrderBy(t => t.Id).ToList();
 
-        // Cambiamos el guardado inmediato dentro del bucle por un procesamiento por lotes (Batch)
-        // para que la inserción de 1,000 registros sea ultra rápida en PostgreSQL
+        // HashSet para controlar duplicados de placas en memoria velozmente
+        var placasExistentes = new HashSet<string>(context.Vehiculos.Select(v => v.Placa).ToList());
+
+        // Procesar en lotes de 200 para no reventar la memoria RAM en el SaveChanges
+        const int batchSize = 200;
+        int loteActual = 0;
+
         for (var i = existentes; i < TargetVehiculosTesting; i++)
         {
-            var nombre = $"{Pick(nombres, random)} {Pick(apellidos, random)}";
+            var nombreCompleto = $"{Pick(nombres, random)} {Pick(apellidos, random)}";
+
+            // 🎯 GENERACIÓN DINÁMICA DE CÉDULAS (Máximo 10 dígitos)
+            var prefijo = Pick(prefijosCedulas, random);
+            string documentoGenerado;
+
+            if (prefijo.Length == 2)
+            {
+                // Cédulas tradicionales/antiguas (7 a 8 dígitos):
+                // Prefijo (2 dígitos) + aleatorio de 5 dígitos + el residuo 'i % 10' para evitar colisiones idénticas.
+                documentoGenerado = $"{prefijo}{random.Next(10000, 99999)}{i % 10}";
+            }
+            else
+            {
+                // Cédulas de nueva generación (10 dígitos exactos):
+                // Prefijo (4 dígitos) + 'i' formateado secuencialmente con ceros a la izquierda a 6 posiciones.
+                documentoGenerado = $"{prefijo}{i:D6}";
+            }
 
             var propietario = new Propietario
             {
-                // Agregamos el índice de la iteración para evitar colisión de documentos de identidad
-                Documento = $"1098{random.Next(10000, 99999)}{i}",
-                Nombre = nombre,
+                Documento = documentoGenerado,
+                Nombre = nombreCompleto,
                 Direccion = Pick(direcciones, random),
                 Telefono = $"315{random.Next(1000000, 9999999)}",
                 TipoDocumento = TipoDocumento.Cc
             };
-
-            context.Propietarios.Add(propietario);
-            context.SaveChanges(); // Persistimos el propietario para obtener su Id generado
 
             var tipo = tipos[i % tipos.Count];
             var marca = marcas[i % marcas.Count];
@@ -201,14 +231,12 @@ public static class DbInitializer
             var modelo = random.Next(2017, 2025);
             var pagoHasta = random.Next(modelo, Math.Min(modelo + 3, 2025));
 
-            // 🚀 Generador de placa mejorado para evitar colisiones en volumen alto
             var placa = $"{Pick(placasBase, random)}{random.Next(10, 99)}{i % 10}";
-
-            // Si por un azar de la aleatoriedad ya existe, recalculamos de forma única
-            if (context.Vehiculos.Any(v => v.Placa == placa))
+            while (placasExistentes.Contains(placa))
             {
                 placa = $"{Pick(placasBase, random)}{random.Next(100, 999)}";
             }
+            placasExistentes.Add(placa);
 
             var vehiculo = new Vehiculo
             {
@@ -224,20 +252,30 @@ public static class DbInitializer
                 ColorId = color.Id,
                 TipoServicioVehiculo = tipo.Id is 3 or 4 or 8 or 9 ? TipoServicioVehiculo.Publico : TipoServicioVehiculo.Particular,
                 TipoCarroceriaId = 1,
-                PropietarioId = propietario.Id
+                Propietario = propietario // Asignación limpia por objeto de navegación
             };
 
             context.Vehiculos.Add(vehiculo);
-            context.SaveChanges(); // Guardamos el vehículo
 
-            // Inyectamos la cartera base histórica para este nuevo vehículo de prueba
+            // Generar la cartera y asociarla dinámicamente
             CrearCarteraDePrueba(context, vehiculo, random);
+
+            loteActual++;
+            if (loteActual >= batchSize)
+            {
+                context.SaveChanges();
+                loteActual = 0;
+            }
+        }
+
+        if (loteActual > 0)
+        {
+            context.SaveChanges();
         }
     }
 
     private static void SeedRecibosDePrueba(MainDataContext context)
     {
-        // CORREGIDO: Usar el DbSet en plural 'Carteras' si es tu convención
         if (context.Recibos.Any()) return;
 
         var vehiculos = context.Vehiculos
@@ -260,16 +298,12 @@ public static class DbInitializer
                 Estado = EstadoRecibo.Pendiente,
                 Fecha = Utc(2026, 2, 15),
                 FechaPago = Utc(2026, 2, 16),
-
                 ValorCapital = carteraPagada.Sum(c => c.Valor),
                 InteresMora = carteraPagada.Sum(c => c.ValorInteres),
                 Descuento = carteraPagada.Sum(c => c.Descuento),
-
-                // CORREGIDO: Uso de TipoConceptoCartera en lugar de strings quemados
                 Estampillas = carteraPagada.Where(c => c.Concepto == TipoConceptoCartera.Estampillas).Sum(c => c.Valor),
                 ValorCargaDatos = carteraPagada.Where(c => c.Concepto == TipoConceptoCartera.Carga).Sum(c => c.Valor),
                 ValorRodamiento = carteraPagada.Where(c => c.Concepto == TipoConceptoCartera.Rodamiento).Sum(c => c.Valor),
-
                 ValorTotalSistema = carteraPagada.Sum(c => c.ValorTotal),
                 Detalles = new List<ReciboDetalle>()
             };
@@ -282,7 +316,7 @@ public static class DbInitializer
                 {
                     CarteraId = item.Id,
                     Vigencia = item.Vigencia,
-                    Concepto = item.Concepto, // CORREGIDO: Pasa el enum directamente a la entidad relacionada
+                    Concepto = item.Concepto,
                     Valor = item.Valor,
                     ValorInteres = item.ValorInteres,
                     Descuento = item.Descuento,
@@ -291,8 +325,8 @@ public static class DbInitializer
             }
 
             context.Recibos.Add(recibo);
-            context.SaveChanges();
         }
+        context.SaveChanges();
     }
 
     private static void CrearCarteraDePrueba(MainDataContext context, Vehiculo vehiculo, Random random)
@@ -308,8 +342,6 @@ public static class DbInitializer
             var estaPagado = vigencia <= vehiculo.PagoHasta;
             var estaEnCoactivo = !estaPagado && vigencia <= 2021 && random.Next(0, 3) == 0;
 
-            // 🚀 Cualquier cartera vencida (aún no pagada, año ya cerrado) requiere avisos,
-            // y los avisos ahora cuelgan de un Proceso, no de la Cartera directamente.
             var requiereAviso = !estaPagado && vigencia < anioActual;
 
             if (requiereAviso)
@@ -321,12 +353,10 @@ public static class DbInitializer
                 }
                 else if (estaEnCoactivo && procesoDeVehiculo.EstadoProceso != EstadoProceso.Coactivo)
                 {
-                    // Si más adelante detectamos una vigencia en coactivo real, escalamos el estado del proceso
                     procesoDeVehiculo.EstadoProceso = EstadoProceso.Coactivo;
                 }
             }
 
-            // 🚀 Generar, evaluar avisos y agregar Rodamiento
             var carteraRodamiento = GenerarObjetoCartera(vehiculo, vigencia, TipoConceptoCartera.Rodamiento, "IMPUESTO", baseRodamiento, interes, descuento, true, estaPagado,
                 estaEnCoactivo);
             if (carteraRodamiento != null)
@@ -338,7 +368,6 @@ public static class DbInitializer
                 context.Cartera.Add(carteraRodamiento);
             }
 
-            // 🚀 Generar, evaluar avisos y agregar Estampillas
             var estampillas = Math.Round(baseRodamiento * 0.02m, 0);
             var carteraEstampillas = GenerarObjetoCartera(vehiculo, vigencia, TipoConceptoCartera.Estampillas, "ESTAMPILLA", estampillas, 0, 0, false, estaPagado, estaEnCoactivo);
             if (carteraEstampillas != null)
@@ -350,7 +379,6 @@ public static class DbInitializer
                 context.Cartera.Add(carteraEstampillas);
             }
 
-            // 🚀 Generar, evaluar avisos y agregar Carga si aplica
             if (vehiculo.TipoServicioVehiculo == TipoServicioVehiculo.Publico)
             {
                 var carga = vehiculo.CapacidadCarga > 0 ? random.Next(90_000, 180_000) : random.Next(60_000, 120_000);
@@ -366,7 +394,6 @@ public static class DbInitializer
                 }
             }
 
-            // 🚀 Generar, evaluar avisos y agregar Costas si aplica
             if (!estaPagado && vigencia <= 2024)
             {
                 var carteraCostas = GenerarObjetoCartera(vehiculo, vigencia, TipoConceptoCartera.Costas, "PROCESO", random.Next(25_000, 75_000), 0, 0, false, false, estaEnCoactivo);
@@ -386,8 +413,6 @@ public static class DbInitializer
                 }
             }
         }
-
-        context.SaveChanges();
     }
 
     private static Proceso CrearProcesoDePrueba(Vehiculo vehiculo, int vigenciaInicial, bool esCoactivo)
@@ -396,19 +421,16 @@ public static class DbInitializer
 
         return new Proceso
         {
-            VehiculoId = vehiculo.Id,
+            Vehiculo = vehiculo, // Asignamos la relación por objeto de navegación de forma segura
             Fecha = fechaMandamiento,
             FechaMandamiento = fechaMandamiento,
             FechaProceso = fechaMandamiento,
             Valor = 0,
             EstadoProceso = esCoactivo ? EstadoProceso.Coactivo : EstadoProceso.Persuasivo,
-            Desde = vigenciaInicial
+            Desde = vigenciaInicial,
+            Avisos = new List<Aviso>() // Previene excepciones de referencia nula al llamar .Add() más adelante
         };
     }
-
-    // =========================================================================
-    // 🛠️ MÉTODOS AUXILIARES Y GENERADORES DE OBJETOS REFACTORIZADOS
-    // =========================================================================
 
     private static Cartera GenerarObjetoCartera(
         Vehiculo vehiculo, int vigencia, TipoConceptoCartera concepto, string tipo,
@@ -416,7 +438,7 @@ public static class DbInitializer
     {
         return new Cartera
         {
-            VehiculoId = vehiculo.Id,
+            Vehiculo = vehiculo, // Vinculación mediante objeto limpia
             Placa = vehiculo.Placa,
             Vigencia = vigencia,
             Concepto = concepto,
@@ -434,11 +456,10 @@ public static class DbInitializer
     {
         int anosDeMora = anioActual - cartera.Vigencia;
 
-        // Escalonamiento basado en la antigüedad de la deuda morosa
         int totalAvisosAGenerar = anosDeMora switch
         {
-            1 => 2,    // Venció el año pasado, lleva los 2 primeros avisos persuasivos
-            >= 2 => 4, // Deuda antigua, ya surtió todo el flujo administrativo (Avisos 1 al 4)
+            1 => 2,
+            >= 2 => 4,
             _ => 0
         };
 
@@ -449,7 +470,7 @@ public static class DbInitializer
 
             proceso.Avisos.Add(new Aviso
             {
-                ProcesoId = proceso.Id,
+                Proceso = proceso,
                 NumeroAviso = i,
                 FechaEnvio = fechaAviso,
                 NumeroGuia = $"GR-{cartera.Vigencia}{cartera.Id}{i}",
@@ -522,18 +543,7 @@ public static class DbInitializer
         };
     }
 
-    private static string CrearPlaca(string prefijo, int index)
-    {
-        return $"{prefijo}{(index + 101) % 1000:000}";
-    }
+    private static T Pick<T>(IReadOnlyList<T> values, Random random) => values[random.Next(values.Count)];
 
-    private static T Pick<T>(IReadOnlyList<T> values, Random random)
-    {
-        return values[random.Next(values.Count)];
-    }
-
-    private static DateTime Utc(int year, int month, int day)
-    {
-        return new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
-    }
+    private static DateTime Utc(int year, int month, int day) => new DateTime(year, month, day, 0, 0, 0, DateTimeKind.Utc);
 }

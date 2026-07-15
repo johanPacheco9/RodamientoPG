@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialMigration : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -314,17 +314,17 @@ namespace Infrastructure.Migrations
                     PagoHasta = table.Column<int>(type: "integer", nullable: false),
                     CapacidadCarga = table.Column<int>(type: "integer", nullable: false),
                     Pasajeros = table.Column<int>(type: "integer", nullable: false),
-                    DocumentoPropietario = table.Column<string>(type: "text", nullable: false),
-                    TipoIdentificacionId = table.Column<int>(type: "integer", nullable: false),
                     TipoVehiculoId = table.Column<int>(type: "integer", nullable: false),
                     MarcaId = table.Column<int>(type: "integer", nullable: false),
                     LineaId = table.Column<int>(type: "integer", nullable: false),
                     ColorId = table.Column<int>(type: "integer", nullable: false),
                     TipoServicioVehiculo = table.Column<int>(type: "integer", nullable: false),
                     TipoCarroceriaId = table.Column<int>(type: "integer", nullable: false),
-                    EstadoProcesoId = table.Column<int>(type: "integer", nullable: false),
                     PropietarioId = table.Column<int>(type: "integer", nullable: false),
-                    EstadoProceso = table.Column<int>(type: "integer", nullable: false)
+                    usuario_creo = table.Column<int>(type: "integer", nullable: false),
+                    fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    usuario_modifico = table.Column<int>(type: "integer", nullable: true),
+                    fecha_modificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -472,6 +472,57 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Avisos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProcesoId = table.Column<int>(type: "integer", nullable: false),
+                    NumeroAviso = table.Column<int>(type: "integer", nullable: false),
+                    FechaEnvio = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    NumeroGuia = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    RutaPdf = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
+                    Estado = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Avisos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Avisos_Procesos_ProcesoId",
+                        column: x => x.ProcesoId,
+                        principalTable: "Procesos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HistorialEstadoProceso",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ProcesoId = table.Column<int>(type: "integer", nullable: false),
+                    EstadoAnterior = table.Column<int>(type: "integer", nullable: false),
+                    EstadoNuevo = table.Column<int>(type: "integer", nullable: false),
+                    EsAutomatico = table.Column<bool>(type: "boolean", nullable: false),
+                    Motivo = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
+                    usuario_creo = table.Column<int>(type: "integer", nullable: false),
+                    fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    usuario_modifico = table.Column<int>(type: "integer", nullable: true),
+                    fecha_modificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HistorialEstadoProceso", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_HistorialEstadoProceso_Procesos_ProcesoId",
+                        column: x => x.ProcesoId,
+                        principalTable: "Procesos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Liquidacion",
                 columns: table => new
                 {
@@ -557,7 +608,6 @@ namespace Infrastructure.Migrations
                     IsAnulled = table.Column<bool>(type: "boolean", nullable: false),
                     VehiculoId = table.Column<int>(type: "integer", nullable: false),
                     TieneInteres = table.Column<bool>(type: "boolean", nullable: false),
-                    EstaEnProcesoCoactivo = table.Column<bool>(type: "boolean", nullable: false),
                     Tipo = table.Column<string>(type: "text", nullable: false),
                     Valor = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     Descuento = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
@@ -581,30 +631,6 @@ namespace Infrastructure.Migrations
                         name: "FK_Cartera_Vehiculos_VehiculoId",
                         column: x => x.VehiculoId,
                         principalTable: "Vehiculos",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Avisos",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    CarteraId = table.Column<int>(type: "integer", nullable: false),
-                    NumeroAviso = table.Column<int>(type: "integer", nullable: false),
-                    FechaEnvio = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    NumeroGuia = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
-                    RutaPdf = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
-                    Estado = table.Column<string>(type: "text", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Avisos", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Avisos_Cartera_CarteraId",
-                        column: x => x.CarteraId,
-                        principalTable: "Cartera",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -683,9 +709,9 @@ namespace Infrastructure.Migrations
                 column: "AvaluoVehiculoId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Avisos_CarteraId",
+                name: "IX_Avisos_ProcesoId",
                 table: "Avisos",
-                column: "CarteraId");
+                column: "ProcesoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BaseGravableVigencia_BaseGravableVehiculoId",
@@ -701,6 +727,11 @@ namespace Infrastructure.Migrations
                 name: "IX_Cartera_VehiculoId",
                 table: "Cartera",
                 column: "VehiculoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_HistorialEstadoProceso_ProcesoId",
+                table: "HistorialEstadoProceso",
+                column: "ProcesoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_HistorialPropietarios_PropietarioId",
@@ -823,6 +854,9 @@ namespace Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Descuentos");
+
+            migrationBuilder.DropTable(
+                name: "HistorialEstadoProceso");
 
             migrationBuilder.DropTable(
                 name: "HistorialPropietarios");

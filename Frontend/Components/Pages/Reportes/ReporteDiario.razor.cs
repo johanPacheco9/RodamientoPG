@@ -1,150 +1,54 @@
-using Domain.Models;
-using Domain.Responses.Reportes;
-using Frontend.Reportes;
+
+using Infrastructure.Services.Reportes;
+using Infrastructure.Services.Reportes.Responses;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 namespace Frontend.Components.Pages.Reportes;
 
 public partial class ReporteDiario : ComponentBase
 {
-    private bool mostrarModal = false;
-    public List<ReporteDiarioDto> ReporteDiarioList { get; set; } = [];
-    Recibo_pago recibo_Pago = new Recibo_pago();
-    private Parametro param_obj = new Parametro();
-    public DateTime desde;
-    public DateTime hasta;
+    [Inject] private ReportesManager ReporteService { get; set; } = null!;
+    [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
 
-    bool isLoading = false;
+    private ReporteDiarioDto? _reporte;
+    private DateTime _fechaConsulta = DateTime.Today;
+    private bool _isLoading = false;
 
     protected async override Task OnInitializedAsync()
     {
-        desde = DateTime.Today;
-        hasta = DateTime.Today;
-        param_obj = await ParametroService.GetParametroById(1);
+        await ConsultarReporte();
     }
 
-    private async Task Imprime_Rep()
+    private async Task ConsultarReporte()
     {
-        // Reemplazo de DialogService.Confirm de Radzen por confirmación JS Nativa
-        bool confirmationResult = await JsRuntime.InvokeAsync<bool>("confirm", "¿Está seguro que desea imprimir el Reporte Diario?");
-        
-        if (confirmationResult)
-        {
-            try
-            {
-                await Imprime_rec();
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error al generar el recibo: {ex}");
-            }
-        }
-    }
-
-    private async Task Imprime_rec()
-    {
-        string sdesde = desde.ToString("yyyy-MM-dd");
-        string shasta = hasta.ToString("yyyy-MM-dd");
-        string rango = $"{sdesde} a: {shasta}";
-        
-        //await recibo_Pago.DiarioPdf(ReporteDiarioList, rango, param_obj.NombreSecretario, param_obj.Nit, param_obj.Direccion);
-        await Task.Delay(2000);
-        await Muestra_Pdf("Informe_Diario.pdf");
-    }
-
-    public async Task Muestra_Pdf(string xname)
-    {
+        _isLoading = true;
         try
         {
-            await DescargarYAbrirArchivo($"{xname.Trim()}");
+            var response = await ReporteService.ObtenerInformeDiario(_fechaConsulta);
+            if (response != null)
+            {
+                _reporte = response;
+            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
-        }
-    }
-
-    async Task Exporta_Excl()
-    {
-        isLoading = true;
-        StateHasChanged();
-
-        try
-        {
-            // Ejecutamos la tarea de escritura de forma asíncrona
-            await Task.Run(() => Pagoservice.WriteFile(ReporteDiarioList, "C:/DATASET/Informe_diario.xlsx"));
-            await Task.Delay(2000);
-            await Muestra_Pdf("Informe_diario.xlsx");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al exportar Excel: {ex.Message}");
-            await JsRuntime.InvokeVoidAsync("alert", "Ocurrió un error al generar el archivo Excel.");
+            Console.WriteLine($"Error al calcular arqueo de caja diario: {ex.Message}");
         }
         finally
         {
-            isLoading = false;
-            StateHasChanged();
+            _isLoading = false;
         }
     }
 
-    private async Task<byte[]> DescargarArchivo(string fileUrl)
+    private double CalcularPorcentaje(decimal montoConcepto)
     {
-        try
-        {
-            HttpResponseMessage response = await HttpClient.GetAsync(fileUrl);
-            response.EnsureSuccessStatusCode();
-            byte[] archivoBytes = await response.Content.ReadAsByteArrayAsync();
-            return archivoBytes;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al descargar el archivo: {ex.Message}");
-            return null;
-        }
+        if (_reporte == null || _reporte.TotalRecaudado == 0) return 0;
+        return (double)Math.Round((montoConcepto / _reporte.TotalRecaudado) * 100, 1);
     }
 
-    private async Task DescargarYAbrirArchivo(string fileName)
+    private async Task ImprimirReporte()
     {
-        try
-        {
-            string fileUrl = $"{NavigationManager.BaseUri}api/archivos/{fileName}";
-            var fileBytes = await DescargarArchivo(fileUrl);
-            if (fileBytes != null)
-            {
-                var contentStream = new DotNetStreamReference(new MemoryStream(fileBytes));
-                await JsRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, contentStream);
-            }
-            else
-            {
-                Console.WriteLine($"Error: No se pudo descargar el archivo {fileName}.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error al descargar y abrir el archivo: {ex.Message}");
-        }
-    }
-
-    private async Task Carga_datos()
-    {
-        try
-        {
-            isLoading = true;
-            StateHasChanged();
-
-            // Corregido: Se asigna el resultado directamente a la lista que renderiza la tabla
-            var response = await RepResolServices.Lista_Recibos(desde, hasta);
-            ReporteDiarioList = response ?? [];
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error en reporte_diario: {ex.Message}");
-        }
-        finally
-        {
-            isLoading = false;
-            StateHasChanged();
-        }
+        // Ejecuta la orden nativa del navegador para imprimir en papel o PDF el balance actual
+        await JsRuntime.InvokeVoidAsync("window.print");
     }
 }

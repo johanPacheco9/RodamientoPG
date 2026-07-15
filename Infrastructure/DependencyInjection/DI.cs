@@ -12,6 +12,7 @@ using Infrastructure.Services.Parametros;
 using Infrastructure.Services.Procesos.Persuasivo;
 using Infrastructure.Services.Propietarios;
 using Infrastructure.Services.Rec2ibos;
+using Infrastructure.Services.Reportes;
 using Infrastructure.Services.Resoluciones;
 using Infrastructure.Services.Tarifas;
 using Infrastructure.Services.TiposVehiculos;
@@ -55,6 +56,7 @@ public static class DependencyInjection
         services.AddTransient<ParametroService>();
         services.AddTransient<TraspasoManager>();
         services.AddTransient<ResolucionService>();
+        services.AddTransient<ReportesManager>();
         //Recibo
         services.AddTransient<ReciboService>();
         //Envio emails

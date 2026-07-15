@@ -7,7 +7,7 @@ using Domain.Models.Resoluciones.Responses;
 using Domain.Responses.Liquidacion;
 using Domain.Responses.Recibo;
 using Domain.Responses.Recibo.Enums;
-using Domain.Responses.Reportes;
+using Infrastructure.Services.Reportes.Responses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Rodamiento.Shared.Components.Pages.PConsulta;
@@ -166,6 +166,7 @@ public partial class LiquidacionService
         var desde = DateTime.SpecifyKind(pdesde.Date, DateTimeKind.Utc);
         var hasta = DateTime.SpecifyKind(phasta.Date.AddDays(1).AddTicks(-1), DateTimeKind.Utc);
 
+        // 1. Traemos los recibos pagados con una sola consulta SQL limpia
         var recibos = await context.Recibos
             .AsNoTracking()
             .Include(r => r.Vehiculo)
@@ -179,32 +180,52 @@ public partial class LiquidacionService
             .OrderBy(r => r.FechaPago)
             .ToListAsync();
 
-        return recibos.Select(r => new ReporteDiarioDto
+        // 2. Agrupamos por día de pago para generar un ReporteDiarioDto por cada fecha del rango
+        return recibos
+            .GroupBy(r => r.FechaPago!.Value.Date)
+            .Select(grupoDia =>
             {
-                NumeroRecibo = r.Id.ToString(),
-                Placa = r.Vehiculo.Placa,
-                FechaCreacion = r.Fecha,
-                FechaPago = r.FechaPago ?? r.Fecha,
-                AnioDesde = r.Detalles.Count == 0 ? 0 : r.Detalles.Min(d => d.Vigencia),
-                AnioHasta = r.Detalles.Count == 0 ? 0 : r.Detalles.Max(d => d.Vigencia),
-                ValorTotal = r.Detalles.Sum(d => d.ValorTotal),
+                var fechaDia = grupoDia.Key;
+                var recibosDia = grupoDia.ToList();
 
-                // ACTUALIZADO: Sumatorias limpias usando TipoConceptoCartera de forma nativa
-                ValorImpuesto = r.Detalles.Where(d => d.Concepto == TipoConceptoCartera.Rodamiento).Sum(d => d.Valor),
-                ValorCarga = r.Detalles.Where(d => d.Concepto == TipoConceptoCartera.Carga).Sum(d => d.Valor),
-                ValorCostas = r.Detalles.Where(d => d.Concepto == TipoConceptoCartera.Costas).Sum(d => d.Valor),
-                ValorEstampillas = r.Detalles.Where(d => d.Concepto == TipoConceptoCartera.Estampillas).Sum(d => d.Valor),
+                // Sumatorias conceptuales del día actual
+                var totalCapital = recibosDia.Sum(r => r.ValorCapital);
+                var totalIntereses = recibosDia.Sum(r => r.InteresMora);
+                var totalDescuentos = recibosDia.Sum(r => r.Descuento);
+                var totalRecaudado = recibosDia.Sum(r => r.ValorTotalSistema); // Ajustar si es ValorTotalSistema
 
-                // ADICIONAL: Si ya registras o tienes pensado soportar Sanción, lo mapeas directamente así:
-                ValorSancion = r.Detalles.Where(d => d.Concepto == TipoConceptoCartera.Sancion).Sum(d => d.Valor),
+                var totalRodamiento = recibosDia.Sum(r => r.ValorRodamiento);
+                var totalEstampillas = recibosDia.Sum(r => r.Estampillas);
+                var totalCargaDatos = recibosDia.Sum(r => r.ValorCargaDatos);
 
-                // NOTA: Para sistematización puedes usar r.ValorTotalSistema o filtrarlo si sube como concepto
-                ValorSistematizacion = r.ValorTotalSistema,
+                return new ReporteDiarioDto
+                {
+                    FechaReporte = fechaDia,
+                    CantidadRecibos = recibosDia.Count,
+                    TotalRecaudado = totalRecaudado,
+                    TotalCapital = totalCapital,
+                    TotalIntereses = totalIntereses,
+                    TotalDescuentos = totalDescuentos,
+                    TotalRodamiento = totalRodamiento,
+                    TotalEstampillas = totalEstampillas,
+                    TotalCargaDatos = totalCargaDatos,
 
-                ValorInteres = r.Detalles.Sum(d => d.ValorInteres),
-                Descuento = r.Detalles.Sum(d => d.Descuento),
-                NombrePropietario = r.Vehiculo.Propietario.Nombre
+                    // 🎯 Transacciones detalladas de este día mapeadas al DTO secundario
+                    Transacciones = recibosDia.Select(r => new DetalleReciboReporteDto
+                    {
+                        ReciboId = r.Id,
+                        Placa = r.Vehiculo.Placa,
+                        PropietarioNombre = r.Vehiculo.Propietario.Nombre,
+                        Documento = r.Vehiculo.Propietario.Documento,
+                        FechaPago = r.FechaPago,
+                        ValorCapital = r.ValorCapital,
+                        InteresMora = r.InteresMora,
+                        Descuento = r.Descuento,
+                        TotalPagado = r.ValorTotalSistema // Ajustar si es ValorTotalSistema en tu base de datos
+                    }).ToList()
+                };
             })
+            .OrderBy(r => r.FechaReporte)
             .ToList();
     }
 

@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(MainDataContext))]
-    [Migration("20260707032826_VehiculoTrazabilidad")]
-    partial class VehiculoTrazabilidad
+    [Migration("20260714154107_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -171,9 +171,6 @@ namespace Infrastructure.Migrations
                     b.Property<decimal>("Descuento")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<bool>("EstaEnProcesoCoactivo")
-                        .HasColumnType("boolean");
-
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_creacion");
@@ -287,9 +284,6 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("CarteraId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Estado")
                         .IsRequired()
                         .HasColumnType("text");
@@ -304,13 +298,16 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<int>("ProcesoId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("RutaPdf")
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CarteraId");
+                    b.HasIndex("ProcesoId");
 
                     b.ToTable("Avisos");
                 });
@@ -406,6 +403,53 @@ namespace Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Parametros");
+                });
+
+            modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.HistorialEstadoProceso", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("EsAutomatico")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("EstadoAnterior")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("EstadoNuevo")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_creacion");
+
+                    b.Property<DateTime?>("FechaModificacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha_modificacion");
+
+                    b.Property<string>("Motivo")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ProcesoId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("UsuarioCreo")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_creo");
+
+                    b.Property<int?>("UsuarioModifico")
+                        .HasColumnType("integer")
+                        .HasColumnName("usuario_modifico");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcesoId");
+
+                    b.ToTable("HistorialEstadoProceso");
                 });
 
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Liquidacion", b =>
@@ -1039,12 +1083,6 @@ namespace Infrastructure.Migrations
                     b.Property<int>("ColorId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("EstadoProceso")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("EstadoProcesoId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_creacion");
@@ -1163,13 +1201,24 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Models.Notificaciones.Aviso", b =>
                 {
-                    b.HasOne("Domain.Models.Cartera", "Cartera")
+                    b.HasOne("Domain.Models.ProcesoLiquidacion.Proceso", "Proceso")
                         .WithMany("Avisos")
-                        .HasForeignKey("CarteraId")
+                        .HasForeignKey("ProcesoId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Cartera");
+                    b.Navigation("Proceso");
+                });
+
+            modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.HistorialEstadoProceso", b =>
+                {
+                    b.HasOne("Domain.Models.ProcesoLiquidacion.Proceso", "Proceso")
+                        .WithMany("Historial")
+                        .HasForeignKey("ProcesoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Proceso");
                 });
 
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Liquidacion", b =>
@@ -1366,11 +1415,6 @@ namespace Infrastructure.Migrations
                     b.Navigation("Vigencias");
                 });
 
-            modelBuilder.Entity("Domain.Models.Cartera", b =>
-                {
-                    b.Navigation("Avisos");
-                });
-
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Liquidacion", b =>
                 {
                     b.Navigation("Detalles");
@@ -1378,6 +1422,10 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Domain.Models.ProcesoLiquidacion.Proceso", b =>
                 {
+                    b.Navigation("Avisos");
+
+                    b.Navigation("Historial");
+
                     b.Navigation("Liquidaciones");
                 });
 

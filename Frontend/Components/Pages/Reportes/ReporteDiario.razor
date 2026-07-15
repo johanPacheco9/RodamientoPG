@@ -1,156 +1,173 @@
 ﻿@page "/ReporteDiario"
+@rendermode InteractiveServer
 
-@using Domain.Models
-@using Domain.Responses.Reportes
-@using Infrastructure.Services.Liquidaciones
-@using Infrastructure.Services.Pagos
-@using Infrastructure.Services.Parametros
-@inject ParametroService ParametroService;
-@inject PagoService Pagoservice;
-@inject NavigationManager NavigationManager
-@inject LiquidacionService RepResolServices;
-@inject HttpClient HttpClient
-@inject IJSRuntime JsRuntime
-@using static Microsoft.AspNetCore.Components.Web.RenderMode
-@rendermode  InteractiveServer
-
-<div class="content-wrapper">
-    <section class="content-header">
-        <div class="container-fluid">
-            <div class="row align-items-end w-100 mt-0">
-                <div class="col-md-2 col-sm-6">
-                    <div class="form-group mb-2">
-                        <label class="font-size:12px; d-block">Desde Fecha</label>
-                        <input type="date" class="form-control form-control-sm" @bind="desde" @bind:format="yyyy-MM-dd">
+<div class="container-fluid px-4 py-3">
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-3" style="border-left: 4px solid #112366;">
+            <div class="row align-items-center g-3">
+                <div class="col-md-6 col-sm-12">
+                    <h5 class="mb-0 fw-bold text-dark text-uppercase tracking-wider" style="font-size: 16px;">
+                        <i class="bi bi-file-earmark-bar-graph me-2" style="color: #112366;"></i>Informe Diario de Caja
+                    </h5>
+                    <small class="text-muted">Arqueo oficial, consolidado de rubros y transacciones diarias</small>
+                </div>
+                <div class="col-md-4 col-sm-8">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-light text-muted">Fecha Recaudo</span>
+                        <input type="date" class="form-control" @bind="_fechaConsulta" />
+                        <button class="btn text-white" style="background-color: #112366;" @onclick="ConsultarReporte">
+                            <i class="bi bi-search me-1"></i> Consultar
+                        </button>
                     </div>
                 </div>
-                <div class="col-md-2 col-sm-6">
-                    <div class="form-group mb-2">
-                        <label class = "font-size:12px; d-block">Hasta Fecha</label>
-                        <input type="date" class="form-control form-control-sm" @bind="hasta" @bind:format="yyyy-MM-dd">
-                    </div>
-                </div>
-                <div class="col-md-6 col-sm-12 mb-2">
-                    <button class="btn btn-primary btn-sm mr-1" style="font-size:12px;" @onclick="Carga_datos" disabled="@isLoading">
-                        @if (isLoading)
-                        {
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                        }
-                        Consultar
-                    </button>
-                    <button class="btn btn-secondary btn-sm mr-1" style="font-size:12px;" @onclick="Imprime_Rep" disabled="@(!ReporteDiarioList.Any() || isLoading)">
-                        Imprimir
-                    </button>
-                    <button class="btn btn-success btn-sm" style="font-size:12px;" @onclick="Exporta_Excl" disabled="@(!ReporteDiarioList.Any() || isLoading)">
-                        Exportar Excel
+                <div class="col-md-2 col-sm-4 text-end">
+                    <button class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-2" @onclick="ImprimirReporte">
+                        <i class="bi bi-printer"></i> Imprimir Planilla
                     </button>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
 
-    <section class="content">
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header p-0" style="background-color:#112366; height: 27px;">
-                            <h6 class="card-title ms-2 mt-1" style="font-size:17px; color:white">Informe Diario De Ingresos</h6>
-                        </div>
-                        <div class="card-body mt-1 p-0 table-responsive" style="max-height: 600px; overflow-y: auto;">
-                            @if (isLoading)
-                            {
-                                <div class="text-center p-4">
-                                    <div class="spinner-border text-primary" role="status"></div>
-                                    <p class="mt-2">Procesando datos, espere por favor...</p>
-                                </div>
-                            }
-                            else if (!ReporteDiarioList.Any())
-                            {
-                                <div class="text-center p-4 text-muted">
-                                    No hay registros para mostrar en el rango de fechas seleccionado.
-                                </div>
-                            }
-                            else
-                            {
-                                <table class="table table-sm table-striped table-bordered table-head-fixed text-nowrap m-0">
-                                    <thead style="background-color: #f4f6f9;">
-                                        <tr style="font-size: 12px;">
-                                            <th class="text-center">Recibo</th>
-                                            <th class="text-center">Placa</th>
-                                            <th class="text-center">Fecha</th>
-                                            <th class="text-center">Fecha Pago</th>
-                                            <th class="text-center">Desde</th>
-                                            <th class="text-center">Hasta</th>
-                                            <th class="text-right">Valor</th>
-                                            <th class="text-right">Impuesto</th>
-                                            <th class="text-right">Carga</th>
-                                            <th class="text-right">Costas</th>
-                                            <th class="text-right">Sistematizacion</th>
-                                            <th class="text-right">Interes</th>
-                                            <th class="text-right">Estampillas</th>
-                                            <th class="text-right">Sancion</th>
-                                            <th class="text-right">Descuento</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody style="font-size: 12px;">
-                                        @foreach (var item in ReporteDiarioList)
-                                        {
-                                            <tr>
-                                                <td class="text-center font-weight-bold">@item.NumeroRecibo</td>
-                                                <td class="text-center">@item.Placa</td>
-                                                <td class="text-center">@item.FechaCreacion.ToString("dd/MM/yyyy")</td>
-                                                <td class="text-center">@item.FechaPago.ToString("dd/MM/yyyy")</td>
-                                                <td class="text-center">@item.AnioDesde</td>
-                                                <td class="text-center">@item.AnioHasta</td>
-                                                <td class="text-right text-primary font-weight-bold">@item.ValorTotal.ToString("C")</td>
-                                                <td class="text-right">@item.ValorImpuesto.ToString("C")</td>
-                                                <td class="text-right">@item.ValorCarga.ToString("C")</td>
-                                                <td class="text-right">@item.ValorCostas.ToString("C")</td>
-                                                <td class="text-right">@item.ValorSistematizacion.ToString("C")</td>
-                                                <td class="text-right">@item.ValorInteres.ToString("C")</td>
-                                                <td class="text-right">@item.ValorEstampillas.ToString("C")</td>
-                                                <td class="text-right">@item.ValorSancion.ToString("C")</td>
-                                                <td class="text-right text-danger">@item.Descuento.ToString("C")</td>
-                                            </tr>
-                                        }
-                                    </tbody>
-                                    <tfoot style="background-color: #e9ecef; font-size: 12px;" class="font-weight-bold">
-                                        <tr>
-                                            <td colspan="6" class="text-right">TOTALES:</td>
-                                            <td class="text-right text-primary">@ReporteDiarioList.Sum(o => o.ValorTotal).ToString("C")</td>
-                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorImpuesto).ToString("C")</td>
-                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorCarga).ToString("C")</td>
-                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorCostas).ToString("C")</td>
-                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorSistematizacion).ToString("C")</td>
-                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorInteres).ToString("C")</td>
-                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorEstampillas).ToString("C")</td>
-                                            <td class="text-right">@ReporteDiarioList.Sum(o => o.ValorSancion).ToString("C")</td>
-                                            <td class="text-right text-danger">@ReporteDiarioList.Sum(o => o.Descuento).ToString("C")</td>
-                                        </tr>
-                                    </tfoot>
-                                </table>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
+    @if (_isLoading)
+    {
+        <div class="d-flex flex-column align-items-center justify-content-center p-5 my-4">
+            <div class="spinner-border mb-3" role="status" style="width: 2.5rem; height: 2.5rem; color: #112366 !important;"></div>
+            <span class="text-muted fw-medium">Generando balance de caja...</span>
         </div>
-    </section>
-</div>
-
-<script>
-    function downloadFileFromStream(fileName, contentStreamReference) {
-        contentStreamReference.arrayBuffer().then(arrayBuffer => {
-            const blob = new Blob([arrayBuffer]);
-            const url = URL.createObjectURL(blob);
-            const anchorElement = document.createElement('a');
-            anchorElement.href = url;
-            anchorElement.download = fileName ?? '';
-            anchorElement.click();
-            anchorElement.remove();
-            URL.revokeObjectURL(url);
-        });
     }
-    window.downloadFileFromStream = downloadFileFromStream;
-</script>
+    else if (_reporte == null || _reporte.CantidadRecibos == 0)
+    {
+        <div class="text-center p-5 my-4 card border-0 shadow-sm">
+            <div class="card-body">
+                <i class="bi bi-wallet2 text-muted display-4"></i>
+                <p class="mt-3 text-secondary fw-semibold mb-0">No se registraron transacciones financieras en la fecha seleccionada.</p>
+                <small class="text-muted">Asegúrese de seleccionar un día hábil con operaciones de caja registradas.</small>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body py-3">
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 11px;">Total Recaudado</small>
+                        <h3 class="fw-bold text-success m-0 mt-1">@_reporte.TotalRecaudado.ToString("C0")</h3>
+                        <small class="text-muted" style="font-size: 11px;">@_reporte.CantidadRecibos recibo(s) procesado(s)</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body py-3">
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 11px;">Recaudo Capital</small>
+                        <h4 class="fw-bold text-dark m-0 mt-1">@_reporte.TotalCapital.ToString("C0")</h4>
+                        <small class="text-muted" style="font-size: 11px;">Suma de valores base</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body py-3">
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 11px;">Intereses Liquidados</small>
+                        <h4 class="fw-bold text-danger m-0 mt-1">@_reporte.TotalIntereses.ToString("C0")</h4>
+                        <small class="text-muted" style="font-size: 11px;">Recargo por mora</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body py-3">
+                        <small class="text-muted text-uppercase fw-bold" style="font-size: 11px;">Descuentos Aplicados</small>
+                        <h4 class="fw-bold text-secondary m-0 mt-1">@_reporte.TotalDescuentos.ToString("C0")</h4>
+                        <small class="text-muted" style="font-size: 11px;">Alivios tributarios oficiales</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h6 class="mb-0 fw-bold text-dark text-uppercase" style="font-size:12px;">Distribución de Ingresos</h6>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1 small">
+                                <span class="text-secondary fw-medium">Impuesto Rodamiento</span>
+                                <span class="fw-bold">@_reporte.TotalRodamiento.ToString("C0")</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar" style="width: @CalcularPorcentaje(_reporte.TotalRodamiento)%; background-color:#112366;"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1 small">
+                                <span class="text-secondary fw-medium">Sello Estampillas</span>
+                                <span class="fw-bold">@_reporte.TotalEstampillas.ToString("C0")</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-warning" style="width: @CalcularPorcentaje(_reporte.TotalEstampillas)%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1 small">
+                                <span class="text-secondary fw-medium">Carga de Datos</span>
+                                <span class="fw-bold">@_reporte.TotalCargaDatos.ToString("C0")</span>
+                            </div>
+                            <div class="progress" style="height: 8px;">
+                                <div class="progress-bar bg-info" style="width: @CalcularPorcentaje(_reporte.TotalCargaDatos)%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
+                        <h6 class="mb-0 fw-bold text-dark text-uppercase" style="font-size:12px;">Transacciones en Fila de Caja</h6>
+                        <span class="badge bg-light text-dark border">Consolidado</span>
+                    </div>
+                    <div class="table-responsive" style="max-height: 280px; overflow-y: auto;">
+                        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 12px;">
+                            <thead class="table-light sticky-top">
+                                <tr>
+                                    <th class="ps-3 py-2 text-dark">ID RECIBO</th>
+                                    <th class="py-2 text-dark">PLACA</th>
+                                    <th class="py-2 text-dark">PROPIETARIO</th>
+                                    <th class="py-2 text-end text-dark">CAP. BASE</th>
+                                    <th class="py-2 text-end text-dark">INT. MORA</th>
+                                    <th class="py-2 text-end text-dark">DESC</th>
+                                    <th class="pe-3 py-2 text-end text-dark">TOTAL COBRADO</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var trans in _reporte.Transacciones)
+                                {
+                                    <tr>
+                                        <td class="ps-3 fw-bold text-secondary">#@trans.ReciboId</td>
+                                        <td>
+                                            <span class="badge bg-warning text-dark font-monospace fw-bold px-2">
+                                                @trans.Placa
+                                            </span>
+                                        </td>
+                                        <td class="text-truncate" style="max-width: 150px;" title="@trans.PropietarioNombre">@trans.PropietarioNombre</td>
+                                        <td class="text-end text-secondary">@trans.ValorCapital.ToString("C0")</td>
+                                        <td class="text-end text-danger">@trans.InteresMora.ToString("C0")</td>
+                                        <td class="text-end text-success">-@trans.Descuento.ToString("C0")</td>
+                                        <td class="pe-3 text-end fw-bold text-dark">@trans.TotalPagado.ToString("C0")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>

@@ -511,6 +511,49 @@
           }
         }
       },
+      "MiniExcel/2.0.0-preview.4": {
+        "dependencies": {
+          "MiniExcel.Core": "2.0.0-preview.4",
+          "MiniExcel.Csv": "2.0.0-preview.4",
+          "MiniExcel.OpenXml": "2.0.0-preview.4"
+        },
+        "runtime": {
+          "lib/net10.0/MiniExcel.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.0.0.0"
+          }
+        }
+      },
+      "MiniExcel.Core/2.0.0-preview.4": {
+        "runtime": {
+          "lib/net10.0/MiniExcel.Core.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.0.0.0"
+          }
+        }
+      },
+      "MiniExcel.Csv/2.0.0-preview.4": {
+        "dependencies": {
+          "MiniExcel.Core": "2.0.0-preview.4"
+        },
+        "runtime": {
+          "lib/net10.0/MiniExcel.Csv.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.0.0.0"
+          }
+        }
+      },
+      "MiniExcel.OpenXml/2.0.0-preview.4": {
+        "dependencies": {
+          "MiniExcel.Core": "2.0.0-preview.4"
+        },
+        "runtime": {
+          "lib/net10.0/MiniExcel.OpenXml.dll": {
+            "assemblyVersion": "2.0.0.0",
+            "fileVersion": "2.0.0.0"
+          }
+        }
+      },
       "Mono.TextTemplating/3.0.0": {
         "dependencies": {
           "System.CodeDom": "9.0.0"
@@ -868,6 +911,7 @@
           "Domain": "1.0.0",
           "MailKit": "4.17.0",
           "Microsoft.EntityFrameworkCore": "10.0.0",
+          "MiniExcel": "2.0.0-preview.4",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "10.0.0"
         },
         "runtime": {
@@ -1052,6 +1096,34 @@
       "sha512": "sha512-h/KXsCreJf8RpR/PSAtlbvYtZFndp9N8Wn1Bs248AL7ITyhn+AiIY5bLTvt60tbN2mu6g8KadtBNWygTji2lqg==",
       "path": "mimekit/4.17.0",
       "hashPath": "mimekit.4.17.0.nupkg.sha512"
+    },
+    "MiniExcel/2.0.0-preview.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-KJ8essDJ0hqV/wd36RxbhF0p2PWL8lZ6AWfU8SX+UQP4PtEij2S0ZZTpx88zGvxPD3bPS/87iSJ7j3TDO7qZTg==",
+      "path": "miniexcel/2.0.0-preview.4",
+      "hashPath": "miniexcel.2.0.0-preview.4.nupkg.sha512"
+    },
+    "MiniExcel.Core/2.0.0-preview.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Edp5uDXOnfWTwTJsHK0p5f+fU83TW0yoC0xtkW2IG6AF72eel2EC0YoUcpR5RUHsBKX/h2+iXh7hP/d7HT0fWw==",
+      "path": "miniexcel.core/2.0.0-preview.4",
+      "hashPath": "miniexcel.core.2.0.0-preview.4.nupkg.sha512"
+    },
+    "MiniExcel.Csv/2.0.0-preview.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-X4qg5e/iVsdBEU5Ic+ccFdzZ29hTwzHIZwzy+CfY6cnoGaoS3WbEtBWwlpR116qymtol+l3RtKd4mPbQcezMww==",
+      "path": "miniexcel.csv/2.0.0-preview.4",
+      "hashPath": "miniexcel.csv.2.0.0-preview.4.nupkg.sha512"
+    },
+    "MiniExcel.OpenXml/2.0.0-preview.4": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-TKzPQLz+SZGgS6sJgJorwP4Lsj9Izu1D8SPYhUu7u8teobYR/usrgGX5iFRohfLu0mgFIwOnDY+9bL3f3M79MA==",
+      "path": "miniexcel.openxml/2.0.0-preview.4",
+      "hashPath": "miniexcel.openxml.2.0.0-preview.4.nupkg.sha512"
     },
     "Mono.TextTemplating/3.0.0": {
       "type": "package",

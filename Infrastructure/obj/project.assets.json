@@ -1108,6 +1108,53 @@
           }
         }
       },
+      "MiniExcel/2.0.0-preview.4": {
+        "type": "package",
+        "dependencies": {
+          "MiniExcel.Core": "2.0.0-preview.4",
+          "MiniExcel.Csv": "2.0.0-preview.4",
+          "MiniExcel.OpenXml": "2.0.0-preview.4"
+        },
+        "compile": {
+          "lib/net10.0/MiniExcel.dll": {}
+        },
+        "runtime": {
+          "lib/net10.0/MiniExcel.dll": {}
+        }
+      },
+      "MiniExcel.Core/2.0.0-preview.4": {
+        "type": "package",
+        "compile": {
+          "lib/net10.0/MiniExcel.Core.dll": {}
+        },
+        "runtime": {
+          "lib/net10.0/MiniExcel.Core.dll": {}
+        }
+      },
+      "MiniExcel.Csv/2.0.0-preview.4": {
+        "type": "package",
+        "dependencies": {
+          "MiniExcel.Core": "2.0.0-preview.4"
+        },
+        "compile": {
+          "lib/net10.0/MiniExcel.Csv.dll": {}
+        },
+        "runtime": {
+          "lib/net10.0/MiniExcel.Csv.dll": {}
+        }
+      },
+      "MiniExcel.OpenXml/2.0.0-preview.4": {
+        "type": "package",
+        "dependencies": {
+          "MiniExcel.Core": "2.0.0-preview.4"
+        },
+        "compile": {
+          "lib/net10.0/MiniExcel.OpenXml.dll": {}
+        },
+        "runtime": {
+          "lib/net10.0/MiniExcel.OpenXml.dll": {}
+        }
+      },
       "Mono.TextTemplating/3.0.0": {
         "type": "package",
         "dependencies": {
@@ -3394,6 +3441,74 @@
         "mimekit.nuspec"
       ]
     },
+    "MiniExcel/2.0.0-preview.4": {
+      "sha512": "KJ8essDJ0hqV/wd36RxbhF0p2PWL8lZ6AWfU8SX+UQP4PtEij2S0ZZTpx88zGvxPD3bPS/87iSJ7j3TDO7qZTg==",
+      "type": "package",
+      "path": "miniexcel/2.0.0-preview.4",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "icon.png",
+        "lib/net10.0/MiniExcel.dll",
+        "lib/net8.0/MiniExcel.dll",
+        "lib/net9.0/MiniExcel.dll",
+        "lib/netstandard2.0/MiniExcel.dll",
+        "miniexcel.2.0.0-preview.4.nupkg.sha512",
+        "miniexcel.nuspec"
+      ]
+    },
+    "MiniExcel.Core/2.0.0-preview.4": {
+      "sha512": "Edp5uDXOnfWTwTJsHK0p5f+fU83TW0yoC0xtkW2IG6AF72eel2EC0YoUcpR5RUHsBKX/h2+iXh7hP/d7HT0fWw==",
+      "type": "package",
+      "path": "miniexcel.core/2.0.0-preview.4",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "icon.png",
+        "lib/net10.0/MiniExcel.Core.dll",
+        "lib/net8.0/MiniExcel.Core.dll",
+        "lib/net9.0/MiniExcel.Core.dll",
+        "lib/netstandard2.0/MiniExcel.Core.dll",
+        "miniexcel.core.2.0.0-preview.4.nupkg.sha512",
+        "miniexcel.core.nuspec"
+      ]
+    },
+    "MiniExcel.Csv/2.0.0-preview.4": {
+      "sha512": "X4qg5e/iVsdBEU5Ic+ccFdzZ29hTwzHIZwzy+CfY6cnoGaoS3WbEtBWwlpR116qymtol+l3RtKd4mPbQcezMww==",
+      "type": "package",
+      "path": "miniexcel.csv/2.0.0-preview.4",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "icon.png",
+        "lib/net10.0/MiniExcel.Csv.dll",
+        "lib/net8.0/MiniExcel.Csv.dll",
+        "lib/net9.0/MiniExcel.Csv.dll",
+        "lib/netstandard2.0/MiniExcel.Csv.dll",
+        "miniexcel.csv.2.0.0-preview.4.nupkg.sha512",
+        "miniexcel.csv.nuspec"
+      ]
+    },
+    "MiniExcel.OpenXml/2.0.0-preview.4": {
+      "sha512": "TKzPQLz+SZGgS6sJgJorwP4Lsj9Izu1D8SPYhUu7u8teobYR/usrgGX5iFRohfLu0mgFIwOnDY+9bL3f3M79MA==",
+      "type": "package",
+      "path": "miniexcel.openxml/2.0.0-preview.4",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "README.md",
+        "icon.png",
+        "lib/net10.0/MiniExcel.OpenXml.dll",
+        "lib/net8.0/MiniExcel.OpenXml.dll",
+        "lib/net9.0/MiniExcel.OpenXml.dll",
+        "lib/netstandard2.0/MiniExcel.OpenXml.dll",
+        "miniexcel.openxml.2.0.0-preview.4.nupkg.sha512",
+        "miniexcel.openxml.nuspec"
+      ]
+    },
     "Mono.TextTemplating/3.0.0": {
       "sha512": "YqueG52R/Xej4VVbKuRIodjiAhV0HR/XVbLbNrJhCZnzjnSjgMJ/dCdV0akQQxavX6hp/LC6rqLGLcXeQYU7XA==",
       "type": "package",
@@ -4109,6 +4224,7 @@
       "MailKit >= 4.17.0",
       "Microsoft.EntityFrameworkCore >= 10.0.0",
       "Microsoft.EntityFrameworkCore.Design >= 10.0.0",
+      "MiniExcel >= 2.0.0-preview.4",
       "Npgsql.EntityFrameworkCore.PostgreSQL >= 10.0.0",
       "System.Linq >= 4.3.0"
     ]
@@ -4184,6 +4300,10 @@
             "suppressParent": "All",
             "target": "Package",
             "version": "[10.0.0, )"
+          },
+          "MiniExcel": {
+            "target": "Package",
+            "version": "[2.0.0-preview.4, )"
           },
           "Npgsql.EntityFrameworkCore.PostgreSQL": {
             "target": "Package",
