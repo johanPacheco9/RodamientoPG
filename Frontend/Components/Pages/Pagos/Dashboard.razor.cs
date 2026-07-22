@@ -92,9 +92,9 @@ public partial class Dashboard
 
     private async Task Reversar()
     {
-        if (recibos.Id <= 0 || recibos.Estado != EstadoRecibo.Aplicado)
+        if (recibos.Id <= 0 || recibos.Estado != EstadoRecibo.Pagado)
         {
-            await JsRuntime.InvokeVoidAsync("alert", "Únicamente los recibos APLICADOS / PAGADOS se pueden reversar.");
+            await JsRuntime.InvokeVoidAsync("alert", "Únicamente los recibos PAGADOS se pueden reversar.");
 
             return;
         }
@@ -104,10 +104,18 @@ public partial class Dashboard
         {
             try
             {
-                //Reversar el recibo, el pago supongo, lo haré de 0
-               // await PagosServices.Reversa_Rec(recibos.Id);
-                await JsRuntime.InvokeVoidAsync("alert", "Transacción reversada. La cartera del vehículo vuelve a estar activa.");
-                await BuscaRecibo();
+                var filas = await PagoService.ReversarPago(recibos.Id);
+
+                if (filas > 0)
+                {
+                    mensaje += $"\n// Recibo {recibos.Id} reversado el {DateTime.UtcNow}. La cartera vuelve a estar activa.";
+                    await JsRuntime.InvokeVoidAsync("alert", "Transacción reversada. La cartera del vehículo vuelve a estar activa.");
+                    await BuscaRecibo(); // Recarga el recibo para refrescar Estado, FechaPago, FechaAplica en pantalla
+                }
+                else
+                {
+                    await JsRuntime.InvokeVoidAsync("alert", "No se pudo reversar el recibo. Verifica que esté en estado Pagado.");
+                }
             }
             catch (Exception ex)
             {

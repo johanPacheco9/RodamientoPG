@@ -26,6 +26,8 @@ public partial class LiquidacionService
                 return (false, "Debe seleccionar al menos un registro de cartera para liquidar.", 0);
             }
 
+            await AnularRecibosPendientesVencidos(request.VehiculoId);
+
             // 2. Traer los registros de cartera solicitados que sigan pendientes de pago (Usando context.Cartera en singular)
             var carteraALiquidar = await context.Cartera
                 .Where(c => request.CarteraIdsSeleccionados.Contains(c.Id) && !c.IsPagado)
@@ -34,6 +36,21 @@ public partial class LiquidacionService
             if (!carteraALiquidar.Any())
             {
                 return (false, "Los registros de cartera seleccionados ya fueron pagados o no son válidos.", 0);
+            }
+
+            var descuentoInteres = await ObtenerPorcentajeDescuentoVigente();
+            foreach (var cartera in carteraALiquidar)
+            {
+                cartera.ValorInteres = cartera.TieneInteres
+                    ? await CalcularInteresMora(cartera.Valor, cartera.Vigencia, DateTime.Today)
+                    : 0m;
+
+                cartera.Descuento = Math.Round(
+                    (cartera.ValorInteres * descuentoInteres) / 100m,
+                    0,
+                    MidpointRounding.AwayFromZero);
+
+                cartera.ValorTotal = cartera.Valor + cartera.ValorInteres - cartera.Descuento;
             }
 
             // 3. Instanciar el encabezado consolidando los valores base (Capital)
@@ -84,6 +101,23 @@ public partial class LiquidacionService
             logger.LogError(ex, "Error interno al liquidar la cartera para el vehículo {VehiculoId}", request.VehiculoId);
 
             return (false, $"Error interno al liquidar la cartera: {ex.Message}", 0);
+        }
+    }
+
+    private async Task AnularRecibosPendientesVencidos(int vehiculoId)
+    {
+        var hoy = DateTime.Today;
+
+        var recibosVencidos = await context.Recibos
+            .Where(r => r.VehiculoId == vehiculoId
+                        && r.Estado == EstadoRecibo.Pendiente
+                        && r.Fecha.Date < hoy)
+            .ToListAsync();
+
+        foreach (var recibo in recibosVencidos)
+        {
+            recibo.Estado = EstadoRecibo.Anulado;
+            recibo.FechaProceso = DateTime.UtcNow;
         }
     }
 

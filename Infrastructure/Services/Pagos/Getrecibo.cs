@@ -18,6 +18,14 @@ public partial class PagoService
         if (recibo == null)
             throw new KeyNotFoundException($"El recibo con ID {nrecibo} no existe.");
 
+        if (recibo.Estado == Domain.Responses.Recibo.Enums.EstadoRecibo.Pendiente
+            && recibo.Fecha.Date != DateTime.Today)
+        {
+            recibo.Estado = Domain.Responses.Recibo.Enums.EstadoRecibo.Anulado;
+            recibo.FechaProceso = DateTime.UtcNow;
+            await context.SaveChangesAsync();
+        }
+
         return recibo;
     }
 }

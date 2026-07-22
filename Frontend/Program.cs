@@ -1,11 +1,16 @@
 using Frontend.Components;
 using Infrastructure.AppDbContext;
 using Infrastructure.DependencyInjection;
+using Infrastructure.Services.Alimentador;
+using Infrastructure.Services.Carteras;
 using Infrastructure.Services.EmailNotification;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 using QuestPDF.Infrastructure;
+using System.Text;
 
 QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +18,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddRazorPages(options =>
+{
+    options.RootDirectory = "/Components/Pages";
+});
 
 // 🚀 SOLUCIÓN: Agrega los servicios necesarios para que app.MapControllers() funcione
 builder.Services.AddControllers(); 
@@ -21,20 +30,42 @@ builder.Services.AddDbContextFactory<MainDataContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")),
     ServiceLifetime.Scoped);
 
-
-
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "rodamiento-dev-key-change-me-1098825894";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "Rodamiento";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "Rodamiento.Frontend";
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+        options.DefaultSignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    })
     .AddCookie(options =>
     {
-        options.ExpireTimeSpan = TimeSpan.Zero;
-        options.LoginPath = "/login";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.LoginPath = "/";
         options.AccessDeniedPath = "/forbidden";
+    })
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateIssuerSigningKey = true,
+            ValidateLifetime = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            ClockSkew = TimeSpan.FromMinutes(2)
+        };
     });
 
 // Servicios propios
@@ -52,6 +83,7 @@ app.MapPost("/test-email", async (EmailService emailService) =>
 
     return Results.Ok("Correo enviado");
 });
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -62,8 +94,10 @@ if (app.Environment.IsDevelopment())
         {
             var contextFactory = services.GetRequiredService<IDbContextFactory<MainDataContext>>();
             using var context = contextFactory.CreateDbContext();
+            var carteraService = services.GetRequiredService<CarteraService>();
 
-            Infrastructure.Services.Alimentador.DbInitializer.Initialize(context);
+            // 🚀 LLAMADA CORREGIDA: Ahora le pasamos tanto el context como el carteraService
+            DbInitializer.Initialize(context, carteraService);
         }
         catch (Exception ex)
         {
@@ -91,7 +125,8 @@ app.UseAuthorization();
 app.UseAntiforgery();
 
 // Ahora esto se ejecutará sin excepciones
-app.MapControllers(); 
+app.MapControllers();
+app.MapRazorPages();
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

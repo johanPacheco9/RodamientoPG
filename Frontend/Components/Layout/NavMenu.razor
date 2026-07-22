@@ -1,4 +1,4 @@
-@inject NavigationManager Navigation
+﻿@inject NavigationManager Navigation
 @inject IJSRuntime JS
 @rendermode InteractiveServer
 
@@ -136,7 +136,6 @@
             new NavItem("Vehiculos", "Parque Automotor", "bi-car-front-fill"),
             new NavItem("Marcas", "Marcas Registradas", "bi-tags"),
             new NavItem("Lineas", "Líneas de Tránsito", "bi-bezier2"),
-            new NavItem("Tipos_resol", "Tipos Carrocerías", "bi-truck"),
             new NavItem("Clases", "Clases de Vehículos", "bi-images"),
             new NavItem("Intereses", "Intereses de Mora", "bi-percent"),
             new NavItem("Uvts", "Valores UVT", "bi-calculator-fill"),
@@ -145,8 +144,6 @@
         new NavSection("procesos", "Procesos", "bi-file-earmark-gavel-fill", new[]
         {
             new NavItem("Importacion", "Generación de Deudas", "bi-database-fill-down"),
-            new NavItem("ImpresionLotes", "Liquidaciones Oficiales", "bi-printer-fill"),
-            new NavItem("Coactivos", "Migración a Coactivo", "bi-gavel"),
             new NavItem("Coactivospage", "Procesos Coactivos", "bi-file-earmark-text-fill"),
             new NavItem("traspasos", "Traspaso", "bi-arrow-left-right"),
         }),
@@ -159,8 +156,7 @@
         }),
         new NavSection("sistema", "Sistema", "bi-sliders", new[]
         {
-            new NavItem("Usuarios", "Control de Usuarios", "bi-person-gear"),
-            new NavItem("Usuariospage", "Usuarios (perfil)", "bi-person-gear"),
+            new NavItem("Usuariospage", "Gestión de Usuarios", "bi-person-gear"),
             new NavItem("Tarifaspage", "Configurar Tarifas", "bi-bookmarks-fill"),
             new NavItem("Parametros", "Parámetros Globales", "bi-gear-fill"),
         }),

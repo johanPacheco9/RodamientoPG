@@ -1,156 +1,173 @@
-﻿using System.Security.Cryptography;
+using System.Security.Claims;
 using Domain.Models;
+using Domain.Responses.Users.Enums;
 using Infrastructure.AppDbContext;
+using Infrastructure.Services.Security;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+
 namespace Infrastructure.Services.Users;
 
-public class UserService(MainDataContext context)
+public class UserService(MainDataContext context, IHttpContextAccessor httpContextAccessor)
 {
-    private const int SaltSize = 16;
-    private const int HashSize = 20;
-    private const int Iterations = 10000;
+    private const string DefaultPassword = "123";
 
-    /// <summary>
-    /// Registra un nuevo usuario aplicando un Hash seguro a la clave por defecto '123'
-    /// </summary>
     public async Task<int> Add(Usuario usuario)
     {
-        usuario.Password = HashPassword("123");
-        usuario.UsuarioCreo = 3;
+        EnsureAdmin();
 
-        context.Usuarios.Add(usuario);
+        var existeUsuario = await context.Usuarios!
+            .AnyAsync(u => u.UserName.ToLower() == usuario.UserName.Trim().ToLower());
+
+        if (existeUsuario)
+            throw new InvalidOperationException("Ya existe un usuario con ese login.");
+
+        usuario.UserName = usuario.UserName.Trim();
+        usuario.Nombre = usuario.Nombre.Trim();
+        usuario.Auth0Id = string.IsNullOrWhiteSpace(usuario.Auth0Id) ? usuario.UserName : usuario.Auth0Id.Trim();
+        usuario.Password = PasswordHasher.Hash(string.IsNullOrWhiteSpace(usuario.Password) ? DefaultPassword : usuario.Password);
+        usuario.IsHabilitado = true;
+        usuario.UsuarioCreo = GetCurrentUserId();
+        usuario.FechaCreacion = DateTime.UtcNow;
+
+        context.Usuarios!.Add(usuario);
         return await context.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// Actualiza los datos de perfil de un usuario sin tocar su clave
-    /// </summary>
     public async Task<int> EditUsuarios(Usuario usuario)
     {
-        // 💡 Evitamos que EF Core intente sobreescribir la clave si viene vacía en el DTO de edición
-        var entry = context.Entry(usuario);
-        entry.State = EntityState.Modified;
-        entry.Property(u => u.Password).IsModified = false; 
+        EnsureAdmin();
+
+        var usuarioDb = await context.Usuarios!
+            .FirstOrDefaultAsync(u => u.Id == usuario.Id);
+
+        if (usuarioDb is null)
+            throw new KeyNotFoundException("El usuario no existe.");
+
+        usuarioDb.Nombre = usuario.Nombre.Trim();
+        usuarioDb.Direccion = usuario.Direccion;
+        usuarioDb.Telefono = usuario.Telefono;
+        usuarioDb.Correo = usuario.Correo;
+        usuarioDb.Role = usuario.Role;
+        usuarioDb.Auth0Id = string.IsNullOrWhiteSpace(usuario.Auth0Id) ? usuarioDb.UserName : usuario.Auth0Id.Trim();
+        usuarioDb.IsHabilitado = usuario.IsHabilitado;
+        usuarioDb.UsuarioModifico = GetCurrentUserId();
+        usuarioDb.FechaModificacion = DateTime.UtcNow;
+
+        if (!string.IsNullOrWhiteSpace(usuario.Password))
+        {
+            usuarioDb.Password = PasswordHasher.Hash(usuario.Password);
+        }
 
         return await context.SaveChangesAsync();
     }
 
-    /// <summary>
-    /// Elimina un usuario directamente por su ID usando ExecuteDelete
-    /// </summary>
     public async Task<int> DeleteUsuarioById(int id)
     {
-        return await context.Usuarios
+        return await DarDeBaja(id);
+    }
+
+    public async Task<int> DarDeBaja(int id)
+    {
+        EnsureAdmin();
+
+        return await context.Usuarios!
             .Where(u => u.Id == id)
-            .ExecuteDeleteAsync();
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.IsHabilitado, false)
+                .SetProperty(u => u.UsuarioModifico, GetCurrentUserId())
+                .SetProperty(u => u.FechaModificacion, DateTime.UtcNow));
+    }
+
+    public async Task<int> CambiarEstado(int id, bool habilitado)
+    {
+        EnsureAdmin();
+
+        return await context.Usuarios!
+            .Where(u => u.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.IsHabilitado, habilitado)
+                .SetProperty(u => u.UsuarioModifico, GetCurrentUserId())
+                .SetProperty(u => u.FechaModificacion, DateTime.UtcNow));
     }
 
     public async Task<List<Usuario>> GetAll()
     {
-        return await context.Usuarios.ToListAsync();
+        EnsureAdmin();
+
+        return await context.Usuarios!
+            .OrderBy(u => u.Nombre)
+            .ToListAsync();
     }
 
     public async Task<Usuario?> GetUserById(int id)
     {
-        return await context.Usuarios.FindAsync(id);
+        return await context.Usuarios!.FindAsync(id);
     }
 
-    /// <summary>
-    /// Buscador predictivo por nombre, 100% parametrizado y protegido contra inyección SQL
-    /// </summary>
     public async Task<List<Usuario>> GetUserByName(string nombre)
     {
-        return await context.Usuarios
-            .Where(u => u.Nombre.ToUpper().StartsWith(nombre.ToUpper()))
+        EnsureAdmin();
+
+        var filtro = nombre.Trim().ToUpper();
+
+        return await context.Usuarios!
+            .Where(u => u.Nombre.ToUpper().Contains(filtro) || u.UserName.ToUpper().Contains(filtro))
+            .OrderBy(u => u.Nombre)
             .Take(20)
             .ToListAsync();
     }
 
-    // ==========================================
-    // 🔐 GESTIÓN DE CREDENCIALES (PASSWORD MGR)
-    // ==========================================
-
-    /// <summary>
-    /// Restablece la clave de un usuario a la contraseña genérica '123'
-    /// </summary>
     public async Task<bool> ResetKey(int id)
     {
-        try
-        {
-            string nuevaClave = HashPassword("123");
+        EnsureAdmin();
 
-            int filasAfectadas = await context.Usuarios
-                .Where(u => u.Id == id)
-                .ExecuteUpdateAsync(s => s.SetProperty(u => u.Password, nuevaClave));
+        var nuevaClave = PasswordHasher.Hash(DefaultPassword);
 
-            return filasAfectadas > 0;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error en ResetKey para el ID {id}: {ex.Message}");
-            return false;
-        }
+        var filasAfectadas = await context.Usuarios!
+            .Where(u => u.Id == id)
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.Password, nuevaClave)
+                .SetProperty(u => u.UsuarioModifico, GetCurrentUserId())
+                .SetProperty(u => u.FechaModificacion, DateTime.UtcNow));
+
+        return filasAfectadas > 0;
     }
 
-    /// <summary>
-    /// Cambia de forma segura la clave del usuario por una nueva string suministrada
-    /// </summary>
     public async Task<int> ChangeKey(int id, string nuevaKey)
     {
-        string nuevaClave = HashPassword(nuevaKey);
+        var usuarioActualId = GetCurrentUserId();
+        if (!IsCurrentUserAdmin() && usuarioActualId != id)
+            throw new UnauthorizedAccessException("No tiene permiso para cambiar esta clave.");
 
-        return await context.Usuarios
+        return await context.Usuarios!
             .Where(u => u.Id == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(u => u.Password, nuevaClave));
+            .ExecuteUpdateAsync(s => s
+                .SetProperty(u => u.Password, PasswordHasher.Hash(nuevaKey))
+                .SetProperty(u => u.UsuarioModifico, usuarioActualId)
+                .SetProperty(u => u.FechaModificacion, DateTime.UtcNow));
     }
 
-    /// <summary>
-    /// Valida si una contraseña en texto plano coincide con el Hash guardado en base de datos
-    /// </summary>
     public bool ValidatePasswordHash(string password, string dbPasswordBase64)
     {
-        try
-        {
-            byte[] hashBytes = Convert.FromBase64String(dbPasswordBase64);
-
-            byte[] salt = new byte[SaltSize];
-            Array.Copy(hashBytes, 0, salt, 0, SaltSize);
-
-            // 💡 Usamos la nueva API estática optimizada que no genera warnings de obsolescencia
-            byte[] userHash = Rfc2898DeriveBytes.Pbkdf2(
-                password,
-                salt,
-                Iterations,
-                HashAlgorithmName.SHA1, // Mantenemos SHA1 para no romper compatibilidad con hashes existentes
-                HashSize);
-
-            // Comparación en tiempo constante para mitigar ataques de temporización (Timing Attacks)
-            return CryptographicOperations.FixedTimeEquals(hashBytes.AsSpan(SaltSize, HashSize), userHash);
-        }
-        catch
-        {
-            return false;
-        }
+        return PasswordHasher.Verify(password, dbPasswordBase64);
     }
 
-    /// <summary>
-    /// Genera un Hash PBKDF2 robusto unido a un Salt aleatorio de 16 bytes
-    /// </summary>
-    private string HashPassword(string password)
+    private void EnsureAdmin()
     {
-        byte[] salt = RandomNumberGenerator.GetBytes(SaltSize); // API moderna de criptografía nativa (.NET 6+)
+        if (!IsCurrentUserAdmin())
+            throw new UnauthorizedAccessException("Solo el usuario administrador puede gestionar usuarios.");
+    }
 
-        byte[] hash = Rfc2898DeriveBytes.Pbkdf2(
-            password,
-            salt,
-            Iterations,
-            HashAlgorithmName.SHA1,
-            HashSize);
+    private bool IsCurrentUserAdmin()
+    {
+        return httpContextAccessor.HttpContext?.User.Claims
+            .Any(c => c.Type == ClaimTypes.Role && c.Value == AppRoles.Administrador) == true;
+    }
 
-        byte[] hashBytes = new byte[SaltSize + HashSize];
-        Array.Copy(salt, 0, hashBytes, 0, SaltSize);
-        Array.Copy(hash, 0, hashBytes, SaltSize, HashSize);
-
-        return Convert.ToBase64String(hashBytes);
+    private int GetCurrentUserId()
+    {
+        var userId = httpContextAccessor.HttpContext?.User.FindFirst("UserId")?.Value;
+        return int.TryParse(userId, out var parsed) ? parsed : 1;
     }
 }

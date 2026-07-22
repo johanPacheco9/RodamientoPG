@@ -18,7 +18,6 @@ public partial class CarteraService
             placa = placa.Trim().ToUpper();
             var nowYear = DateTime.UtcNow.Year;
 
-            // 1. Obtener los datos del Vehículo y Propietario (Se mantiene igual)
             var vehiculo = await context.Vehiculos
                 .AsNoTracking()
                 .Where(v => v.Placa == placa)
@@ -30,26 +29,25 @@ public partial class CarteraService
                     v.Cilindraje,
                     v.PagoHasta,
                     v.TipoServicioVehiculo,
-                    Clase = v.TipoVehiculo != null ? v.TipoVehiculo.Nombre : string.Empty,
-                    Marca = v.Marca != null ? v.Marca.Nombre : string.Empty,
-                    Linea = v.Linea != null ? v.Linea.Nombre : string.Empty,
-                    Color = v.Color != null ? v.Color.Nombre : string.Empty,
+                    Clase = v.TipoVehiculo.Nombre,
+                    Marca = v.Marca.Nombre,
+                    Linea = v.Linea.Nombre,
+                    Color = v.Color.Nombre,
                     ProcesoActivo = context.Procesos
                         .Where(p => p.VehiculoId == v.Id && p.EstadoProceso != EstadoProceso.SinProceso)
                         .Select(p => new { p.Id, p.EstadoProceso })
                         .FirstOrDefault(),
-                    Documento = v.Propietario != null ? v.Propietario.Documento : string.Empty,
-                    NombrePropietario = v.Propietario != null ? v.Propietario.Nombre : string.Empty,
-                    Direccion = v.Propietario != null ? v.Propietario.Direccion : string.Empty,
-                    Telefono = v.Propietario != null ? v.Propietario.Telefono : string.Empty,
-                    TipoDocumento = v.Propietario != null ? v.Propietario.TipoDocumento : TipoDocumento.Cc
+                    Documento = v.Propietario.Documento,
+                    NombrePropietario = v.Propietario.Nombre,
+                    Direccion = v.Propietario.Direccion,
+                    Telefono = v.Propietario.Telefono,
+                    TipoDocumento = v.Propietario.TipoDocumento
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (vehiculo == null)
                 return null;
             
-            // 2. 🚀 TRAEMOS LA CARTERA BASE DE LA BD (Sin el Select directo, para poder iterar)
             var carteraBase = await context.Cartera
                 .AsNoTracking()
                 .Where(c => c.Placa == placa && 
@@ -62,10 +60,8 @@ public partial class CarteraService
 
             var carteraPendiente = new List<ConceptoCarteraDto>();
 
-            // 🚀 RECALCULAMOS EL INTERÉS EN CALIENTE PARA EL DTO
             foreach (var c in carteraBase)
             {
-                // Si el concepto está parametrizado para tener interés, lo calculamos al día de HOY
                 decimal interesActualizado = c.TieneInteres
                     ? await  liquidacionService.CalcularInteresMora(c.Valor, c.Vigencia)
                     : 0m;
@@ -78,18 +74,17 @@ public partial class CarteraService
                     c.Concepto,
                     c.Tipo,
                     c.Valor,
-                    interesActualizado, // 👈 Aquí inyectamos el interés real actualizado al día de hoy
+                    interesActualizado, 
                     c.Descuento,
-                    totalActualizado // 👈 El total recalculado con la mora del día
+                    totalActualizado
                 ));
             }
-
-            // 3. Calculamos los datos globales basados en la lista ya actualizada
+            
             int vigenciaDesde = carteraPendiente.Any() ? carteraPendiente.Min(c => c.Vigencia) : nowYear;
             int vigenciaHasta = carteraPendiente.Any() ? carteraPendiente.Max(c => c.Vigencia) : nowYear;
             decimal totalDeuda = carteraPendiente.Sum(c => c.ValorTotal);
             var estadoProceso = vehiculo.ProcesoActivo?.EstadoProceso ?? EstadoProceso.SinProceso;
-            // 4. Armamos la respuesta final unificada para el frontend
+    
             return new EstadoCuentaVehiculoDto
             {
                 VehiculoId = vehiculo.Id,
@@ -115,7 +110,7 @@ public partial class CarteraService
                 VigenciaHasta = vigenciaHasta,
                 TotalDeuda = totalDeuda,
 
-                Conceptos = carteraPendiente // 🔥 El frontend (y tus pestañas desglosadas) reciben la verdad del día
+                Conceptos = carteraPendiente
             };
         }
         catch (Exception ex)

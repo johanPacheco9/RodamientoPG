@@ -17,6 +17,17 @@ public partial class PagoService
             var recibo = await context.Recibos.FirstOrDefaultAsync(s => s.Id == numeroRecibo);
             if (recibo == null) return 0; // Guardrail por si el recibo no existe
 
+            if (recibo.Estado != EstadoRecibo.Pendiente)
+                return 0;
+
+            if (recibo.Fecha.Date != DateTime.Today)
+            {
+                recibo.Estado = EstadoRecibo.Anulado;
+                recibo.FechaProceso = DateTime.UtcNow;
+                await context.SaveChangesAsync();
+                return 0;
+            }
+
             // 2. Traemos los IDs de cartera relacionados al detalle de este recibo
             var carteraIdsPagos = await context.ReciboDetalle
                 .Where(s => s.ReciboId == numeroRecibo)

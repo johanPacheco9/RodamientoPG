@@ -303,3 +303,11 @@ D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\MiniExcel.
 D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\MiniExcel.Core.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\MiniExcel.Csv.dll
 D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\MiniExcel.OpenXml.dll
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\Microsoft.IdentityModel.Abstractions.dll
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\Microsoft.IdentityModel.JsonWebTokens.dll
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\Microsoft.IdentityModel.Logging.dll
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.dll
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\Microsoft.IdentityModel.Protocols.OpenIdConnect.dll
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\Microsoft.IdentityModel.Tokens.dll
+D:\Source\Repos\RodamientoJohan\Rodamiento\Frontend\bin\Debug\net10.0\System.IdentityModel.Tokens.Jwt.dll

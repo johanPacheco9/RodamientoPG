@@ -1,132 +1,133 @@
-﻿using System.Security.Claims;
-using System.Security.Cryptography;
-using Domain.Generics;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 using Domain.Models;
+using Domain.Responses.Users.Enums;
 using Infrastructure.AppDbContext;
+using Infrastructure.Services.Security;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-namespace Infrastructure.Services.Login
+using Microsoft.IdentityModel.Tokens;
+
+namespace Infrastructure.Services.Login;
+
+public class LoginService(
+    IHttpContextAccessor httpContextAccessor,
+    MainDataContext dbContext,
+    IConfiguration configuration)
 {
-    public class LoginService(IHttpContextAccessor httpContextAccessor, MainDataContext dbContext, IConfiguration configuration)
+    public string GetConnection()
     {
-        // para usar dapper
+        return configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
+    }
 
-        private readonly MainDataContext _dbContext = dbContext;
-
-        public string GetConnection()
+    public async Task<(bool Success, string Message)> UserRegistrationAsync(Usuario usuarios)
+    {
+        var nuevoUsuario = new Usuario
         {
-            return configuration.GetConnectionString("DefaultConnection");
-        }
+            UserName = usuarios.UserName.Trim(),
+            Nombre = usuarios.Nombre.Trim(),
+            Password = PasswordHasher.Hash(usuarios.Password),
+            Role = usuarios.Role,
+            Auth0Id = string.IsNullOrWhiteSpace(usuarios.Auth0Id) ? usuarios.UserName.Trim() : usuarios.Auth0Id,
+            Correo = usuarios.Correo,
+            Direccion = usuarios.Direccion,
+            Telefono = usuarios.Telefono,
+            IsHabilitado = true,
+            FechaCreacion = DateTime.UtcNow,
+            UsuarioCreo = 1
+        };
 
+        dbContext.Usuarios!.Add(nuevoUsuario);
+        await dbContext.SaveChangesAsync();
 
-        public async Task<(bool Success, string Message)> UserRegistrationAsync(Usuario usuarios)
+        return (true, string.Empty);
+    }
+
+    public bool ValidatePasswordHash(string password, string dbPassword)
+    {
+        return PasswordHasher.Verify(password, dbPassword);
+    }
+
+    public async Task<int> UserLoginAsync(string username, string pass)
+    {
+        try
         {
-            try
-            {
-                Usuario newUser = new();
-                newUser.UserName = usuarios.UserName;
-                newUser.Nombre = usuarios.Nombre;
-                newUser.Password = PasswordHash(usuarios.Password);
-                _dbContext.Usuarios?.Add(newUser);
-                await _dbContext.SaveChangesAsync();
-            }
-            catch (Exception ex)
-            {
-               throw new Exception(ex.Message);
-            }
-
-            return (true, string.Empty);
-        }
-
-
-
-        private string PasswordHash(string password)
-        {
-            byte[] salt = new byte[16];
-            new RNGCryptoServiceProvider().GetBytes(salt);
-
-            var pbkdf2 = new Rfc2898DeriveBytes(password, salt, 1000);
-            byte[] hash = pbkdf2.GetBytes(20);
-
-            byte[] hashBytes = new byte[36];
-            Array.Copy(salt, 0, hashBytes, 0, 16);
-            Array.Copy(hash, 0, hashBytes, 16, 20);
-            return Convert.ToBase64String(hashBytes);
-        }
-
-        public bool ValidatePasswordHash(string password, string dbPassword)
-        {
-            byte[] dbPasswordHashBytes = Convert.FromBase64String(dbPassword);
-
-            byte[] salt = new byte[16];
-            Array.Copy(dbPasswordHashBytes, 0, salt, 0, 16);
-
-            var userPasswordBytes = new Rfc2898DeriveBytes(password, salt, 1000);
-            byte[] userPasswordHash = userPasswordBytes.GetBytes(20);
-
-            for (int i = 0; i < 20; i++)
-            {
-                if (dbPasswordHashBytes[i + 16] != userPasswordHash[i])
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        public async Task<int> UserLoginAsync(string username, string pass)
-        {
-            // var connectionString = this.GetConnection();
-            try
-            {
-                Usuario? user = await _dbContext.Usuarios?.Where(c => c.UserName.ToLower() == username).FirstOrDefaultAsync()!;
-                
-                if (user == null)
-                { 
-                   throw new Exception("Usuario no encontrado");
-                }
-                if (pass == null)
-                {
-                    throw new Exception("Debe ingresar la contraseña");
-                }
-                if (!ValidatePasswordHash(pass, user.Password))
-                {
-                    throw new Exception("Usuario o contraseña incorrectos");
-                    return 0;
-                }
-                var claims = new List<Claim>
-                    {
-                        new Claim(ClaimTypes.Name, user.Nombre),
-                        new Claim(ClaimTypes.Role, user.Role.GetDisplayName()),
-                        new Claim("UserId", user.Id.ToString()),
-                    };
-
-                var claimsIdentity = new ClaimsIdentity(
-                    claims, CookieAuthenticationDefaults.AuthenticationScheme);
-
-                var authProperties = new AuthenticationProperties
-                {
-                    AllowRefresh = true,
-                    ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(10),
-                    IsPersistent = true,
-                    // Otras propiedades...
-                };
-                if (httpContextAccessor.HttpContext != null)
-                {
-                    await httpContextAccessor.HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(claimsIdentity),
-                        authProperties);
-                }
-            }
-            catch (Exception ex)
-            {
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(pass))
                 return 0;
+
+            var normalizedUserName = username.Trim().ToLower();
+            var user = await dbContext.Usuarios!
+                .FirstOrDefaultAsync(c => c.UserName.ToLower() == normalizedUserName);
+
+            if (user is null || !user.IsHabilitado)
+                return 0;
+
+            if (!PasswordHasher.Verify(pass, user.Password))
+                return 0;
+
+            var claims = BuildClaims(user);
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var jwt = GenerateJwt(user, claims);
+
+            var authProperties = new AuthenticationProperties
+            {
+                AllowRefresh = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddHours(8),
+                IsPersistent = true
+            };
+
+            authProperties.StoreTokens(new[]
+            {
+                new AuthenticationToken { Name = "access_token", Value = jwt }
+            });
+
+            if (httpContextAccessor.HttpContext is not null)
+            {
+                await httpContextAccessor.HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(claimsIdentity),
+                    authProperties);
             }
+
             return 1;
         }
+        catch
+        {
+            return 0;
+        }
+    }
+
+    public string GenerateJwt(Usuario user, IEnumerable<Claim>? baseClaims = null)
+    {
+        var jwtKey = configuration["Jwt:Key"] ?? "rodamiento-dev-key-change-me-1098825894";
+        var issuer = configuration["Jwt:Issuer"] ?? "Rodamiento";
+        var audience = configuration["Jwt:Audience"] ?? "Rodamiento.Frontend";
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var token = new JwtSecurityToken(
+            issuer: issuer,
+            audience: audience,
+            claims: baseClaims ?? BuildClaims(user),
+            expires: DateTime.UtcNow.AddHours(8),
+            signingCredentials: credentials);
+
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private static List<Claim> BuildClaims(Usuario user)
+    {
+        return
+        [
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Nombre),
+            new Claim(ClaimTypes.Role, AppRoles.FromRole(user.Role)),
+            new Claim("UserId", user.Id.ToString()),
+            new Claim("UserName", user.UserName)
+        ];
     }
 }

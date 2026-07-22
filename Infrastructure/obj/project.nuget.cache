@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "p0C7arHrLJk=",
+  "dgSpecHash": "xrc9NWIrvZ4=",
   "success": true,
   "projectFilePath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",
   "expectedPackageFiles": [
@@ -37,6 +37,10 @@
     "C:\\Users\\johan\\.nuget\\packages\\microsoft.extensions.logging.abstractions\\10.0.0\\microsoft.extensions.logging.abstractions.10.0.0.nupkg.sha512",
     "C:\\Users\\johan\\.nuget\\packages\\microsoft.extensions.options\\10.0.0\\microsoft.extensions.options.10.0.0.nupkg.sha512",
     "C:\\Users\\johan\\.nuget\\packages\\microsoft.extensions.primitives\\10.0.0\\microsoft.extensions.primitives.10.0.0.nupkg.sha512",
+    "C:\\Users\\johan\\.nuget\\packages\\microsoft.identitymodel.abstractions\\8.14.0\\microsoft.identitymodel.abstractions.8.14.0.nupkg.sha512",
+    "C:\\Users\\johan\\.nuget\\packages\\microsoft.identitymodel.jsonwebtokens\\8.14.0\\microsoft.identitymodel.jsonwebtokens.8.14.0.nupkg.sha512",
+    "C:\\Users\\johan\\.nuget\\packages\\microsoft.identitymodel.logging\\8.14.0\\microsoft.identitymodel.logging.8.14.0.nupkg.sha512",
+    "C:\\Users\\johan\\.nuget\\packages\\microsoft.identitymodel.tokens\\8.14.0\\microsoft.identitymodel.tokens.8.14.0.nupkg.sha512",
     "C:\\Users\\johan\\.nuget\\packages\\microsoft.net.stringtools\\17.14.28\\microsoft.net.stringtools.17.14.28.nupkg.sha512",
     "C:\\Users\\johan\\.nuget\\packages\\mimekit\\4.17.0\\mimekit.4.17.0.nupkg.sha512",
     "C:\\Users\\johan\\.nuget\\packages\\miniexcel\\2.0.0-preview.4\\miniexcel.2.0.0-preview.4.nupkg.sha512",
@@ -59,6 +63,7 @@
     "C:\\Users\\johan\\.nuget\\packages\\system.configuration.configurationmanager\\9.0.0\\system.configuration.configurationmanager.9.0.0.nupkg.sha512",
     "C:\\Users\\johan\\.nuget\\packages\\system.diagnostics.eventlog\\9.0.0\\system.diagnostics.eventlog.9.0.0.nupkg.sha512",
     "C:\\Users\\johan\\.nuget\\packages\\system.formats.nrbf\\9.0.0\\system.formats.nrbf.9.0.0.nupkg.sha512",
+    "C:\\Users\\johan\\.nuget\\packages\\system.identitymodel.tokens.jwt\\8.14.0\\system.identitymodel.tokens.jwt.8.14.0.nupkg.sha512",
     "C:\\Users\\johan\\.nuget\\packages\\system.io.packaging\\8.0.1\\system.io.packaging.8.0.1.nupkg.sha512",
     "C:\\Users\\johan\\.nuget\\packages\\system.linq\\4.3.0\\system.linq.4.3.0.nupkg.sha512",
     "C:\\Users\\johan\\.nuget\\packages\\system.reflection.metadataloadcontext\\7.0.0\\system.reflection.metadataloadcontext.7.0.0.nupkg.sha512",
@@ -85,7 +90,55 @@
     {
       "code": "NU1903",
       "level": "Warning",
+      "message": "Package 'System.Security.Cryptography.Xml' 9.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-23rf-6693-g89p",
+      "projectPath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",
+      "libraryId": "System.Security.Cryptography.Xml",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
       "message": "Package 'System.Security.Cryptography.Xml' 9.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-37gx-xxp4-5rgx",
+      "projectPath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",
+      "libraryId": "System.Security.Cryptography.Xml",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "Package 'System.Security.Cryptography.Xml' 9.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-8q5v-6pqq-x66h",
+      "projectPath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",
+      "libraryId": "System.Security.Cryptography.Xml",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "Package 'System.Security.Cryptography.Xml' 9.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-cvvh-rhrc-wg4q",
+      "projectPath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",
+      "warningLevel": 1,
+      "filePath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",
+      "libraryId": "System.Security.Cryptography.Xml",
+      "targetGraphs": [
+        "net10.0"
+      ]
+    },
+    {
+      "code": "NU1903",
+      "level": "Warning",
+      "message": "Package 'System.Security.Cryptography.Xml' 9.0.0 has a known high severity vulnerability, https://github.com/advisories/GHSA-g8r8-53c2-pm3f",
       "projectPath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",
       "warningLevel": 1,
       "filePath": "D:\\Source\\Repos\\RodamientoJohan\\Rodamiento\\Infrastructure\\Infrastructure.csproj",

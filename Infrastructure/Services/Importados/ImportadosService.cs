@@ -104,9 +104,31 @@ public class ImportadosService(MainDataContext context)
     {
         try
         {
+            var hoy = DateTime.Today;
+
+            var recibosVencidos = await context.Recibos
+                .Where(r => r.Vehiculo.Placa == placa
+                            && r.Estado == EstadoRecibo.Pendiente
+                            && r.Fecha.Date < hoy)
+                .ToListAsync();
+
+            foreach (var recibo in recibosVencidos)
+            {
+                recibo.Estado = EstadoRecibo.Anulado;
+                recibo.FechaProceso = DateTime.UtcNow;
+            }
+
+            if (recibosVencidos.Count > 0)
+            {
+                await context.SaveChangesAsync();
+            }
+
             // Pasamos de un string crudo a una consulta LINQ autogenerada
             return await context.Recibos
-                .Where(r => r.Vehiculo.Placa == placa && r.Estado == EstadoRecibo.Pendiente)
+                .Where(r => r.Vehiculo.Placa == placa
+                            && r.Estado == EstadoRecibo.Pendiente
+                            && r.Fecha.Date == hoy)
+                .OrderByDescending(r => r.Id)
                 .Select(r => new Rvar { Num = r.Id })
                 .FirstOrDefaultAsync();
         }
