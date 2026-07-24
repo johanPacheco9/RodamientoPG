@@ -1,5 +1,6 @@
 using Domain.Generics;
 using Domain.Models;
+using Domain.Models.Carteras;
 using Domain.Models.Carteras.Enums;
 using Domain.Models.Notificaciones;
 using Domain.Models.ProcesoLiquidacion;
@@ -11,7 +12,7 @@ using Domain.Responses.Recibo.Enums;
 using Domain.Responses.Users.Enums;
 using Domain.Responses.Vehiculos.Enums;
 using Infrastructure.AppDbContext;
-using Infrastructure.Services.Carteras; // 🎯 Importante para usar tu CarteraService
+using Infrastructure.Services.Carteras;
 using Infrastructure.Services.Security;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,9 +22,6 @@ public static class DbInitializer
 {
     private const int TargetVehiculosTesting = 10000;
 
-    /// <summary>
-    /// Inicializa la base de datos con 10,000 vehículos, propietarios y deudas exactas basadas en tarifas reales.
-    /// </summary>
     public static void Initialize(MainDataContext context, CarteraService carteraService)
     {
         context.Database.EnsureCreated();
@@ -32,7 +30,7 @@ public static class DbInitializer
         SeedCatalogos(context);
         SeedReglasLiquidacion(context);
         SeedUsuarios(context);
-        SeedVehiculosYCartera(context, carteraService); // 🚀 Pasamos tu servicio de cartera real
+        SeedVehiculosYCartera(context, carteraService);
         SeedRecibosDePrueba(context);
     }
 
@@ -72,6 +70,7 @@ public static class DbInitializer
         EnsureTipoVehiculo(context, 2, 20, "Camioneta", ClaseAgrupacionVehiculo.Automovil, 1);
         EnsureTipoVehiculo(context, 3, 30, "Buseta", ClaseAgrupacionVehiculo.Pasajeros, 2);
         EnsureTipoVehiculo(context, 4, 40, "Camion", ClaseAgrupacionVehiculo.Carga, 2);
+        EnsureTipoVehiculo(context, 5, 50, "Motocicleta", ClaseAgrupacionVehiculo.Automovil, 1); 
         EnsureTipoVehiculo(context, 8, 80, "Volqueta", ClaseAgrupacionVehiculo.Carga, 2);
         EnsureTipoVehiculo(context, 9, 90, "Tractocamion", ClaseAgrupacionVehiculo.Carga, 2);
 
@@ -85,6 +84,9 @@ public static class DbInitializer
         EnsureMarcaLinea(context, "Chevrolet", "Spark GT");
         EnsureMarcaLinea(context, "Toyota", "Hilux");
         EnsureMarcaLinea(context, "Mazda", "CX-30");
+        EnsureMarcaLinea(context, "Yamaha", "FZ 25");
+        EnsureMarcaLinea(context, "Bajaj", "Pulsar NS 200");
+        EnsureMarcaLinea(context, "AKT", "NKD 125");
         EnsureMarcaLinea(context, "Kenworth", "T800");
         EnsureMarcaLinea(context, "Mercedes Benz", "Sprinter");
 
@@ -126,6 +128,7 @@ public static class DbInitializer
             var automovil = context.TipoVehiculos.First(t => t.Id == 1);
             var camioneta = context.TipoVehiculos.First(t => t.Id == 2);
             var camion = context.TipoVehiculos.First(t => t.Id == 4);
+            var moto = context.TipoVehiculos.First(t => t.Id == 5);
 
             for (var year = 2017; year <= 2026; year++)
             {
@@ -134,6 +137,7 @@ public static class DbInitializer
                 context.Tarifas.AddRange(
                     Tarifa(year, 0, 9_999_999, 180_000 + incremento, automovil, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
                     Tarifa(year, 10_000_000, 99_999_999, 245_000 + incremento, camioneta, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
+                    Tarifa(year, 0, 125, 60_000 + incremento, moto, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
                     Tarifa(year, 0, 25, 95_000 + incremento, camion, TipoServicioVehiculo.Publico, TipoConceptoTarifa.Carga),
                     Tarifa(year, 0, 45, 75_000 + incremento, automovil, TipoServicioVehiculo.Publico, TipoConceptoTarifa.Pasajeros));
             }
@@ -185,18 +189,17 @@ public static class DbInitializer
         var apellidos = new[] { "Gomez", "Rodriguez", "Lopez", "Perez", "Castro", "Silva", "Diaz", "Ortiz", "Mendoza", "Velez", "Chinchilla", "Duarte", "Sarmiento", "Rios" };
         var direcciones = new[] { "Calle 10 # 5-20", "Carrera 7 # 12-45", "Barrio Centro", "Avenida Principal", "Calle 3 # 8-19", "Zona Industrial Lt 4", "Avenida Los Patios" };
         var placasBase = new[] { "ALB", "TST", "RDM", "JHN", "CAR", "IMP", "VEH", "TAX", "COL", "MZN", "BGA", "CUC" };
-
         var prefijosCedulas = new[] { "72", "19", "91", "37", "51", "1098", "1143", "1015" };
 
-        var marcas = context.Marcas.AsNoTracking().OrderBy(m => m.Id).ToList();
-        var lineas = context.Lineas.AsNoTracking().OrderBy(l => l.Id).ToList();
-        var colores = context.Colores.AsNoTracking().OrderBy(c => c.Id).ToList();
-        var tipos = context.TipoVehiculos.AsNoTracking().OrderBy(t => t.Id).ToList();
+        var marcas = context.Marcas.AsNoTracking().ToList();
+        var lineas = context.Lineas.AsNoTracking().ToList();
+        var colores = context.Colores.AsNoTracking().ToList();
+        var tipos = context.TipoVehiculos.AsNoTracking().ToList();
 
         var placasExistentes = new HashSet<string>(context.Vehiculos.Select(v => v.Placa).ToList());
 
-        const int batchSize = 200;
-        int loteActual = 0;
+        const int batchSize = 1000;
+        var vehiculosNuevos = new List<Vehiculo>();
 
         for (var i = existentes; i < TargetVehiculosTesting; i++)
         {
@@ -215,10 +218,11 @@ public static class DbInitializer
                 TipoDocumento = TipoDocumento.Cc
             };
 
-            var tipo = tipos[i % tipos.Count];
-            var marca = marcas[i % marcas.Count];
-            var linea = lineas[i % lineas.Count];
-            var color = colores[i % colores.Count];
+            var tipo = SeleccionarTipoRealista(tipos, random);
+            var marca = SeleccionarMarcaCoherente(marcas, tipo.Id, random);
+            var lineasMarca = lineas.Where(l => l.IdMarca == marca.Id).ToList();
+            var linea = lineasMarca.Any() ? Pick(lineasMarca, random) : Pick(lineas, random);
+            var color = Pick(colores, random);
 
             var modelo = random.Next(2017, 2025);
             var pagoHasta = random.Next(modelo, Math.Min(modelo + 3, 2025));
@@ -234,10 +238,15 @@ public static class DbInitializer
             {
                 Placa = placa,
                 Modelo = modelo,
-                Cilindraje = tipo.Id is 4 or 8 or 9 ? 5200 : random.Next(1200, 2600),
+                Cilindraje = tipo.Id switch
+                {
+                    5 => random.Next(100, 250),
+                    1 or 2 => random.Next(1200, 2500),
+                    _ => random.Next(4000, 9000)
+                },
                 PagoHasta = pagoHasta,
                 CapacidadCarga = tipo.Id is 4 or 8 or 9 ? random.Next(8_000, 22_000) : 0,
-                Pasajeros = tipo.Id is 3 ? random.Next(18, 36) : random.Next(4, 7),
+                Pasajeros = tipo.Id is 3 ? random.Next(18, 36) : (tipo.Id == 5 ? 2 : 5),
                 TipoVehiculoId = tipo.Id,
                 MarcaId = marca.Id,
                 LineaId = linea.Id,
@@ -247,95 +256,130 @@ public static class DbInitializer
                 Propietario = propietario
             };
 
-            context.Vehiculos.Add(vehiculo);
-            
-            // 🎯 Guardamos los datos del carro y propietario para tener IDs válidos
-            context.SaveChanges(); 
+            vehiculosNuevos.Add(vehiculo);
 
-            // 🚀 LLAMADA AL MOTOR REAL DE GENERACIÓN DE CARTERA (Sincronizado)
-            int anioDesde = pagoHasta + 1;
+            // Guardado por lotes masivos
+            if (vehiculosNuevos.Count >= batchSize || i == TargetVehiculosTesting - 1)
+            {
+                // 🚀 Guardar el bloque de vehículos de una sola vez
+                context.Vehiculos.AddRange(vehiculosNuevos);
+                context.SaveChanges();
+
+                // 🚀 Generar Cartera y Procesos en memoria para el lote actual
+                GenerarCarteraYProcesosEnLote(context, carteraService, vehiculosNuevos, random);
+                
+                vehiculosNuevos.Clear();
+            }
+        }
+    }
+
+    private static void GenerarCarteraYProcesosEnLote(
+        MainDataContext context, 
+        CarteraService carteraService, 
+        List<Vehiculo> vehiculos, 
+        Random random)
+    {
+        var procesosNuevos = new List<Proceso>();
+
+        foreach (var vehiculo in vehiculos)
+        {
+            int anioDesde = vehiculo.PagoHasta + 1;
             int anioHasta = 2026;
 
             if (anioDesde <= anioHasta)
             {
-                // Ejecutamos sincrónicamente el método asíncrono en el seeder
-                carteraService.GenerarCarteraVehiculo(placa, anioDesde, anioHasta).GetAwaiter().GetResult();
+                // Genera las carteras para el vehículo
+                carteraService.GenerarCarteraVehiculo(vehiculo.Placa, anioDesde, anioHasta).GetAwaiter().GetResult();
 
-                // ⚖️ Simulación de Procesos de Cobro Coactivo y Avisos (Mantiene vivo el Dashboard de Procesos)
-                SimularProcesosLegales(context, vehiculo, anioDesde, anioHasta, random);
-            }
+                // Simular Proceso Legal sin consultar a la BD en cada iteración
+                if (anioDesde < 2023)
+                {
+                    bool esCoactivo = anioDesde <= 2020 && random.Next(0, 3) == 0;
+                    var fechaMandamiento = Utc(anioDesde + 1, 3, 15);
 
-            loteActual++;
-            if (loteActual >= batchSize)
-            {
-                context.SaveChanges();
-                loteActual = 0;
+                    var proceso = new Proceso
+                    {
+                        VehiculoId = vehiculo.Id,
+                        Fecha = fechaMandamiento,
+                        FechaMandamiento = fechaMandamiento,
+                        FechaProceso = fechaMandamiento,
+                        Valor = 0,
+                        EstadoProceso = esCoactivo ? EstadoProceso.Coactivo : EstadoProceso.Persuasivo,
+                        Desde = anioDesde,
+                        Avisos = new List<Aviso>()
+                    };
+
+                    // Asociar avisos según las vigencias
+                    for (int vigencia = anioDesde; vigencia < anioHasta; vigencia++)
+                    {
+                        int anosDeMora = 2026 - vigencia;
+                        int totalAvisos = anosDeMora switch
+                        {
+                            1 => 2,
+                            >= 2 => 4,
+                            _ => 0
+                        };
+
+                        for (int k = 1; k <= totalAvisos; k++)
+                        {
+                            int mesEnvio = 2 + (k * 2);
+                            var fechaAviso = Utc(vigencia + 1, mesEnvio > 12 ? 12 : mesEnvio, random.Next(1, 28));
+
+                            proceso.Avisos.Add(new Aviso
+                            {
+                                Proceso = proceso,
+                                NumeroAviso = k,
+                                FechaEnvio = fechaAviso,
+                                NumeroGuia = $"GR-{vigencia}{vehiculo.Id}{k}",
+                                RutaPdf = $"/docs/avisos/{vigencia}/aviso_{k}_{vehiculo.Placa}.pdf",
+                                Estado = random.Next(0, 10) == 0 ? "Devuelto" : "Entregado"
+                            });
+                        }
+                    }
+
+                    procesosNuevos.Add(proceso);
+                }
             }
         }
 
-        if (loteActual > 0)
+        if (procesosNuevos.Any())
         {
+            context.Procesos.AddRange(procesosNuevos);
             context.SaveChanges();
         }
     }
 
-    /// <summary>
-    /// Simula el estado legal de cobro para vehículos que tienen deudas antiguas en el Seeder.
-    /// </summary>
-    private static void SimularProcesosLegales(MainDataContext context, Vehiculo vehiculo, int desde, int hasta, Random random)
+    private static TipoVehiculo SeleccionarTipoRealista(List<TipoVehiculo> tipos, Random random)
     {
-        // Solo simular cobros coactivos/persuasivos para deudas anteriores al año 2023
-        if (desde >= 2023) return;
+        int prob = random.Next(1, 101);
 
-        bool esCoactivo = desde <= 2020 && random.Next(0, 3) == 0;
-        var fechaMandamiento = Utc(desde + 1, 3, 15);
-
-        var proceso = new Proceso
+        int tipoId = prob switch
         {
-            VehiculoId = vehiculo.Id,
-            Fecha = fechaMandamiento,
-            FechaMandamiento = fechaMandamiento,
-            FechaProceso = fechaMandamiento,
-            Valor = 0,
-            EstadoProceso = esCoactivo ? EstadoProceso.Coactivo : EstadoProceso.Persuasivo,
-            Desde = desde,
-            Avisos = new List<Aviso>()
+            <= 55 => 5, // 55% Motocicletas
+            <= 75 => 1, // 20% Automóviles
+            <= 90 => 2, // 15% Camionetas
+            <= 95 => 4, // 5% Camiones
+            <= 98 => 8, // 3% Volquetas
+            _ => 3      // 2% Busetas / Tractocamiones
         };
 
-        // Encontrar la cartera generada por el servicio de cartera para linkear avisos de prueba
-        var carteras = context.Cartera
-            .Where(c => c.VehiculoId == vehiculo.Id && !c.IsPagado)
-            .ToList();
+        return tipos.FirstOrDefault(t => t.Id == tipoId) ?? tipos.First();
+    }
 
-        foreach (var cartera in carteras)
+    private static Marca SeleccionarMarcaCoherente(List<Marca> marcas, int tipoVehiculoId, Random random)
+    {
+        if (tipoVehiculoId == 5)
         {
-            int anosDeMora = 2026 - cartera.Vigencia;
-            int totalAvisos = anosDeMora switch
-            {
-                1 => 2,
-                >= 2 => 4,
-                _ => 0
-            };
-
-            for (int i = 1; i <= totalAvisos; i++)
-            {
-                int mesEnvio = 2 + (i * 2);
-                var fechaAviso = Utc(cartera.Vigencia + 1, mesEnvio > 12 ? 12 : mesEnvio, random.Next(1, 28));
-
-                proceso.Avisos.Add(new Aviso
-                {
-                    Proceso = proceso,
-                    NumeroAviso = i,
-                    FechaEnvio = fechaAviso,
-                    NumeroGuia = $"GR-{cartera.Vigencia}{cartera.Id}{i}",
-                    RutaPdf = $"/docs/avisos/{cartera.Vigencia}/aviso_{i}_{cartera.Placa}.pdf",
-                    Estado = random.Next(0, 10) == 0 ? "Devuelto" : "Entregado"
-                });
-            }
+            var marcasMotos = marcas.Where(m => new[] { "Yamaha", "Bajaj", "AKT" }.Contains(m.Nombre)).ToList();
+            if (marcasMotos.Any()) return Pick(marcasMotos, random);
+        }
+        else if (tipoVehiculoId is 1 or 2)
+        {
+            var marcasAutos = marcas.Where(m => new[] { "Renault", "Chevrolet", "Toyota", "Mazda" }.Contains(m.Nombre)).ToList();
+            if (marcasAutos.Any()) return Pick(marcasAutos, random);
         }
 
-        context.Procesos.Add(proceso);
-        context.SaveChanges();
+        return Pick(marcas, random);
     }
 
     private static void SeedRecibosDePrueba(MainDataContext context)

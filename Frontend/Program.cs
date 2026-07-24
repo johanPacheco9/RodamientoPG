@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 
 using QuestPDF.Infrastructure;
 using System.Text;
+using Infrastructure.Services.Importados;
 
 QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
@@ -84,33 +85,39 @@ app.MapPost("/test-email", async (EmailService emailService) =>
     return Results.Ok("Correo enviado");
 });
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+app.MapGet("/generar-excel-prueba", async (HttpContext context) =>
 {
-    using (var scope = app.Services.CreateScope())
-    {
-        var services = scope.ServiceProvider;
-        try
-        {
-            var contextFactory = services.GetRequiredService<IDbContextFactory<MainDataContext>>();
-            using var context = contextFactory.CreateDbContext();
-            var carteraService = services.GetRequiredService<CarteraService>();
+    var tempPath = Path.Combine(Path.GetTempPath(), $"CargaMasiva_Vehiculos_{Guid.NewGuid()}.xlsx");
 
-            // 🚀 LLAMADA CORREGIDA: Ahora le pasamos tanto el context como el carteraService
-            DbInitializer.Initialize(context, carteraService);
-        }
-        catch (Exception ex)
+    try
+    {
+        // Genera el Excel con los 10,000 registros
+        ExcelTestGenerator.GenerarExcelPrueba(tempPath, 1000);
+
+        var bytes = await File.ReadAllBytesAsync(tempPath);
+
+        return Results.File(
+            bytes,
+            contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            fileDownloadName: "CargaMasiva_10000_Vehiculos.xlsx"
+        );
+    }
+    finally
+    {
+        if (File.Exists(tempPath))
         {
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "Ocurrió un error local al sembrar los datos iniciales de desarrollo.");
+            File.Delete(tempPath);
         }
     }
-}
-else
+});
+// Configure the HTTP request pipeline.
+
+if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
+
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
 app.UseHttpsRedirection();

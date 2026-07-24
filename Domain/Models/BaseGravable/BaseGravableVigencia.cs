@@ -3,10 +3,17 @@ namespace Domain.Models.BaseGravable;
 public class BaseGravableVigencia
 {
     public int Id { get; set; }
-    public int BaseGravableVehiculoId { get; set; } // Clave foránea hacia el vehículo base
-    public int AnioVigencia { get; set; }           // Ej: 1999, 2024, 2025, 2026... hasta el año que quieras
-    public decimal ValorComercial { get; set; }     // El avalúo/base gravable asignado para ese año
 
-    // Propiedad de navegación inversa
-    public virtual BaseGravableVehiculo BaseGravableVehiculo { get; set; } = null!;
+    //  Foreign Key hacia la ficha técnica
+    public int BaseGravableVehiculoId { get; set; }
+    public BaseGravableVehiculo BaseGravableVehiculo { get; set; } = null!;
+
+    //  Año fiscal cobrable (ej: 2026)
+    public int Vigencia { get; set; }
+
+    //  Año de fabricación del carro (ej: 2022)
+    public int Modelo { get; set; }
+
+    //  Avalúo comercial en pesos ($)
+    public decimal Valor { get; set; }
 }

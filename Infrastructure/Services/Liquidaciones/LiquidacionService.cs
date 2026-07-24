@@ -42,7 +42,7 @@ public partial class LiquidacionService
             foreach (var cartera in carteraALiquidar)
             {
                 cartera.ValorInteres = cartera.TieneInteres
-                    ? await CalcularInteresMora(cartera.Valor, cartera.Vigencia, DateTime.Today)
+                    ? await CalcularInteresMora(cartera.Valor, cartera.Vigencia, DateTime.UtcNow)
                     : 0m;
 
                 cartera.Descuento = Math.Round(
@@ -106,7 +106,7 @@ public partial class LiquidacionService
 
     private async Task AnularRecibosPendientesVencidos(int vehiculoId)
     {
-        var hoy = DateTime.Today;
+        var hoy = DateTime.UtcNow;
 
         var recibosVencidos = await context.Recibos
             .Where(r => r.VehiculoId == vehiculoId

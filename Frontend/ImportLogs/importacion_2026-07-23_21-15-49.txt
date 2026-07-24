@@ -1,0 +1,113 @@
+﻿==================================================
+ REPORTE DE IMPORTACIÓN DE VEHÍCULOS
+==================================================
+Fecha/Hora     : 2026-07-23 21:15:49
+Resultado      : CON PROBLEMAS
+Mensaje        : No se importó ningún vehículo debido a errores en la validación.
+Duración       : 0,04 segundos
+Filas en Excel : 100
+Importados     : 0
+Errores/Avisos : 100
+--------------------------------------------------
+Detalle de errores/avisos:
+  - Fila 2: La placa 'JHN611' ya existe en el sistema.
+  - Fila 3: La placa 'TST292' ya existe en el sistema.
+  - Fila 4: La placa 'BGA923' ya existe en el sistema.
+  - Fila 5: La placa 'JHN464' ya existe en el sistema.
+  - Fila 6: La placa 'RDM725' ya existe en el sistema.
+  - Fila 7: La placa 'VEH656' ya existe en el sistema.
+  - Fila 8: La placa 'TST137' ya existe en el sistema.
+  - Fila 9: La placa 'TAX178' ya existe en el sistema.
+  - Fila 10: La placa 'TAX459' ya existe en el sistema.
+  - Fila 11: La placa 'TST830' ya existe en el sistema.
+  - Fila 12: La placa 'VEH141' ya existe en el sistema.
+  - Fila 13: La placa 'ALB362' ya existe en el sistema.
+  - Fila 14: La placa 'TAX173' ya existe en el sistema.
+  - Fila 15: La placa 'IMP714' ya existe en el sistema.
+  - Fila 16: La placa 'CUC855' ya existe en el sistema.
+  - Fila 17: La placa 'ALB656' ya existe en el sistema.
+  - Fila 18: La placa 'CAR477' ya existe en el sistema.
+  - Fila 19: La placa 'VEH938' ya existe en el sistema.
+  - Fila 20: La placa 'VEH249' ya existe en el sistema.
+  - Fila 21: La placa 'VEH610' ya existe en el sistema.
+  - Fila 22: La placa 'CAR751' ya existe en el sistema.
+  - Fila 23: La placa 'JHN412' ya existe en el sistema.
+  - Fila 24: La placa 'JHN123' ya existe en el sistema.
+  - Fila 25: La placa 'MZN984' ya existe en el sistema.
+  - Fila 26: La placa 'MZN525' ya existe en el sistema.
+  - Fila 27: La placa 'ALB236' ya existe en el sistema.
+  - Fila 28: La placa 'CAR417' ya existe en el sistema.
+  - Fila 29: La placa 'VEH468' ya existe en el sistema.
+  - Fila 30: La placa 'CAR719' ya existe en el sistema.
+  - Fila 31: La placa 'VEH410' ya existe en el sistema.
+  - Fila 32: La placa 'JHN881' ya existe en el sistema.
+  - Fila 33: La placa 'RDM192' ya existe en el sistema.
+  - Fila 34: La placa 'MZN633' ya existe en el sistema.
+  - Fila 35: La placa 'ALB294' ya existe en el sistema.
+  - Fila 36: La placa 'RDM785' ya existe en el sistema.
+  - Fila 37: La placa 'CUC366' ya existe en el sistema.
+  - Fila 38: La placa 'CUC947' ya existe en el sistema.
+  - Fila 39: La placa 'VEH338' ya existe en el sistema.
+  - Fila 40: La placa 'MZN239' ya existe en el sistema.
+  - Fila 41: La placa 'RDM640' ya existe en el sistema.
+  - Fila 42: La placa 'JHN641' ya existe en el sistema.
+  - Fila 43: La placa 'CUC682' ya existe en el sistema.
+  - Fila 44: La placa 'VEH483' ya existe en el sistema.
+  - Fila 45: La placa 'IMP754' ya existe en el sistema.
+  - Fila 46: La placa 'TAX425' ya existe en el sistema.
+  - Fila 47: La placa 'TAX576' ya existe en el sistema.
+  - Fila 48: La placa 'IMP987' ya existe en el sistema.
+  - Fila 49: La placa 'MZN918' ya existe en el sistema.
+  - Fila 50: La placa 'COL499' ya existe en el sistema.
+  - Fila 51: La placa 'ALB450' ya existe en el sistema.
+  - Fila 52: La placa 'TAX641' ya existe en el sistema.
+  - Fila 53: La placa 'RDM882' ya existe en el sistema.
+  - Fila 54: La placa 'ALB913' ya existe en el sistema.
+  - Fila 55: La placa 'ALB594' ya existe en el sistema.
+  - Fila 56: La placa 'BGA465' ya existe en el sistema.
+  - Fila 57: La placa 'CUC556' ya existe en el sistema.
+  - Fila 58: La placa 'TAX977' ya existe en el sistema.
+  - Fila 59: La placa 'IMP558' ya existe en el sistema.
+  - Fila 60: La placa 'CAR429' ya existe en el sistema.
+  - Fila 61: La placa 'VEH170' ya existe en el sistema.
+  - Fila 62: La placa 'RDM721' ya existe en el sistema.
+  - Fila 63: La placa 'TAX972' ya existe en el sistema.
+  - Fila 64: La placa 'JHN953' ya existe en el sistema.
+  - Fila 65: La placa 'VEH764' ya existe en el sistema.
+  - Fila 66: La placa 'ALB855' ya existe en el sistema.
+  - Fila 67: La placa 'IMP436' ya existe en el sistema.
+  - Fila 68: La placa 'JHN427' ya existe en el sistema.
+  - Fila 69: La placa 'CAR748' ya existe en el sistema.
+  - Fila 70: La placa 'COL849' ya existe en el sistema.
+  - Fila 71: La placa 'RDM210' ya existe en el sistema.
+  - Fila 72: La placa 'COL331' ya existe en el sistema.
+  - Fila 73: La placa 'BGA142' ya existe en el sistema.
+  - Fila 74: La placa 'COL723' ya existe en el sistema.
+  - Fila 75: La placa 'RDM224' ya existe en el sistema.
+  - Fila 76: La placa 'BGA315' ya existe en el sistema.
+  - Fila 77: La placa 'CUC456' ya existe en el sistema.
+  - Fila 78: La placa 'TAX667' ya existe en el sistema.
+  - Fila 79: La placa 'CUC838' ya existe en el sistema.
+  - Fila 80: La placa 'VEH729' ya existe en el sistema.
+  - Fila 81: La placa 'RDM500' ya existe en el sistema.
+  - Fila 82: La placa 'CUC181' ya existe en el sistema.
+  - Fila 83: La placa 'VEH822' ya existe en el sistema.
+  - Fila 84: La placa 'VEH713' ya existe en el sistema.
+  - Fila 85: La placa 'RDM944' ya existe en el sistema.
+  - Fila 86: La placa 'TST325' ya existe en el sistema.
+  - Fila 87: La placa 'CAR656' ya existe en el sistema.
+  - Fila 88: La placa 'VEH357' ya existe en el sistema.
+  - Fila 89: La placa 'RDM468' ya existe en el sistema.
+  - Fila 90: La placa 'TAX839' ya existe en el sistema.
+  - Fila 91: La placa 'BGA250' ya existe en el sistema.
+  - Fila 92: La placa 'IMP111' ya existe en el sistema.
+  - Fila 93: La placa 'RDM722' ya existe en el sistema.
+  - Fila 94: La placa 'COL493' ya existe en el sistema.
+  - Fila 95: La placa 'IMP574' ya existe en el sistema.
+  - Fila 96: La placa 'VEH825' ya existe en el sistema.
+  - Fila 97: La placa 'VEH436' ya existe en el sistema.
+  - Fila 98: La placa 'IMP127' ya existe en el sistema.
+  - Fila 99: La placa 'IMP758' ya existe en el sistema.
+  - Fila 100: La placa 'COL249' ya existe en el sistema.
+  - Fila 101: La placa 'TAX600' ya existe en el sistema.
+==================================================

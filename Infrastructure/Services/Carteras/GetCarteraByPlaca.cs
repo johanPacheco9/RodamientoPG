@@ -1,8 +1,6 @@
-using Domain.Generics;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Resoluciones;
 using Domain.Responses.Liquidacion;
-using Domain.Responses.Users.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 namespace Infrastructure.Services.Carteras;

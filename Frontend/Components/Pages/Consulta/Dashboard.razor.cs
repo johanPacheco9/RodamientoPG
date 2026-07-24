@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Domain.Generics;
 using Domain.Models;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Recibos;
@@ -9,6 +10,7 @@ using Domain.Models.Resoluciones.Responses;
 using Domain.Responses.Liquidacion;
 using Domain.Responses.Recibo;
 using Domain.Responses.Resolucion.Enums;
+using Domain.Responses.Users.Enums;
 using Frontend.Reportes;
 using Infrastructure.Services.Carteras;
 using Infrastructure.Services.Importados;
@@ -19,6 +21,7 @@ using Infrastructure.Services.Procesos.Coactivo;
 using Infrastructure.Services.Procesos.Persuasivo;
 using Infrastructure.Services.Rec2ibos;
 using Infrastructure.Services.Resoluciones;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
@@ -603,7 +606,7 @@ public partial class Dashboard : ComponentBase, IDisposable
         var user = authState.User;
         var rol = user.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Role)?.Value;
 
-        if (user.Identity?.IsAuthenticated == true && rol != "2")
+        if (user.Identity?.IsAuthenticated == true && rol != Role.Funcionario.GetDisplayName())
         {
             await MostrarAlerta("warning", "Usuario sin permisos.");
             return false;
@@ -612,6 +615,44 @@ public partial class Dashboard : ComponentBase, IDisposable
         return true;
     }
 
+    private async Task ReversarResolucion(ResolucionResponseDto resolucion)
+    {
+        if (!await VerificarPermiso()) return;
+
+        bool confirmacion = await MostrarConfirmacion($"¿Está seguro de reversar la resolución N° {resolucion.NumeroResolucion}? Esta acción liberará las deudas vinculadas.");
+        if (!confirmacion) return;
+
+        try
+        {
+            _isLoading = true;
+            StateHasChanged();
+
+            // 🚀 Llamado al servicio pasando el ID de la resolución y el usuario actual (hardcoded o desde claims)
+            bool resultado = await ResolucionService.ReversarResolucion(resolucion.Id, 3);
+
+            if (resultado)
+            {
+                await MostrarAlerta("success", $"Resolución N° {resolucion.NumeroResolucion} reversada con éxito.");
+                // Recargamos la cartera y las resoluciones para refrescar las tablas
+                await ObtenerCartera();
+            }
+            else
+            {
+                await MostrarAlerta("error", "No se pudo reversar la resolución. Verifique el estado de la misma.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al reversar resolución: {ex.Message}");
+            await MostrarAlerta("error", $"Error al reversar resolución: {ex.Message}");
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
+    
     // ── JS interop ──────────────────────────────────────────────────
     private async Task MostrarAlerta(string tipo, string mensaje) =>
         await JsRuntime.InvokeVoidAsync("alert", mensaje);

@@ -1,0 +1,13 @@
+﻿==================================================
+ REPORTE DE IMPORTACIÓN DE VEHÍCULOS
+==================================================
+Fecha/Hora     : 2026-07-23 23:36:41
+Resultado      : ÉXITO
+Mensaje        : Importación completada con éxito. Vehículos creados: 1000.
+Duración       : 28,63 segundos
+Filas en Excel : 1000
+Importados     : 1000
+Errores/Avisos : 0
+--------------------------------------------------
+Sin errores ni avisos.
+==================================================

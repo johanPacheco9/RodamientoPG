@@ -1,0 +1,113 @@
+﻿==================================================
+ REPORTE DE IMPORTACIÓN DE VEHÍCULOS
+==================================================
+Fecha/Hora     : 2026-07-23 19:52:55
+Resultado      : CON PROBLEMAS
+Mensaje        : No se importó ningún vehículo debido a errores en la validación.
+Duración       : 9,30 segundos
+Filas en Excel : 100
+Importados     : 0
+Errores/Avisos : 100
+--------------------------------------------------
+Detalle de errores/avisos:
+  - Fila 2: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 3: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 4: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 5: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 6: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 7: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 8: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 9: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 10: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 11: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 12: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 13: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 14: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 15: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 16: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 17: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 18: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 19: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 20: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 21: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 22: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 23: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 24: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 25: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 26: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 27: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 28: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 29: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 30: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 31: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 32: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 33: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 34: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 35: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 36: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 37: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 38: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 39: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 40: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 41: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 42: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 43: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 44: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 45: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 46: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 47: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 48: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 49: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 50: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 51: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 52: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 53: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 54: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 55: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 56: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 57: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 58: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 59: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 60: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 61: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 62: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 63: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 64: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 65: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 66: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 67: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 68: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 69: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 70: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 71: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 72: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 73: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 74: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 75: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 76: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 77: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 78: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 79: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 80: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 81: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 82: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 83: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 84: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 85: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 86: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 87: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 88: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 89: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 90: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 91: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 92: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 93: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 94: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 95: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 96: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 97: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 98: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 99: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 100: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+  - Fila 101: Error inesperado - An error occurred while saving the entity changes. See the inner exception for details.
+==================================================

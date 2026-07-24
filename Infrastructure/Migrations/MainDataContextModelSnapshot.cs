@@ -106,26 +106,32 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Cilindraje")
                         .HasColumnType("integer");
 
-                    b.Property<string>("ClaseVehiculo")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<string>("Codigo")
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("Linea")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("LineaId")
+                        .HasColumnType("integer");
 
-                    b.Property<string>("Marca")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<int>("MarcaId")
+                        .HasColumnType("integer");
 
                     b.Property<int>("Pasajeros")
                         .HasColumnType("integer");
 
+                    b.Property<int>("TipoVehiculoId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("LineaId");
+
+                    b.HasIndex("MarcaId");
+
+                    b.HasIndex("TipoVehiculoId");
+
+                    b.HasIndex("Codigo", "MarcaId", "LineaId", "Cilindraje")
+                        .IsUnique();
 
                     b.ToTable("BaseGravableVehiculos");
                 });
@@ -138,20 +144,24 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<int>("AnioVigencia")
-                        .HasColumnType("integer");
-
                     b.Property<int>("BaseGravableVehiculoId")
                         .HasColumnType("integer");
 
-                    b.Property<decimal>("ValorComercial")
+                    b.Property<int>("Modelo")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Valor")
                         .HasColumnType("numeric");
+
+                    b.Property<int>("Vigencia")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BaseGravableVehiculoId");
+                    b.HasIndex("BaseGravableVehiculoId", "Vigencia", "Modelo")
+                        .IsUnique();
 
-                    b.ToTable("BaseGravableVigencia");
+                    b.ToTable("BaseGravableVigencias");
                 });
 
             modelBuilder.Entity("Domain.Models.Cartera", b =>
@@ -965,16 +975,13 @@ namespace Infrastructure.Migrations
                     b.Property<int>("IdMarca")
                         .HasColumnType("integer");
 
-                    b.Property<int>("MarcaId")
-                        .HasColumnType("integer");
-
                     b.Property<string>("Nombre")
                         .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("MarcaId");
+                    b.HasIndex("IdMarca");
 
                     b.ToTable("Lineas");
                 });
@@ -983,15 +990,13 @@ namespace Infrastructure.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasColumnName("id");
+                        .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Nombre")
                         .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("nombre");
+                        .HasColumnType("text");
 
                     b.HasKey("Id");
 
@@ -1166,6 +1171,33 @@ namespace Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("AvaluoVehiculo");
+                });
+
+            modelBuilder.Entity("Domain.Models.BaseGravable.BaseGravableVehiculo", b =>
+                {
+                    b.HasOne("Domain.Models.Vehiculos.Linea", "Linea")
+                        .WithMany()
+                        .HasForeignKey("LineaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Models.Vehiculos.Marca", "Marca")
+                        .WithMany()
+                        .HasForeignKey("MarcaId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Models.Vehiculos.TipoVehiculo", "TipoVehiculo")
+                        .WithMany()
+                        .HasForeignKey("TipoVehiculoId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Linea");
+
+                    b.Navigation("Marca");
+
+                    b.Navigation("TipoVehiculo");
                 });
 
             modelBuilder.Entity("Domain.Models.BaseGravable.BaseGravableVigencia", b =>
@@ -1352,7 +1384,7 @@ namespace Infrastructure.Migrations
                 {
                     b.HasOne("Domain.Models.Vehiculos.Marca", "Marca")
                         .WithMany()
-                        .HasForeignKey("MarcaId")
+                        .HasForeignKey("IdMarca")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
