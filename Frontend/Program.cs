@@ -92,7 +92,7 @@ app.MapGet("/generar-excel-prueba", async (HttpContext context) =>
     try
     {
         // Genera el Excel con los 10,000 registros
-        ExcelTestGenerator.GenerarExcelPrueba(tempPath, 1000);
+        ExcelTestGenerator.GenerarExcelPrueba(tempPath, 10000);
 
         var bytes = await File.ReadAllBytesAsync(tempPath);
 

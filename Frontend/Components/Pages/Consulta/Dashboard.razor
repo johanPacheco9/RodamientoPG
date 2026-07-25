@@ -2,6 +2,7 @@
 @page "/Consulta/{PlacaParam}"
 @using Domain.Generics
 @using Domain.Models
+@using Domain.Models.Acuerdos.Enums
 @using Domain.Models.ProcesoLiquidacion
 @using Domain.Responses.Liquidacion
 @using Domain.Responses.Recibo
@@ -29,17 +30,40 @@
 <!-- ─── Card: Propietario + Vehículo ─────────────────────────── -->
 @if (!string.IsNullOrEmpty(_estadoCuenta?.Documento))
 {
-    <div class="card mb-3">
+    <!-- BANNER DE ACUERDO DE PAGO VIGENTE -->
+    @if (_tieneAcuerdoVigente && _acuerdoActivo != null)
+    {
+        <div class="alert alert-warning border-warning d-flex align-items-center justify-content-between p-2.5 mb-3 shadow-sm rounded">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-warning bg-opacity-25 text-warning-emphasis p-2 d-flex align-items-center justify-content-center">
+                    <i class="bi bi-shield-lock-fill fs-5"></i>
+                </div>
+                <div>
+                    <div class="fw-bold text-dark">
+                        Acuerdo de Pago Vigente (#@_acuerdoActivo.NumeroAcuerdo)
+                    </div>
+                    <small class="text-muted d-block">
+                        Las vigencias asociadas se encuentran protegidas. Avance: 
+                        <strong class="text-dark">@_acuerdoActivo.Cuotas.Count(c => c.EstadoCuota == EstadoCuotaAcuerdo.Pagada) de @_acuerdoActivo.NumeroCuotas cuotas</strong> pagadas.
+                    </small>
+                </div>
+            </div>
+            <button class="btn btn-warning btn-sm fw-medium shadow-sm" @onclick="() => SetTab(6)">
+                <i class="bi bi-eye-fill me-1"></i> Gestionar Convenio
+            </button>
+        </div>
+    }
+
+    <!-- CARD INFORMACIÓN DEL PROPIETARIO Y VEHÍCULO -->
+    <div class="card mb-3 shadow-sm border-0">
         <div class="card-body py-3">
 
-            <p class="text-muted mb-2"
-               style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.04em;">
-                <i class="bi bi-person"></i> Propietario
+            <p class="text-muted mb-2" style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.04em;">
+                <i class="bi bi-person me-1"></i> Propietario
             </p>
             <div class="d-flex align-items-center gap-3 mb-3">
-                <div
-                    class="rounded-circle bg-primary bg-opacity-10 text-primary fw-medium d-flex align-items-center justify-content-center"
-                    style="width:40px; height:40px; font-size:14px; flex-shrink:0;">
+                <div class="rounded-circle bg-primary bg-opacity-10 text-primary fw-medium d-flex align-items-center justify-content-center"
+                     style="width:40px; height:40px; font-size:14px; flex-shrink:0;">
                     @Iniciales(_estadoCuenta.NombrePropietario)
                 </div>
                 <div>
@@ -53,11 +77,10 @@
                 </div>
             </div>
 
-            <hr class="my-2">
+            <hr class="my-2 opacity-25">
 
-            <p class="text-muted mb-2"
-               style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.04em;">
-                <i class="bi bi-car-front"></i> Vehículo · <strong>@_estadoCuenta.Placa</strong>
+            <p class="text-muted mb-2" style="font-size:11px; font-weight:500; text-transform:uppercase; letter-spacing:.04em;">
+                <i class="bi bi-car-front me-1"></i> Vehículo · <strong>@_estadoCuenta.Placa</strong>
             </p>
             <div class="row g-2">
                 <div class="col-6 col-md-2">
@@ -104,17 +127,18 @@
         </div>
     </div>
 
+    <!-- TARJETAS DE INDICADORES DE DEUDA -->
     <div class="row g-3 mb-3">
         <div class="col-6 col-md-3">
-            <div class="card h-100">
+            <div class="card h-100 shadow-sm border-0">
                 <div class="card-body py-2 px-3">
-                    <small class="text-muted d-block">Total deuda</small>
-                    <span class="fw-medium text-danger fs-5">@_estadoCuenta.TotalDeuda.ToString("C")</span>
+                    <small class="text-muted d-block">Total deuda ordinaria</small>
+                    <span class="fw-bold text-danger fs-5">@_estadoCuenta.TotalDeuda.ToString("C0")</span>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card h-100">
+            <div class="card h-100 shadow-sm border-0">
                 <div class="card-body py-2 px-3">
                     <small class="text-muted d-block">Vigencias pendientes</small>
                     <span class="fw-medium fs-5">@_vigencias.Count año(s)</span>
@@ -122,16 +146,17 @@
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card h-100">
+            <div class="card h-100 shadow-sm border-0">
                 <div class="card-body py-2 px-3">
                     <small class="text-muted d-block">Último pago</small>
-                    <span
-                        class="fw-medium fs-5">@(_estadoCuenta.UltimoPago.HasValue ? _estadoCuenta.UltimoPago.Value.ToString("MMM yyyy") : "—")</span>
+                    <span class="fw-medium fs-5">
+                        @(_estadoCuenta.UltimoPago.HasValue ? _estadoCuenta.UltimoPago.Value.ToString("MMM yyyy") : "—")
+                    </span>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card h-100">
+            <div class="card h-100 shadow-sm border-0">
                 <div class="card-body py-2 px-3">
                     <small class="text-muted d-block">Proceso activo</small>
                     @if (coactivosList.Any(p => p.EstadoProceso == EstadoProceso.Coactivo))
@@ -151,43 +176,62 @@
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header p-0">
+    <!-- PESTAÑAS Y CONTENIDO PRINCIPAL -->
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-white border-bottom p-0">
             <ul class="nav nav-tabs card-header-tabs px-3">
                 <li class="nav-item">
                     <button class="nav-link @(tab == 1 ? "active" : "")" @onclick="() => SetTab(1)">
-                        <i class="bi bi-receipt"></i> Estado de cuenta
+                        <i class="bi bi-receipt me-1"></i> Estado de cuenta
                     </button>
                 </li>
                 <li class="nav-item">
                     <button class="nav-link @(tab == 2 ? "active" : "")" @onclick="() => SetTab(2)">
-                        <i class="bi bi-file-earmark-text"></i> Recibos
+                        <i class="bi bi-file-earmark-text me-1"></i> Recibos
                     </button>
                 </li>
                 <li class="nav-item">
                     <button class="nav-link @(tab == 3 ? "active" : "")" @onclick="() => SetTab(3)">
-                        <i class="bi bi-bar-chart"></i> Resumen conceptos
+                        <i class="bi bi-bar-chart me-1"></i> Resumen conceptos
                     </button>
                 </li>
-                <li class="nav-item">
-                    <button class="nav-link @(tab == 4 ? "active" : "")" @onclick="() => SetTab(4)">
-                        <i class="bi bi-journal-text"></i> Resoluciones
+                
+                <!-- DROPDOWN: LEGAL Y CONVENIOS -->
+                <li class="nav-item dropdown">
+                    <button class="nav-link dropdown-toggle @(tab >= 4 ? "active fw-bold" : "")" 
+                            type="button"
+                            @onclick="ToggleDropdown"
+                            aria-expanded="@isDropdownOpen">
+                        <i class="bi bi-briefcase me-1"></i> Legal y Convenios
                     </button>
-                </li>
-                <li class="nav-item">
-                    <button class="nav-link @(tab == 5 ? "active" : "")" @onclick="() => SetTab(5)">
-                        <i class="bi bi-gavel"></i> Procesos
-                    </button>
+                    <ul class="dropdown-menu shadow-sm @(isDropdownOpen ? "show" : "")">
+                        <li>
+                            <button type="button" class="dropdown-item @(tab == 4 ? "active" : "")" @onclick="() => SelectTab(4)">
+                                <i class="bi bi-journal-text me-2 text-info"></i>Resoluciones
+                            </button>
+                        </li>
+                        <li>
+                            <button type="button" class="dropdown-item @(tab == 5 ? "active" : "")" @onclick="() => SelectTab(5)">
+                                <i class="bi bi-gavel me-2 text-danger"></i>Procesos Coactivos
+                            </button>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <button type="button" class="dropdown-item @(tab == 6 ? "active" : "")" @onclick="() => SelectTab(6)">
+                                <i class="bi bi-handshake me-2 text-warning"></i>Acuerdos de Pago
+                            </button>
+                        </li>
+                    </ul>
                 </li>
             </ul>
         </div>
 
         <div class="card-body p-3">
 
+            <!-- TAB 1: ESTADO DE CUENTA -->
             @if (tab == 1)
             {
-                <p class="text-muted mb-2"
-                   style="font-size:11px; text-transform:uppercase; letter-spacing:.04em; font-weight:500;">
+                <p class="text-muted mb-2" style="font-size:11px; text-transform:uppercase; letter-spacing:.04em; font-weight:500;">
                     Seleccione las vigencias a pagar
                 </p>
                 <div class="table-responsive">
@@ -206,39 +250,52 @@
                         <tbody>
                         @foreach (var grupo in _vigencias)
                         {
-                            <tr class="@(grupo.Seleccionado ? "table-primary" : "") fw-medium">
+                            bool enAcuerdo = grupo.Conceptos.Any(c => c.AcuerdoPagoId != null);
+
+                            <tr class="@(enAcuerdo ? "table-warning bg-opacity-25" : grupo.Seleccionado ? "table-primary" : "") fw-medium">
                                 <td class="text-center">
-                                    <input type="checkbox"
-                                           class="form-check-input"
-                                           @bind="grupo.Seleccionado"
-                                           @bind:after="RecalcularTotal"/>
+                                    @if (enAcuerdo)
+                                    {
+                                        <span class="badge bg-warning text-dark border border-warning" title="Bloqueado por Acuerdo de Pago vigente">
+                                            <i class="bi bi-lock-fill"></i> AP
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox"
+                                               class="form-check-input"
+                                               @bind="grupo.Seleccionado"
+                                               @bind:after="RecalcularTotal"/>
+                                    }
                                 </td>
-                                <td><strong>@grupo.Vigencia</strong></td>
+                                <td>
+                                    <strong>@grupo.Vigencia</strong>
+                                    @if (enAcuerdo)
+                                    {
+                                        <small class="text-warning-emphasis d-block font-monospace" style="font-size: 10px;">(En Convenio)</small>
+                                    }
+                                </td>
                                 <td>
                                     @foreach (var c in grupo.Conceptos)
                                     {
                                         <span class="badge bg-secondary me-1">@c.Concepto</span>
                                     }
                                 </td>
-                                <td class="text-end">
-                                    @grupo.Conceptos.Sum(c => c.Valor).ToString("C")
-                                </td>
-                                <td class="text-end">
-                                    @grupo.Conceptos.Sum(c => c.ValorInteres).ToString("C")
-                                </td>
+                                <td class="text-end">@grupo.Conceptos.Sum(c => c.Valor).ToString("C0")</td>
+                                <td class="text-end">@grupo.Conceptos.Sum(c => c.ValorInteres).ToString("C0")</td>
                                 <td class="text-end">
                                     @if (grupo.Conceptos.Sum(c => c.Descuento) > 0)
                                     {
                                         <span class="badge bg-success-subtle text-success-emphasis">
-                                            -@grupo.Conceptos.Sum(c => c.Descuento).ToString("C")
+                                            -@grupo.Conceptos.Sum(c => c.Descuento).ToString("C0")
                                         </span>
                                     }
                                     else
                                     {
-                                        <span>$0</span>
+                                        <span class="text-muted opacity-50">$0</span>
                                     }
                                 </td>
-                                <td class="text-end fw-medium">@grupo.TotalVigencia.ToString("C")</td>
+                                <td class="text-end fw-bold">@grupo.TotalVigencia.ToString("C0")</td>
                             </tr>
                         }
                         </tbody>
@@ -247,30 +304,30 @@
                             <td colspan="6" class="text-end text-muted small">
                                 Total seleccionado (@carterasSeleccionadasIds.Count concepto(s)):
                             </td>
-                            <td class="text-end fw-medium text-danger">@totalSeleccionado.ToString("C")</td>
+                            <td class="text-end fw-bold text-danger fs-6">@totalSeleccionado.ToString("C0")</td>
                         </tr>
                         </tfoot>
                     </table>
                 </div>
 
-                <div class="d-flex align-items-center justify-content-between mt-2 gap-2 flex-wrap
-                            bg-light rounded p-2">
+                <div class="d-flex align-items-center justify-content-between mt-2 gap-2 flex-wrap bg-light rounded p-2">
                     <div class="d-flex gap-2 flex-wrap">
                         <button class="btn btn-primary btn-sm" @onclick="GenerarRecibo"
                                 disabled="@(!carterasSeleccionadasIds.Any())">
-                            <i class="bi bi-printer"></i> Generar recibo
+                            <i class="bi bi-printer me-1"></i> Generar recibo
                         </button>
                         <button class="btn btn-outline-secondary btn-sm" @onclick="GenerarPazYSalvo">
-                            <i class="bi bi-file-earmark-check"></i> Paz y salvo
+                            <i class="bi bi-file-earmark-check me-1"></i> Paz y salvo
                         </button>
                     </div>
                     <div class="text-end">
                         <small class="text-muted d-block">Total a pagar</small>
-                        <span class="fw-medium text-danger fs-5">@totalSeleccionado.ToString("C")</span>
+                        <span class="fw-bold text-danger fs-5">@totalSeleccionado.ToString("C0")</span>
                     </div>
                 </div>
             }
 
+            <!-- TAB 2: RECIBOS -->
             @if (tab == 2)
             {
                 <div class="table-responsive">
@@ -297,10 +354,10 @@
                                 <td><span class="badge @BadgeRecibo(r.Estado.GetDisplayName())">@r.Estado</span></td>
                                 <td>@(r.FechaPago?.ToString("dd/MM/yyyy") ?? "—")</td>
                                 <td>@r.Desde – @r.Hasta</td>
-                                <td class="text-end">@r.ValorCapital.ToString("C")</td>
-                                <td class="text-end">@r.InteresMora.ToString("C")</td>
-                                <td class="text-end">@r.Descuento.ToString("C")</td>
-                                <td class="text-end fw-medium">@r.ValorTotalCalculado.ToString("C")</td>
+                                <td class="text-end">@r.ValorCapital.ToString("C0")</td>
+                                <td class="text-end">@r.InteresMora.ToString("C0")</td>
+                                <td class="text-end">@r.Descuento.ToString("C0")</td>
+                                <td class="text-end fw-medium">@r.ValorTotalCalculado.ToString("C0")</td>
                             </tr>
                         }
                         </tbody>
@@ -308,12 +365,12 @@
                 </div>
             }
 
+            <!-- TAB 3: RESUMEN CONCEPTOS (DESGLOSE) -->
             @if (tab == 3)
             {
                 <div class="mb-3">
                     <h6 class="fw-semibold text-secondary mb-1">Desglose detallado por vigencia y concepto</h6>
-                    <p class="text-muted small">A continuación se detalla el comportamiento financiero de cada rubro
-                        parametrizado discriminado por su año fiscal correspondiente.</p>
+                    <p class="text-muted small mb-0">A continuación se detalla el comportamiento financiero de cada rubro parametrizado discriminado por su año fiscal correspondiente.</p>
                 </div>
 
                 <div class="table-responsive">
@@ -329,7 +386,6 @@
                         </tr>
                         </thead>
                         <tbody>
-
                         @foreach (var rubroDetallado in _vigencias
                                       .SelectMany(v => v.Conceptos.Select(c => new { v.Vigencia, Detalle = c }))
                                       .OrderBy(r => r.Vigencia)
@@ -339,17 +395,16 @@
 
                             <tr>
                                 <td>
-                        <span
-                            class="badge bg-light text-dark border border-secondary border-opacity-25 font-monospace px-2 py-1 fw-bold">
-                            @rubroDetallado.Vigencia
-                        </span>
+                                    <span class="badge bg-light text-dark border border-secondary border-opacity-25 font-monospace px-2 py-1 fw-bold">
+                                        @rubroDetallado.Vigencia
+                                    </span>
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
                                         <i class="bi bi-arrow-right-short text-primary"></i>
                                         <span class="fw-medium text-dark text-uppercase" style="font-size: 12.5px;">
-                                @rubroDetallado.Detalle.Concepto
-                            </span>
+                                            @rubroDetallado.Detalle.Concepto
+                                        </span>
                                     </div>
                                 </td>
                                 <td class="text-end font-monospace text-secondary">
@@ -395,11 +450,12 @@
                 </div>
             }
 
+            <!-- TAB 4: RESOLUCIONES -->
             @if (tab == 4)
             {
                 <div class="d-flex justify-content-end mb-2">
                     <button class="btn btn-warning btn-sm" @onclick="MostrarModal_R">
-                        <i class="bi bi-plus"></i> Crear resolución
+                        <i class="bi bi-plus me-1"></i> Crear resolución
                     </button>
                 </div>
                 <div class="table-responsive">
@@ -425,9 +481,9 @@
                                 <td>@r.Fecha.ToString("dd/MM/yyyy")</td>
                                 <td><strong>@r.NumeroResolucion</strong></td>
                                 <td>
-                        <span class="badge bg-info-subtle text-info-emphasis">
-                            @r.TipoResolucion.GetDisplayName()
-                        </span>
+                                    <span class="badge bg-info-subtle text-info-emphasis">
+                                        @r.TipoResolucion.GetDisplayName()
+                                    </span>
                                 </td>
                                 <td>
                                     @if (r.AnioDesde.HasValue)
@@ -448,7 +504,7 @@
                                 </td>
                                 <td class="text-muted small">@r.Observaciones</td>
                                 <td><span class="badge @BadgeEstadoResolucion(r.Estado)">@r.Estado</span></td>
-                                <td class="text-end">@r.Valor.ToString("C")</td>
+                                <td class="text-end">@r.Valor.ToString("C0")</td>
                                 <td class="text-center">
                                     @if (r.Estado == EstadoResolucion.Activa)
                                     {
@@ -470,15 +526,16 @@
                 </div>
             }
 
+            <!-- TAB 5: PROCESOS COACTIVOS / PERSUASIVOS -->
             @if (tab == 5)
             {
                 <div class="row">
                     <div class="d-flex justify-content-end mb-2 gap-2 flex-wrap">
                         <button class="btn btn-success btn-sm" @onclick="MostrarModal">
-                            <i class="bi bi-plus"></i> Iniciar cobro persuasivo
+                            <i class="bi bi-plus me-1"></i> Iniciar cobro persuasivo
                         </button>
                         <button class="btn btn-warning btn-sm" @onclick="MostrarModalCoactivoDirecto">
-                            <i class="bi bi-plus"></i> Iniciar cobro Coactivo sin haber pasado por persuasivo
+                            <i class="bi bi-plus me-1"></i> Iniciar cobro Coactivo directo
                         </button>
                     </div>
                 </div>
@@ -491,7 +548,6 @@
                             <th>Fecha</th>
                             <th>No. proceso</th>
                             <th>Resolución</th>
-                            <th>Período</th>
                             <th>Estado</th>
                             <th class="text-center">Avisos</th>
                             <th class="text-end">Valor</th>
@@ -504,9 +560,8 @@
                             <tr>
                                 <td>@p.Id</td>
                                 <td>@p.Fecha.ToString("dd/MM/yyyy")</td>
-                                <td><strong>@p.NumeroProceso</strong></td>
-                                <td>@p.Resolucion</td>
-                                <td>@p.Desde – @p.Hasta</td>
+                                <td><strong>@(p.NumeroProceso?.ToString() ?? "—")</strong></td>
+                                <td>@(p.Resolucion ?? "—")</td>
                                 <td>
                                     <span class="badge @BadgeEstadoProceso(p.EstadoProceso)">
                                         @p.EstadoProceso.GetDisplayName()
@@ -517,7 +572,7 @@
                                         @AvisosProceso(p)/4
                                     </span>
                                 </td>
-                                <td class="text-end">@p.Valor.ToString("C")</td>
+                                <td class="text-end">@p.Valor.ToString("C0")</td>
                                 <td class="text-end">
                                     @if (p.EstadoProceso == EstadoProceso.Persuasivo)
                                     {
@@ -542,9 +597,84 @@
                 </div>
             }
 
+            <!-- TAB 6: ACUERDOS DE PAGO -->
+            @if (tab == 6)
+            {
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h6 class="fw-semibold text-secondary mb-0">Acuerdos y Convenios de Pago</h6>
+                        <small class="text-muted">Registro histórico y seguimiento de las cuotas financias</small>
+                    </div>
+                    <button class="btn btn-primary btn-sm" @onclick="MostrarModalCrearAcuerdo">
+                        <i class="bi bi-plus-lg me-1"></i> Nuevo Acuerdo
+                    </button>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>No. Acuerdo</th>
+                            <th>Fecha suscripción</th>
+                            <th class="text-center">Avance Cuotas</th>
+                            <th class="text-end">Capital financiado</th>
+                            <th class="text-end">Interés financiado</th>
+                            <th class="text-end">Total financiado</th>
+                            <th class="text-end"> Vigencias</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var a in acuerdosList)
+                        {
+                            var cuotasPagadas = a.Cuotas.Count(c => c.EstadoCuota == EstadoCuotaAcuerdo.Pagada);
+
+                            <tr>
+                                <td><strong>@a.NumeroAcuerdo</strong></td>
+                                <td>@a.FechaSuscripcion.ToString("dd/MM/yyyy")</td>
+                                <td class="text-center">
+                                    <span class="badge bg-light text-dark border font-monospace">
+                                        @cuotasPagadas / @a.NumeroCuotas
+                                    </span>
+                                </td>
+                                <td class="text-end">@a.ValorCapitalFinanciado.ToString("C0")</td>
+                                <td class="text-end text-danger">@a.ValorInteresFinanciado.ToString("C0")</td>
+                                <td class="text-end fw-bold">@a.ValorTotalFinanciado.ToString("C0")</td>
+                                <td>
+                                    <span class="badge @BadgeEstadoAcuerdo(a.Estado)">
+                                        @a.Estado
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (a.VigenciaDesde.HasValue && a.VigenciaHasta.HasValue)
+                                    {
+                                        <span>@a.VigenciaDesde - @a.VigenciaHasta</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">N/A</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <button class="btn btn-outline-secondary btn-sm py-0 px-2"
+                                            @onclick="() => VerCuotasAcuerdo(a)">
+                                        <i class="bi bi-list-check me-1"></i> Cuotas
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            }
+
         </div>
     </div>
 }
+
+
+
 <!-- ─── Modal: Búsqueda por cédula ───────────────────────────── -->
 @if (MostrarBusquedaCedula)
 {

@@ -1,4 +1,5 @@
 using Domain.Models;
+using Domain.Models.Acuerdos.Enums;
 using Domain.Models.Carteras.Enums;
 using Domain.Responses.Liquidacion.Enums;
 using Microsoft.EntityFrameworkCore;
@@ -55,14 +56,24 @@ public partial class CarteraService
             .AsNoTracking()
             .Include(b => b.Vigencias)
             .FirstOrDefaultAsync(b => b.MarcaId == vehiculo.MarcaId && b.LineaId == vehiculo.LineaId);
-
+        
+        var vigenciasBloqueadas = await context.Cartera.Where
+        (c => c.VehiculoId == vehiculo.Id && 
+              c.AcuerdoPago != null && 
+              c.AcuerdoPago.Estado == EstadoAcuerdoPago.Vigente)
+            .Select(c => c.Vigencia).Distinct().ToListAsync();
+        
         for (var vigencia = inicioVigencia; vigencia <= hasta; vigencia++)
         {
-            // 💡 CORRECCIÓN 2: Obtener el avalúo comercial o asignar un estimado si no existe en la BD
+            if (vigenciasBloqueadas.Contains(vigencia))
+            {
+                continue;
+            }
+            
+            // Obtener el avalúo comercial o asignar un estimado si no existe en la BD
             decimal valorComercial = baseGravableVehiculo?.Vigencias
                 .FirstOrDefault(v => v.Vigencia == vigencia && v.Modelo == vehiculo.Modelo)?.Valor ?? 0m;
 
-            // Si no hay avalúo comercial registrado en la tabla para esa línea/modelo
             if (valorComercial == 0m)
             {
                 // Para motos o vehículos sin avalúo oficial, asignamos un valor base por defecto
@@ -81,7 +92,7 @@ public partial class CarteraService
                 vehiculo.TipoServicioVehiculo,
                 valorRango);
 
-            // 💡 CORRECCIÓN 3: Si tarifaPorcentaje es un valor fijo (ej. motos) o un porcentaje (ej. 0.015 para 1.5%)
+            //Si tarifaPorcentaje es un valor fijo (ej. motos) o un porcentaje (ej. 0.015 para 1.5%)
             decimal valorRodamiento = 0m;
             if (tarifaPorcentaje > 0)
             {

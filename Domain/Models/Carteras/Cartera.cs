@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Models.Acuerdos;
 using Domain.Models.Carteras.Enums;
 using Domain.Models.Notificaciones;
 using Domain.Models.Resoluciones;
@@ -53,6 +54,10 @@ public class Cartera : EntityWithTraceability
     // =========================================================
     //  RELACIONES
     // =========================================================
+    
+    // En tu entidad Cartera.cs
+    public int? AcuerdoPagoId { get; set; }
+    public virtual AcuerdosDePago? AcuerdoPago { get; set; }
     
     public int? ResolucionId { get; set; }
 

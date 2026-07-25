@@ -1,12 +1,14 @@
+using Domain.Models.ProcesoLiquidacion;
 using Infrastructure.Services.Importados.Responses;
 using MiniExcelLibs;
+
 namespace Infrastructure.Services.Importados;
 
 public static class ExcelTestGenerator
 {
     public static void GenerarExcelPrueba(string rutaSalida, int cantidad = 100)
     {
-        var random = new Random(1098825894); // Semilla fija para consistencia
+        var random = new Random(1098825894); // Semilla fija para pruebas repetibles
 
         var nombres = new[] { "Juan", "Carlos", "Diana", "Sandra", "Camila", "Jorge", "Luis", "Pedro", "Maria", "Andres", "Diego", "Paula" };
         var apellidos = new[] { "Gomez", "Rodriguez", "Lopez", "Perez", "Castro", "Silva", "Diaz", "Ortiz", "Mendoza", "Velez" };
@@ -15,7 +17,6 @@ public static class ExcelTestGenerator
         var prefijosCedulas = new[] { "72", "19", "91", "37", "51", "1098", "1143", "1015" };
         var colores = new[] { "Blanco", "Negro", "Gris", "Rojo", "Azul" };
 
-        // Definimos combinaciones realistas de Marca y Línea
         var catalogosVehiculos = new[]
         {
             new { Marca = "Renault", Linea = "Stepway", Tipo = "Automovil" },
@@ -29,28 +30,59 @@ public static class ExcelTestGenerator
             new { Marca = "Mercedes Benz", Linea = "Sprinter", Tipo = "Buseta" }
         };
 
+        // 👥 1. Banco de Propietarios Reutilizables (Para simular multivehículo)
+        var propietariosFrecuentes = new List<(string Documento, string Nombre)>();
+        for (int p = 1; p <= 15; p++) // 15 propietarios "frecuentes"
+        {
+            var prefijo = Pick(prefijosCedulas, random);
+            string doc = prefijo.Length == 2 ? $"{prefijo}{random.Next(10000, 99999)}0" : $"{prefijo}{p:D6}";
+            string nombreCompleto = $"{Pick(nombres, random)} {Pick(apellidos, random)}";
+            propietariosFrecuentes.Add((doc, nombreCompleto));
+        }
+
         var listaDtos = new List<ImportacionVehiculoDto>();
         var placasUsadas = new HashSet<string>();
 
         for (int i = 1; i <= cantidad; i++)
         {
-            // 🎯 Ponderación probabilística realista (55% Motos, 20% Autos, 15% Camionetas, etc.)
             var catalogoElegido = SeleccionarCatalogoRealista(catalogosVehiculos, random);
 
-            // Generación de Placa Única
+            // 🎯 Placa Única
             string placa;
             do
             {
                 placa = $"{Pick(placasBase, random)}{random.Next(10, 99)}{i % 10}";
             } while (!placasUsadas.Add(placa));
 
-            // Documento Propietario
-            var prefijo = Pick(prefijosCedulas, random);
-            string documento = prefijo.Length == 2 
-                ? $"{prefijo}{random.Next(10000, 99999)}{i % 10}" 
-                : $"{prefijo}{i:D6}";
+            // 🎯 Asignación de Propietario (15% Probabilidad de asignarlo a un dueño repetido)
+            bool esMultiVehiculo = random.Next(1, 101) <= 12;
+            string documento;
+            string nombrePropietario;
+
+            if (esMultiVehiculo)
+            {
+                var duenoExistente = Pick(propietariosFrecuentes, random);
+                documento = duenoExistente.Documento;
+                nombrePropietario = duenoExistente.Nombre;
+            }
+            else
+            {
+                var prefijo = Pick(prefijosCedulas, random);
+                documento = prefijo.Length == 2 ? $"{prefijo}{random.Next(10000, 99999)}{i % 10}" : $"{prefijo}{i:D6}";
+                nombrePropietario = $"{Pick(nombres, random)} {Pick(apellidos, random)}";
+            }
 
             var modelo = random.Next(2015, 2026);
+            
+            //Estadp Proceso
+            int probEstado = random.Next(1, 101);
+            EstadoProceso estadoProcesoSimulado = probEstado switch
+            {
+                <= 65 => EstadoProceso.SinProceso,      // 0
+                <= 80 => EstadoProceso.Persuasivo,      // 10
+                <= 92 => EstadoProceso.MandamientoPago, // 20
+                _ => EstadoProceso.Coactivo             // 50
+            };
 
             listaDtos.Add(new ImportacionVehiculoDto
             {
@@ -64,16 +96,20 @@ public static class ExcelTestGenerator
                 },
                 TipoDocumento = "CC",
                 DocumentoPropietario = documento,
-                NombrePropietario = $"{Pick(nombres, random)} {Pick(apellidos, random)}",
+                NombrePropietario = nombrePropietario,
                 TelefonoPropietario = $"315{random.Next(1000000, 9999999)}",
                 DireccionPropietario = Pick(direcciones, random),
-                CorreoPropietario = $"usuario{i}@correo.com",
+                CorreoPropietario = $"usuario_{documento}@correo.com",
                 Marca = catalogoElegido.Marca,
                 Linea = catalogoElegido.Linea,
                 TipoVehiculo = catalogoElegido.Tipo,
-                Color = Pick(colores, random)
+                Color = Pick(colores, random),
+                UltimaVigenciaPagada = random.Next(2020, 2025),
+                EstadoProceso = estadoProcesoSimulado,
+                TieneAcuerdoPago = random.Next(1, 101) <= 8
             });
         }
+
         MiniExcel.SaveAs(rutaSalida, listaDtos, true);
     }
 
@@ -81,7 +117,6 @@ public static class ExcelTestGenerator
     {
         int prob = random.Next(1, 101);
 
-        // 55% Motos, 20% Autos, 15% Camionetas, 10% Pesados
         string tipoBuscado = prob switch
         {
             <= 55 => "Motocicleta",

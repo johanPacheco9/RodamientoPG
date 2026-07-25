@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+using Domain.Models.ProcesoLiquidacion;
 using MiniExcelLibs.Attributes;
 
 namespace Infrastructure.Services.Importados.Responses;
@@ -7,7 +9,6 @@ public class ImportacionVehiculoDto
     [ExcelColumnName("Placa")]
     public string? Placa { get; set; }
 
-    // 🚀 Al ser int?, si la celda está vacía o tiene formato raro, MiniExcel asigna null sin romperse
     [ExcelColumnName("Modelo")]
     public int? Modelo { get; set; }
 
@@ -45,4 +46,14 @@ public class ImportacionVehiculoDto
 
     [ExcelColumnName("Color")]
     public string? Color { get; set; }
+
+    // --- 🚀 Estados y Antecedentes de Negocio Tipados ---
+    [ExcelColumnName("UltimaVigenciaPagada")]
+    public int? UltimaVigenciaPagada { get; set; }
+
+    [ExcelColumnName("EstadoProceso")]
+    public EstadoProceso? EstadoProceso { get; set; } // 👈 Tipado con tu Enum
+
+    [ExcelColumnName("TieneAcuerdoPago")]
+    public bool? TieneAcuerdoPago { get; set; }
 }

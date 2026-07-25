@@ -1,3 +1,4 @@
+using Infrastructure.Services.AcuerdosPago;
 using Infrastructure.Services.Carteras;
 using Infrastructure.Services.Colores;
 using Infrastructure.Services.EmailNotification;
@@ -57,6 +58,7 @@ public static class DependencyInjection
         services.AddTransient<TraspasoManager>();
         services.AddTransient<ResolucionService>();
         services.AddTransient<ReportesManager>();
+        services.AddTransient<AcuerdoPagoService>();
         //Recibo
         services.AddTransient<ReciboService>();
         //Envio emails

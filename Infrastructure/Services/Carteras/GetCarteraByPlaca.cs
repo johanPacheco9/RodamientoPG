@@ -3,6 +3,7 @@ using Domain.Models.Resoluciones;
 using Domain.Responses.Liquidacion;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+
 namespace Infrastructure.Services.Carteras;
 
 public partial class CarteraService
@@ -61,11 +62,12 @@ public partial class CarteraService
             foreach (var c in carteraBase)
             {
                 decimal interesActualizado = c.TieneInteres
-                    ? await  liquidacionService.CalcularInteresMora(c.Valor, c.Vigencia)
+                    ? await liquidacionService.CalcularInteresMora(c.Valor, c.Vigencia)
                     : 0m;
 
                 decimal totalActualizado = c.Valor + interesActualizado - c.Descuento;
 
+                // 🚀 SE INCLUYE c.AcuerdoPagoId PARA PROTEGER EL REGISTRO
                 carteraPendiente.Add(new ConceptoCarteraDto(
                     c.Id,
                     c.Vigencia,
@@ -74,7 +76,8 @@ public partial class CarteraService
                     c.Valor,
                     interesActualizado, 
                     c.Descuento,
-                    totalActualizado
+                    totalActualizado,
+                    c.AcuerdoPagoId // ID del acuerdo si la vigencia está financiada
                 ));
             }
             
@@ -114,7 +117,6 @@ public partial class CarteraService
         catch (Exception ex)
         {
             logger.LogError(ex, "Error consultando liquidación para placa {Placa}", placa);
-
             return null;
         }
     }

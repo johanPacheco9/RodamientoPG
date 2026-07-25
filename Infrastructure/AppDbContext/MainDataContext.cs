@@ -1,4 +1,5 @@
 using Domain.Models;
+using Domain.Models.Acuerdos;
 using Domain.Models.Avaluo;
 using Domain.Models.BaseGravable;
 using Domain.Models.Notificaciones;
@@ -40,6 +41,10 @@ public class MainDataContext(DbContextOptions<MainDataContext> options) : DbCont
     public DbSet<AvaluoVigencia> AvaluoVigencias { get; set; }
     public DbSet<AvaluoVehiculo> AvaluoVehiculos { get; set; }
     public DbSet<HistorialEstadoProceso> HistorialEstadoProceso { get; set; }
+
+    public DbSet<AcuerdosDePago> AcuerdosDePago { get; set; }
+    
+    public DbSet<CuotaAcuerdoPago> CuotasAcuerdoDePagos { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

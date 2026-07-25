@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Domain.Generics;
 using Domain.Models;
+using Domain.Models.Acuerdos.Enums;
+using Domain.Models.Acuerdos.Responses;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Recibos;
 using Domain.Models.Recibos.Responses;
@@ -12,6 +14,7 @@ using Domain.Responses.Recibo;
 using Domain.Responses.Resolucion.Enums;
 using Domain.Responses.Users.Enums;
 using Frontend.Reportes;
+using Infrastructure.Services.AcuerdosPago;
 using Infrastructure.Services.Carteras;
 using Infrastructure.Services.Importados;
 using Infrastructure.Services.Liquidaciones;
@@ -21,7 +24,6 @@ using Infrastructure.Services.Procesos.Coactivo;
 using Infrastructure.Services.Procesos.Persuasivo;
 using Infrastructure.Services.Rec2ibos;
 using Infrastructure.Services.Resoluciones;
-using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.JSInterop;
@@ -45,18 +47,42 @@ public partial class Dashboard : ComponentBase, IDisposable
     [Inject] private IJSRuntime JsRuntime { get; set; } = null!;
     [Inject] private PersuasivoService PersuasivoService { get; set; } = null!;
     [Inject] private CoactivoService CoactivoService { get; set; } = null!;
-
-    [Inject]
-    private ResolucionService ResolucionService { get; set; } = null!;
+    [Inject] private ResolucionService ResolucionService { get; set; } = null!;
+    [Inject] private AcuerdoPagoService AcuerdoPagoService { get; set; } = null!;
 
     // ── Estado principal ────────────────────────────────────────────
     private EstadoCuentaVehiculoDto _estadoCuenta = new();
     private List<VigenciaForm> _vigencias = [];
     private List<ConceptoResumenDto> resumenConceptoslist = [];
-    private List<ReciboDto> reciboslist = []; // Inicializado para evitar nulls en renderizado inicial
+    private List<ReciboDto> reciboslist = [];
     private List<DetalleReciboDto> _detalleRecibo = [];
     private List<ResolucionResponseDto> resolucioneslist = [];
     private List<Proceso> coactivosList = [];
+    private List<AcuerdoPagoDto> acuerdosList = []; // 🚀 Lista de Acuerdos
+    private AcuerdoPagoDto? _acuerdoActivo; // 🚀 Acuerdo Vigente actual
+    
+    private bool isDropdownOpen = false;
+    
+    private async Task CloseDropdown()
+    {
+        // Pequeño delay para permitir que el click del ítem se ejecute antes de cerrar
+        await Task.Delay(150);
+        isDropdownOpen = false;
+    }
+
+    private void ToggleDropdown()
+    {
+        isDropdownOpen = !isDropdownOpen;
+    }
+
+    private void SelectTab(int selectedTab)
+    {
+        isDropdownOpen = false; // Cierra el menú desplegable
+        SetTab(selectedTab);    // Cambia la pestaña activa
+    }
+
+    private bool _tieneAcuerdoVigente => _acuerdoActivo != null;
+
     private Dictionary<int, int> avisosPorProceso = [];
     private Resolucion resolObj = new();
     private Recibo_pago recibo_Pago = new();
@@ -110,10 +136,13 @@ public partial class Dashboard : ComponentBase, IDisposable
     {
         tab = n;
 
-        // Si es la pestaña de procesos (tab 5), cargar los datos
         if (n == 5 && !string.IsNullOrEmpty(_estadoCuenta?.Placa))
         {
             await CargarCoactivos(_estadoCuenta.Placa);
+        }
+        else if (n == 6 && !string.IsNullOrEmpty(_estadoCuenta?.Placa))
+        {
+            await CargarAcuerdosPago(_estadoCuenta.Placa);
         }
 
         StateHasChanged();
@@ -159,7 +188,6 @@ public partial class Dashboard : ComponentBase, IDisposable
             _isLoading = true;
             var placa = _estadoCuenta.Placa.Trim().ToUpper();
 
-            // 🚀 Clave: Trae vehículo, propietario y todos los conceptos de cartera en una sola consulta
             var result = await CarteraService.GetCarteraByPlaca(placa);
 
             if (result == null || string.IsNullOrEmpty(result.Documento))
@@ -174,9 +202,9 @@ public partial class Dashboard : ComponentBase, IDisposable
                 CargarRecibos(placa),
                 CargarResumen(placa),
                 CargarResoluciones(),
-                CargarCoactivos(placa));
+                CargarCoactivos(placa),
+                CargarAcuerdosPago(placa)); // 🚀 Cargar acuerdos de pago al consultar la placa
 
-            // 🚀 Optimización: Poblamos la tabla agrupando en memoria el resultado directo de la base de datos
             _vigencias = _estadoCuenta.Conceptos
                 .GroupBy(d => d.Vigencia)
                 .OrderBy(g => g.Key)
@@ -184,7 +212,7 @@ public partial class Dashboard : ComponentBase, IDisposable
                 {
                     Vigencia = g.Key,
                     Conceptos = g.ToList(),
-                    Seleccionado = false // Por seguridad inicializan desmarcados
+                    Seleccionado = false
                 })
                 .ToList();
 
@@ -245,7 +273,6 @@ public partial class Dashboard : ComponentBase, IDisposable
             if (tab == 5)
             {
                 coactivosList = await PersuasivoService.List(placa);
-
                 avisosPorProceso = [];
 
                 foreach (var proceso in coactivosList)
@@ -260,23 +287,55 @@ public partial class Dashboard : ComponentBase, IDisposable
         }
     }
 
+    // ── Cargar Acuerdos de Pago ─────────────────────────────────────
+    private async Task CargarAcuerdosPago(string placa)
+    {
+        try
+        {
+            acuerdosList = await AcuerdoPagoService.GetAcuerdosByPlaca(placa);
+            _acuerdoActivo = acuerdosList.FirstOrDefault(a => a.Estado == EstadoAcuerdoPago.Vigente);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error acuerdos de pago: {ex.Message}");
+        }
+    }
+
     // ── Selección de vigencias ──────────────────────────────────────
     private void RecalcularTotal()
     {
-        // 🚀 Aquí está la magia: SelectMany aplana y extrae TODOS los IDs de conceptos de los años marcados
+        // 🚀 Omitir del cálculo las vigencias que pertenecen a un Acuerdo de Pago activo
         carterasSeleccionadasIds = _vigencias
-            .Where(v => v.Seleccionado)
-            .SelectMany(v => v.Conceptos) // Entra a la lista de conceptos de cada año seleccionado
-            .Select(c => c.Id)            // Toma el Id de la BD de cada uno (Rodamiento, Estampilla, etc.)
+            .Where(v => v.Seleccionado && !v.Conceptos.Any(c => c.AcuerdoPagoId != null))
+            .SelectMany(v => v.Conceptos)
+            .Select(c => c.Id)
             .ToList();
 
-        // Sumamos el dinero total de los años seleccionados
         totalSeleccionado = _vigencias
-            .Where(v => v.Seleccionado)
+            .Where(v => v.Seleccionado && !v.Conceptos.Any(c => c.AcuerdoPagoId != null))
             .Sum(v => v.TotalVigencia);
 
         StateHasChanged();
     }
+
+    // ── Acciones de Acuerdos de Pago ────────────────────────────────
+    private void MostrarModalCrearAcuerdo()
+    {
+        // Abrir modal de creación de acuerdo de pago
+    }
+
+    private void VerCuotasAcuerdo(AcuerdoPagoDto acuerdo)
+    {
+        // Mostrar desglose / plan de cuotas del acuerdo
+    }
+
+    private static string BadgeEstadoAcuerdo(EstadoAcuerdoPago estado) => estado switch
+    {
+        EstadoAcuerdoPago.Vigente => "badge bg-warning text-dark",
+        EstadoAcuerdoPago.Pagado => "badge bg-success",
+        EstadoAcuerdoPago.Incumplido => "badge bg-danger",
+        _ => "badge bg-secondary"
+    };
 
     // ── Recibo ──────────────────────────────────────────────────────
     private async Task GenerarRecibo()
@@ -297,7 +356,6 @@ public partial class Dashboard : ComponentBase, IDisposable
 
         try
         {
-            // 🚀 Enviamos la firma actualizada con los IDs de cartera exactos seleccionados
             var resultado = await ComparendoService.GenerarRecibo(
                 _estadoCuenta.VehiculoId,
                 _estadoCuenta.Documento,
@@ -314,8 +372,6 @@ public partial class Dashboard : ComponentBase, IDisposable
                                ?? throw new Exception("No se ha encontrado el recibo");
 
             reciboActual = await PagoService.GetRecibo(ultimoRecibo.Num);
-
-            // 🚀 Consume el método pivoteado por año que renderiza el reporte
             _detalleRecibo = await ComparendoService.Items_x_Recibo(ultimoRecibo.Num);
 
             if (_detalleRecibo.Count == 0)
@@ -371,13 +427,8 @@ public partial class Dashboard : ComponentBase, IDisposable
         StateHasChanged();
     }
 
-    // ── Proceso coactivo directo (pendiente de implementar) ──────────
     private async Task MostrarModalCoactivoDirecto()
     {
-        // TODO: implementar cuando esté definido el método correspondiente
-        // en CoactivoService (crear un Proceso directo en estado Coactivo,
-        // aplicando la misma validación de solapamiento de vigencias que
-        // CrearProcesoPersuasivoPorPlaca).
         await MostrarAlerta("warning", "Esta función está pendiente de implementación.");
     }
 
@@ -456,7 +507,6 @@ public partial class Dashboard : ComponentBase, IDisposable
     {
         if (!await VerificarPermiso()) return;
 
-        // 1. Desmarcar las vigencias de la cartera para que el usuario elija de cero
         if (_vigencias != null)
         {
             foreach (var v in _vigencias)
@@ -465,11 +515,10 @@ public partial class Dashboard : ComponentBase, IDisposable
             }
         }
 
-        // 2. Inicializar el objeto sin las propiedades de rango eliminadas
         resolObj = new Resolucion
         {
             Fecha = DateTime.UtcNow,
-            Valor = 0, // 🚀 Arranca en 0 hasta que el usuario guarde y el backend sume las carteras
+            Valor = 0,
             Estado = EstadoResolucion.Activa
         };
 
@@ -479,7 +528,6 @@ public partial class Dashboard : ComponentBase, IDisposable
 
     private async Task Agregar_resol()
     {
-        // 1. Extraemos la lista exacta de años que el usuario marcó
         var anosSeleccionados = _vigencias
             .Where(v => v.Seleccionado)
             .Select(v => v.Vigencia)
@@ -495,11 +543,10 @@ public partial class Dashboard : ComponentBase, IDisposable
             ? TipoResolucion.AnulacionDeuda
             : TipoResolucion.Traslado;
 
-        // 2. Armamos el comando con la lista exacta de vigencias
         var command = new CreateResolucionRequest(
             Tipo: tipoSeleccionado,
             VehiculoId: _estadoCuenta.VehiculoId,
-            Vigencias: anosSeleccionados, // 🚀 Enviamos la lista tal cual
+            Vigencias: anosSeleccionados,
             Observaciones: resolObj.Observaciones ?? string.Empty,
             UsuarioId: 3
         );
@@ -587,9 +634,6 @@ public partial class Dashboard : ComponentBase, IDisposable
         _ => "badge bg-secondary"
     };
 
-    // NOTA: solo se mapeó "Activa" porque es el único valor de EstadoResolucion
-    // confirmado hasta ahora (usado en MostrarModal_R). Comparte el enum completo
-    // si quieres los demás estados con su propio color en vez del gris por defecto.
     private static string BadgeEstadoResolucion(EstadoResolucion estado) => estado switch
     {
         EstadoResolucion.Activa => "badge bg-success",
@@ -627,13 +671,11 @@ public partial class Dashboard : ComponentBase, IDisposable
             _isLoading = true;
             StateHasChanged();
 
-            // 🚀 Llamado al servicio pasando el ID de la resolución y el usuario actual (hardcoded o desde claims)
             bool resultado = await ResolucionService.ReversarResolucion(resolucion.Id, 3);
 
             if (resultado)
             {
                 await MostrarAlerta("success", $"Resolución N° {resolucion.NumeroResolucion} reversada con éxito.");
-                // Recargamos la cartera y las resoluciones para refrescar las tablas
                 await ObtenerCartera();
             }
             else

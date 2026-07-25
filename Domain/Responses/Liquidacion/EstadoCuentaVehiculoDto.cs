@@ -1,11 +1,12 @@
 using Domain.Models.Carteras.Enums;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Responses.Users.Enums;
+
 namespace Domain.Responses.Liquidacion;
 
 public class EstadoCuentaVehiculoDto
 {
-    // ... Todos tus campos de Vehículo y Propietario se quedan igual ...
+    // ... Datos del Vehículo ...
     public int VehiculoId { get; set; }
     public string Placa { get; set; } = string.Empty;
     public string Clase { get; set; } = string.Empty;
@@ -37,6 +38,11 @@ public class EstadoCuentaVehiculoDto
     public List<ConceptoCarteraDto> Conceptos { get; set; } = [];
 }
 
+/// <summary>
+/// Representa el desglose del concepto de cartera.
+/// Se añade AcuerdoPagoId (nullable) para saber si la vigencia/concepto
+/// pertenece a un acuerdo de pago vigente.
+/// </summary>
 public record ConceptoCarteraDto(
     int Id,
     int Vigencia,
@@ -45,5 +51,6 @@ public record ConceptoCarteraDto(
     decimal Valor,
     decimal ValorInteres,
     decimal Descuento,
-    decimal ValorTotal
+    decimal ValorTotal,
+    int? AcuerdoPagoId = null // 🚀 Campo para vincular el acuerdo de pago si aplica
 );

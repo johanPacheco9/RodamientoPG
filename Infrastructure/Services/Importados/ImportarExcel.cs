@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;
 using MiniExcelLibs;
 using System.Diagnostics;
 using System.Text;
+using Domain.Models.Acuerdos;
+using Domain.Models.Acuerdos.Enums;
+using Domain.Models.ProcesoLiquidacion;
 
 namespace Infrastructure.Services.Importados;
 
@@ -183,7 +186,7 @@ public partial class ImportadosService
                         docPropietarioNuevo = docLimpio;
                     }
 
-                    // 6. VEHÍCULO
+                    // 6. VEHÍCULO (Creación de la entidad principal)
                     var vehiculo = new Vehiculo
                     {
                         Placa = placaLimpia,
@@ -200,12 +203,74 @@ public partial class ImportadosService
                     };
 
                     context.Vehiculos.Add(vehiculo);
-                    await context.SaveChangesAsync();
+                    await context.SaveChangesAsync(); // Se guarda para obtener vehiculo.Id
 
-                    // 7. CARTERA
+                    // 💡 6.1 PROCESO COACTIVO/PERSUASIVO
+                    var estadoProcesoTexto = ObtenerTexto(fila, "EstadoProceso");
+                    Proceso? procesoCreado = null;
+
+                    if (!string.IsNullOrWhiteSpace(estadoProcesoTexto) &&
+                        Enum.TryParse<EstadoProceso>(estadoProcesoTexto.Trim(), ignoreCase: true, out var estadoProcesoEnum) &&
+                        estadoProcesoEnum != EstadoProceso.SinProceso)
+                    {
+                        procesoCreado = new Proceso
+                        {
+                            VehiculoId = vehiculo.Id,
+                            EstadoProceso = estadoProcesoEnum,
+                            FechaProceso = DateTime.UtcNow,
+                            FechaMandamiento = DateTime.UtcNow,
+                            Valor = 0m
+                        };
+
+                        context.Procesos.Add(procesoCreado);
+                        await context.SaveChangesAsync(); // Se guarda para obtener procesoCreado.Id
+                    }
+
+                    // 💡 6.2 ACUERDO DE PAGO (Si el Excel indica que tiene un convenio activo)
+                    bool tieneAcuerdo = ObtenerBooleano(fila, "TieneAcuerdoPago");
+
+                    if (tieneAcuerdo)
+                    {
+                        var acuerdo = new Domain.Models.Acuerdos.AcuerdosDePago
+                        {
+                            NumeroAcuerdo = $"AP-{DateTime.UtcNow.Year}-{vehiculo.Id:D5}",
+                            FechaSuscripcion = DateTime.UtcNow.AddMonths(-2),
+                            NumeroCuotas = 6,
+                            ValorCapitalFinanciado = 1500000m,
+                            ValorInteresFinanciado = 150000m,
+                            ValorTotalFinanciado = 1650000m,
+                            Estado = EstadoAcuerdoPago.Vigente,
+                            VehiculoId = vehiculo.Id,
+                            ProcesoId = procesoCreado?.Id, // Enlaza al proceso si existía en esta misma fila
+                            Observaciones = "Acuerdo de pago registrado durante importación masiva"
+                        };
+
+                        decimal valorTotalCuota = acuerdo.ValorTotalFinanciado / acuerdo.NumeroCuotas;
+                        decimal valorCapCuota = acuerdo.ValorCapitalFinanciado / acuerdo.NumeroCuotas;
+                        decimal valorIntCuota = acuerdo.ValorInteresFinanciado / acuerdo.NumeroCuotas;
+
+                        for (int i = 1; i <= acuerdo.NumeroCuotas; i++)
+                        {
+                            acuerdo.Cuotas.Add(new CuotaAcuerdoPago
+                            {
+                                NumeroCuota = i,
+                                FechaVencimiento = DateTime.UtcNow.AddMonths(-2 + i),
+                                ValorCapital = Math.Round(valorCapCuota, 2),
+                                ValorInteres = Math.Round(valorIntCuota, 2),
+                                ValorTotalCuota = Math.Round(valorTotalCuota, 2),
+                                Estado = i <= 2 ? EstadoCuotaAcuerdo.Pagada : EstadoCuotaAcuerdo.Pendiente,
+                                FechaPago = i <= 2 ? DateTime.UtcNow.AddMonths(-2 + i) : null
+                            });
+                        }
+
+                        context.AcuerdosDePago.Add(acuerdo);
+                        await context.SaveChangesAsync(); // Se guarda para que CarteraService lo detecte
+                    }
+
+                    // 7. CARTERA ORDINARIA
                     await carteraService.GenerarCarteraVehiculo(
                         vehiculo, desdeCartera, hastaCartera, parametroCacheado,
-                        guardarCambios: true, // ⚡ CAMBIAR A TRUE para que persista inmediatamente en PostgreSQL
+                        guardarCambios: true,
                         vehiculoEsNuevo: true);
 
                     placasEnBd.Add(placaLimpia);
@@ -216,10 +281,13 @@ public partial class ImportadosService
                     // 1. Rollback al savepoint de esta fila
                     await transaction.RollbackToSavepointAsync(nombreSavepoint);
 
-                    // 2. Limpiamos SOLO Vehiculos y Carteras agregados en esta iteración fallida
-                    //    (Evita desvincular catalogos y parametroCacheado)
+                    // 2. Limpiamos Entidades creadas en esta iteración fallida
                     var entradasLocales = context.ChangeTracker.Entries()
-                        .Where(e => e.Entity is Vehiculo || e.Entity.GetType().Name.Contains("Cartera"))
+                        .Where(e => e.Entity is Vehiculo 
+                                 || e.Entity is Proceso 
+                                 || e.Entity is Domain.Models.Acuerdos.AcuerdosDePago 
+                                 || e.Entity is CuotaAcuerdoPago 
+                                 || e.Entity.GetType().Name.Contains("Cartera"))
                         .ToList();
 
                     foreach (var entry in entradasLocales)
@@ -408,5 +476,17 @@ public partial class ImportadosService
             return (int)parsedDouble;
 
         return valorDefault;
+    }
+    
+    private static bool ObtenerBooleano(IDictionary<string, object> fila, string columna)
+    {
+        if (!fila.TryGetValue(columna, out var valor) || valor is null)
+            return false;
+
+        if (valor is bool b) return b;
+
+        var texto = valor.ToString()?.Trim().ToLower() ?? string.Empty;
+
+        return texto is "true" or "1" or "si" or "sí" or "s";
     }
 }
