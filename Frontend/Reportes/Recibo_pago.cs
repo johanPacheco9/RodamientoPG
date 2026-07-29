@@ -1,6 +1,7 @@
-﻿using Domain.Generics;
+using Domain.Generics;
 using Domain.Models;
 using Domain.Models.Recibos;
+using Domain.Models.Recibos.Responses;
 using Domain.Responses.Liquidacion;
 using Domain.Responses.Recibo;
 using QuestPDF.Fluent;
@@ -11,159 +12,206 @@ namespace Frontend.Reportes;
 
 public class Recibo_pago
 {
-    public async Task CreatePdf(Recibo recibo, List<DetalleReciboDto> listaConceptos, Parametro param)
+    public async Task CreatePdf(ReciboDto recibo, List<DetalleReciboDto> listaConceptos, Parametro param)
     {
         try
         {
+            // Resolución dinámica de la carpeta de salida (multiplataforma)
             string carpeta = "/var/www/velez/pdf/";
-            if (!Directory.Exists(carpeta))
-                Directory.CreateDirectory(carpeta);
+            try
+            {
+                if (!Directory.Exists(carpeta))
+                    Directory.CreateDirectory(carpeta);
+            }
+            catch
+            {
+                carpeta = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "pdf");
+                if (!Directory.Exists(carpeta))
+                    Directory.CreateDirectory(carpeta);
+            }
 
             string filename = Path.Combine(carpeta, $"Recibo_{recibo.Id}.pdf");
 
             decimal vlrCostas = recibo.ValorCapital + recibo.ValorTotalSistema;
-            decimal vlrTransito = recibo.ValorTotalSistema - vlrCostas;
+            decimal vlrTransito = recibo.ValorTotalSistema - recibo.ValorCapital;
+            if (vlrTransito < 0) vlrTransito = 0;
 
-            var logo = "wwwroot/logos/logo.jpg";
+            // Ruta del logo con verificación de existencia
+            string logoPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "logos", "logo.jpg");
+            if (!File.Exists(logoPath))
+                logoPath = "wwwroot/logos/logo.jpg";
+            bool tieneLogo = File.Exists(logoPath);
 
             Document.Create(container =>
                 {
                     // El recibo se imprime dos veces: original y copia
-                    foreach (var copia in new[] { "ORIGINAL", "COPIA BANCO / TRÁNSITO" })
+                    foreach (var copia in new[] { "ORIGINAL CONTRIBUYENTE", "COPIA BANCO / TRÁNSITO" })
                     {
                         container.Page(page =>
                         {
                             page.Size(PageSizes.Letter);
-                            page.Margin(30);
+                            page.Margin(25);
                             page.DefaultTextStyle(x => x.FontSize(8).FontFamily("Arial"));
 
                             page.Content().Column(col =>
                             {
                                 // ── Encabezado ──────────────────────────────
-                                col.Item().Row(row => { row.RelativeItem().Image(logo).FitWidth(); });
-
-                                col.Item().LineHorizontal(2).LineColor("#2d4a6b");
-                                col.Item().PaddingTop(4);
-
                                 col.Item().Row(row =>
                                 {
-                                    row.RelativeItem().Column(c =>
+                                    if (tieneLogo)
                                     {
-                                        c.Item().Text($"Placa: {recibo.Vehiculo.Placa}").FontSize(11).Bold();
-                                        c.Item().Text($"Fecha: {recibo.Fecha.ToShortDateString()}");
-                                        c.Item().Text($"No. Documento: {recibo.Vehiculo.Propietario.Documento}");
-                                        c.Item().Text($"Nombre: {recibo.Vehiculo.Propietario.Nombre}");
-                                    });
-                                    row.RelativeItem().Column(c =>
+                                        row.ConstantItem(180).Image(logoPath).FitWidth();
+                                        row.RelativeItem().PaddingLeft(10).Column(c =>
+                                        {
+                                            c.Item().Text(param?.Nombre ?? "SECRETARÍA DE TRÁNSITO Y TRANSPORTE").FontSize(10).Bold().FontColor("#1e3a8a");
+                                            c.Item().Text($"NIT: {param?.Nit ?? "N/A"} | Municipio de {param?.Ciudad ?? "Vélez"}").FontSize(8).FontColor(Colors.Grey.Darken2);
+                                        });
+                                    }
+                                    else
                                     {
-                                        c.Item().Text($"Clase: {recibo.Vehiculo.TipoServicioVehiculo.GetDisplayName()}");
-                                        c.Item().Text($"Marca: {recibo.Vehiculo.Marca.Nombre}");
-                                        c.Item().Text($"Línea: {recibo.Vehiculo.Linea.Nombre}");
-                                    });
-                                    row.ConstantItem(130).Column(c =>
+                                        row.RelativeItem().Column(c =>
+                                        {
+                                            c.Item().Text(param?.Nombre ?? "SECRETARÍA DE TRÁNSITO Y TRANSPORTE").FontSize(11).Bold().FontColor("#1e3a8a");
+                                            c.Item().Text($"NIT: {param?.Nit ?? "N/A"} | {param?.Ciudad ?? "Vélez"}").FontSize(8).FontColor(Colors.Grey.Darken2);
+                                        });
+                                    }
+
+                                    row.ConstantItem(150).Column(c =>
                                     {
-                                        c.Item().Text("COMPROBANTE PAGO").FontSize(13).Bold().FontColor("#2d4a6b");
-                                        c.Item().Text($"RC0000{recibo.Id}").FontSize(11).Bold();
-                                        c.Item().Text(copia).FontSize(7).FontColor(Colors.Grey.Medium);
+                                        c.Item().AlignRight().Text("COMPROBANTE DE PAGO").FontSize(11).Bold().FontColor("#1e3a8a");
+                                        c.Item().AlignRight().Text($"RECIBO N° RC-{recibo.Id:D6}").FontSize(10).Bold();
+                                        c.Item().AlignRight().Text(copia).FontSize(7).FontColor(Colors.Grey.Medium);
                                     });
                                 });
 
-                                col.Item().PaddingTop(8);
+                                col.Item().PaddingVertical(4).LineHorizontal(1.5f).LineColor("#1e3a8a");
+
+                                // ── Datos del Vehículo y Contribuyente ───────
+                                col.Item().Background(Colors.Grey.Lighten4).Padding(6).Row(row =>
+                                {
+                                    row.RelativeItem().Column(c =>
+                                    {
+                                        c.Item().Text($"Placa: {(string.IsNullOrEmpty(recibo.PlacaVehiculo) ? "N/A" : recibo.PlacaVehiculo)}").FontSize(11).Bold().FontColor("#1e3a8a");
+                                        c.Item().Text($"Fecha Expedición: {recibo.Fecha:dd/MM/yyyy}");
+                                        c.Item().Text($"Fecha de Pago: {(recibo.FechaPago.HasValue ? recibo.FechaPago.Value.ToString("dd/MM/yyyy HH:mm") : "Pendiente")}");
+                                    });
+                                    row.RelativeItem().Column(c =>
+                                    {
+                                        c.Item().Text($"Vigencia Inicial: {recibo.Desde}");
+                                        c.Item().Text($"Vigencia Final: {recibo.Hasta}");
+                                        c.Item().Text($"Estado: {recibo.Estado.GetDisplayName()}");
+                                    });
+                                });
+
+                                col.Item().PaddingTop(6);
 
                                 // ── Tabla de conceptos ───────────────────────
                                 col.Item().Table(table =>
                                 {
                                     table.ColumnsDefinition(c =>
                                     {
-                                        c.ConstantColumn(45); // Vigencia
-                                        c.RelativeColumn();   // Der. tránsito
-                                        c.RelativeColumn();   // Imp. carga
+                                        c.ConstantColumn(50); // Vigencia
+                                        c.RelativeColumn();   // Capital / Rodamiento
+                                        c.RelativeColumn();   // Carga Datos
                                         c.RelativeColumn();   // Estampillas
-                                        c.RelativeColumn();   // Costas
-                                        c.RelativeColumn();   // Interés
+                                        c.RelativeColumn();   // Intereses / Mora
+                                        c.RelativeColumn();   // Total Concepto
                                     });
 
-                                    // Encabezados
                                     static IContainer HeaderCell(IContainer c) =>
-                                        c.Background("#2d4a6b").Padding(4).AlignCenter();
+                                        c.Background("#1e3a8a").Padding(4).AlignCenter();
 
                                     table.Header(h =>
                                     {
-                                        h.Cell().Element(HeaderCell).Text("Vigen.").FontColor(Colors.White).Bold();
-                                        h.Cell().Element(HeaderCell).Text("Der. tránsito").FontColor(Colors.White).Bold();
-                                        h.Cell().Element(HeaderCell).Text("Imp. carga").FontColor(Colors.White).Bold();
+                                        h.Cell().Element(HeaderCell).Text("Vigencia").FontColor(Colors.White).Bold();
+                                        h.Cell().Element(HeaderCell).Text("Capital / Rod.").FontColor(Colors.White).Bold();
+                                        h.Cell().Element(HeaderCell).Text("Imp. Carga").FontColor(Colors.White).Bold();
                                         h.Cell().Element(HeaderCell).Text("Estampillas").FontColor(Colors.White).Bold();
-                                        h.Cell().Element(HeaderCell).Text("Costas").FontColor(Colors.White).Bold();
-                                        h.Cell().Element(HeaderCell).Text("Interés").FontColor(Colors.White).Bold();
+                                        h.Cell().Element(HeaderCell).Text("Interés Mora").FontColor(Colors.White).Bold();
+                                        h.Cell().Element(HeaderCell).Text("Total Concepto").FontColor(Colors.White).Bold();
                                     });
 
-                                    // Filas
                                     bool par = false;
-                                    foreach (var item in listaConceptos)
+                                    if (listaConceptos != null && listaConceptos.Any())
                                     {
-                                        par = !par;
-                                        var bg = par ? Colors.White : Colors.Grey.Lighten4;
+                                        foreach (var item in listaConceptos)
+                                        {
+                                            par = !par;
+                                            var bg = par ? Colors.White : Colors.Grey.Lighten5;
+
+                                            static IContainer DataCell(IContainer c, string bg) =>
+                                                c.Background(bg).Padding(3).AlignRight();
+
+                                            table.Cell().Background(bg).Padding(3).AlignCenter()
+                                                .Text(item.Vigencia.ToString()).Bold();
+                                            table.Cell().Element(c => DataCell(c, bg))
+                                                .Text($"{item.ValorRodamiento:C0}");
+                                            table.Cell().Element(c => DataCell(c, bg))
+                                                .Text($"{item.ValorCarga:C0}");
+                                            table.Cell().Element(c => DataCell(c, bg))
+                                                .Text($"{item.ValorEstampillas:C0}");
+                                            table.Cell().Element(c => DataCell(c, bg))
+                                                .Text($"{item.ValorInteres:C0}");
+                                            table.Cell().Element(c => DataCell(c, bg))
+                                                .Text($"{(item.ValorRodamiento + item.ValorCarga + item.ValorEstampillas + item.ValorInteres - item.Descuento):C0}").Bold();
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var bg = Colors.White;
 
                                         static IContainer DataCell(IContainer c, string bg) =>
                                             c.Background(bg).Padding(3).AlignRight();
 
                                         table.Cell().Background(bg).Padding(3).AlignCenter()
-                                            .Text(item.Vigencia.ToString()).Bold();
+                                            .Text(recibo.Fecha.Year.ToString()).Bold();
                                         table.Cell().Element(c => DataCell(c, bg))
-                                            .Text($"{item.ValorRodamiento:N0}");
+                                            .Text($"{recibo.ValorCapital:C0}");
                                         table.Cell().Element(c => DataCell(c, bg))
-                                            .Text($"{item.ValorCarga:N0}");
+                                            .Text($"{recibo.ValorCargaDatos:C0}");
                                         table.Cell().Element(c => DataCell(c, bg))
-                                            .Text($"{item.ValorEstampillas:N0}");
+                                            .Text($"{recibo.Estampillas:C0}");
                                         table.Cell().Element(c => DataCell(c, bg))
-                                            .Text($"{item.ValorRecibo:N0}");
+                                            .Text($"{recibo.InteresMora:C0}");
                                         table.Cell().Element(c => DataCell(c, bg))
-                                            .Text($"{item.ValorInteres:N0}");
+                                            .Text($"{recibo.ValorTotalSistema:C0}").Bold();
                                     }
                                 });
 
-                                col.Item().PaddingTop(8);
+                                col.Item().PaddingTop(6);
 
-                                // ── Totales ──────────────────────────────────
-                                col.Item().Background("#2d4a6b").Padding(6).Row(row =>
+                                // ── Bloque de Totales y Liquidación ─────────
+                                col.Item().Background("#1e3a8a").Padding(6).Row(row =>
                                 {
-                                    row.RelativeItem().Text($"Descuento: {recibo.Descuento:C}")
+                                    row.RelativeItem().Text($"Descuento Aplicado: {recibo.Descuento:C0}")
                                         .FontColor(Colors.White).Bold();
-                                    row.ConstantItem(200).AlignRight()
-                                        .Text($"Valor Tránsito: {vlrTransito:C}")
+                                    row.ConstantItem(220).AlignRight()
+                                        .Text($"TOTAL RECIBIDO: {recibo.ValorTotalSistema:C0}")
                                         .FontColor(Colors.White).Bold().FontSize(11);
                                 });
 
-                                col.Item().PaddingTop(4).Row(row =>
+                                if (param != null)
                                 {
-                                    row.RelativeItem().Column(c =>
+                                    col.Item().PaddingTop(4).Row(row =>
                                     {
-                                        c.Item().Text($"Cuenta: {param.CuentaTransito}").Bold();
-                                        c.Item().Text(param.BancoTransito);
+                                        if (!string.IsNullOrEmpty(param.CuentaTransito))
+                                        {
+                                            row.RelativeItem().Column(c => { c.Item().Text($"Cuenta Tránsito: {param.CuentaTransito} ({param.BancoTransito})").FontSize(7.5f).Bold(); });
+                                        }
+                                        if (!string.IsNullOrEmpty(param.CuentaTercero))
+                                        {
+                                            row.RelativeItem().Column(c => { c.Item().Text($"Cuenta Costas/Terceros: {param.CuentaTercero} ({param.BancoTercero})").FontSize(7.5f).Bold(); });
+                                        }
                                     });
-                                });
+                                }
 
-                                col.Item().PaddingTop(4).Background("#2d4a6b").Padding(6).Row(row =>
-                                {
-                                    row.RelativeItem();
-                                    row.ConstantItem(200).AlignRight()
-                                        .Text($"Valor Costas: {vlrCostas:C}")
-                                        .FontColor(Colors.White).Bold().FontSize(11);
-                                });
-
-                                col.Item().PaddingTop(4).Row(row =>
-                                {
-                                    row.RelativeItem().Column(c =>
-                                    {
-                                        c.Item().Text($"Cuenta: {param.CuentaTercero}").Bold();
-                                        c.Item().Text(param.BancoTercero);
-                                    });
-                                });
-
-                                col.Item().PaddingTop(8).Text(
-                                        "SEÑOR CONTRIBUYENTE ES OBLIGATORIO TRAER EL RECIBO PAGADO EL MISMO DIA QUE " +
-                                        "SE LE ENTREGA SO PENA DE QUE NO SE ACTUALIZE EL SISTEMA QUEDANDO AUN COMO DEUDOR")
+                                col.Item().PaddingTop(6).Text(
+                                        "NOTA: Conserve este comprobante como constancia oficial de pago. " +
+                                        "La actualización de paz y salvo en el RUNT/Sistema se realiza automáticamente una vez asentada la transacción.")
                                     .FontSize(7).Italic().FontColor(Colors.Grey.Darken2);
+
+                                col.Item().PaddingTop(10).LineHorizontal(0.5f).LineColor(Colors.Grey.Lighten2);
+                                col.Item().PaddingTop(6);
                             });
                         });
                     }
@@ -172,7 +220,7 @@ public class Recibo_pago
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error generando PDF: {ex.Message}");
+            Console.WriteLine($"Error generando PDF Recibo_{recibo?.Id}: {ex.Message}");
             Console.WriteLine($"StackTrace: {ex.StackTrace}");
         }
     }

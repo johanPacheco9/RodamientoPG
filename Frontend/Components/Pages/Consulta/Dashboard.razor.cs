@@ -59,8 +59,8 @@ public partial class Dashboard : ComponentBase, IDisposable
     private List<DetalleReciboDto> _detalleRecibo = [];
     private List<ResolucionResponseDto> resolucioneslist = [];
     private List<Proceso> coactivosList = [];
-    private List<AcuerdoPagoDto> acuerdosList = []; // 🚀 Lista de Acuerdos
-    private AcuerdoPagoDto? _acuerdoActivo; // 🚀 Acuerdo Vigente actual
+    private List<AcuerdoPagoDto> acuerdosList = [];
+    private AcuerdoPagoDto? _acuerdoActivo;
     private AcuerdoPagoDto? _acuerdoSeleccionado;
     private bool _mostrarCuotasAcuerdo;
     
@@ -90,7 +90,7 @@ public partial class Dashboard : ComponentBase, IDisposable
     private Resolucion resolObj = new();
     private Recibo_pago recibo_Pago = new();
     private Parametro paramObj = new();
-    public Recibo reciboActual = new();
+    private ReciboDto reciboActual;
 
     // ── UI ──────────────────────────────────────────────────────────
     private int tab = 1;
@@ -385,18 +385,27 @@ public partial class Dashboard : ComponentBase, IDisposable
                 return;
             }
 
-            var ultimoRecibo = await Importadoservice.Ultimo_recibo(_estadoCuenta.Placa)
-                               ?? throw new Exception("No se ha encontrado el recibo");
+            int reciboId = resultado.reciboId;
+            if (reciboId <= 0)
+            {
+                var ultimoRecibo = await Importadoservice.Ultimo_recibo(_estadoCuenta.Placa);
+                reciboId = ultimoRecibo?.Num ?? 0;
+            }
 
-            reciboActual = await PagoService.GetRecibo(ultimoRecibo.Num);
-            _detalleRecibo = await ComparendoService.Items_x_Recibo(ultimoRecibo.Num);
+            if (reciboId <= 0)
+            {
+                throw new Exception("No se ha encontrado el recibo generado.");
+            }
+
+            reciboActual = await PagoService.GetRecibo(reciboId);
+            _detalleRecibo = await ComparendoService.Items_x_Recibo(reciboId);
 
             if (_detalleRecibo.Count == 0)
                 throw new Exception("El recibo no tiene ítems");
 
             await recibo_Pago.CreatePdf(reciboActual, _detalleRecibo, paramObj);
-            await Task.Delay(2000);
-            await Muestra_Pdf($"Recibo_{ultimoRecibo.Num}.pdf");
+            await Task.Delay(1000);
+            await Muestra_Pdf($"Recibo_{reciboId}.pdf");
             await CargarRecibos(_estadoCuenta.Placa);
         }
         catch (Exception ex)

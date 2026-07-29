@@ -50,7 +50,9 @@ public class Cartera : EntityWithTraceability
 
     [Column(TypeName = "decimal(18,2)")]
     public decimal ValorTotal { get; set; }
-
+    
+    public DateTime? FechaPago { get; set; }
+    
     // =========================================================
     //  RELACIONES
     // =========================================================

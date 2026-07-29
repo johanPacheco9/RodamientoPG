@@ -303,7 +303,32 @@ public partial class LiquidacionService
             })
             .ToListAsync();
 
-        if (!detallesRaw.Any()) return [];
+        if (!detallesRaw.Any())
+        {
+            var recibo = await context.Recibos
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == precibo);
+
+            if (recibo != null && (recibo.ValorTotalSistema > 0 || recibo.ValorCapital > 0))
+            {
+                return new List<DetalleReciboDto>
+                {
+                    new DetalleReciboDto
+                    {
+                        Vigencia = recibo.Fecha.Year,
+                        ValorRodamiento = recibo.ValorRodamiento > 0 ? recibo.ValorRodamiento : recibo.ValorCapital,
+                        ValorCarga = recibo.ValorCargaDatos,
+                        ValorEstampillas = recibo.Estampillas,
+                        ValorRecibo = recibo.ValorCapital,
+                        ValorInteres = recibo.InteresMora,
+                        Descuento = recibo.Descuento,
+                        Sancion = 0
+                    }
+                };
+            }
+
+            return [];
+        }
 
         // 2. Agrupamos en memoria por Vigencia para armar el DTO consolidado por año
         var resultado = detallesRaw

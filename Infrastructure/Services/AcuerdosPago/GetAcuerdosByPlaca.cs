@@ -167,7 +167,8 @@ public partial class AcuerdoPagoService
                         ValorCuota = c.ValorCapital,
                         InteresFinanciacion = c.ValorInteres,
                         EstadoCuota = c.Estado,
-                        IsPagado = c.Estado == EstadoCuotaAcuerdo.Pagada
+                        IsPagado = c.Estado == EstadoCuotaAcuerdo.Pagada,
+                        NumeroRecibo = c.NumeroRecibo
                     })
                     .ToList()
             });

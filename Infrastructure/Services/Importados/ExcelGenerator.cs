@@ -43,15 +43,27 @@ public static class ExcelTestGenerator
         var listaDtos = new List<ImportacionVehiculoDto>();
         var placasUsadas = new HashSet<string>();
 
+        var letrasMoto = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+
         for (int i = 1; i <= cantidad; i++)
         {
             var catalogoElegido = SeleccionarCatalogoRealista(catalogosVehiculos, random);
 
-            // 🎯 Placa Única
+            // 🎯 Placa Única (Formato Colombiano: Motos = 3 letras + 2 números + 1 letra, Carros = 3 letras + 3 números)
             string placa;
             do
             {
-                placa = $"{Pick(placasBase, random)}{random.Next(10, 99)}{i % 10}";
+                string prefijoPlaca = Pick(placasBase, random);
+                if (catalogoElegido.Tipo == "Motocicleta")
+                {
+                    char letraFinal = letrasMoto[random.Next(letrasMoto.Length)];
+                    placa = $"{prefijoPlaca}{random.Next(10, 99)}{letraFinal}";
+                }
+                else
+                {
+                    // Carros: 3 letras + 3 números (e.g., ABC123)
+                    placa = $"{prefijoPlaca}{random.Next(100, 1000)}";
+                }
             } while (!placasUsadas.Add(placa));
 
             // 🎯 Asignación de Propietario (15% Probabilidad de asignarlo a un dueño repetido)

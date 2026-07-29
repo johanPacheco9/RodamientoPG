@@ -4,60 +4,113 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Domain.Models.Acuerdos.Enums;
 
 namespace Infrastructure.Services.Pagos;
 
 public partial class PagoService
 {
-    public async Task<int> AplicarPago(int numeroRecibo)
+    public async Task<bool> AplicarPago(int reciboId, CancellationToken cancellationToken = default)
     {
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
         try
         {
-            // 1. Buscamos el recibo encabezado
-            var recibo = await context.Recibos.FirstOrDefaultAsync(s => s.Id == numeroRecibo);
-            if (recibo == null) return 0; // Guardrail por si el recibo no existe
+            // 1. Cargar el recibo con sus detalles de cartera Y la relación con la cuota del acuerdo
+            var recibo = await context.Recibos
+                .Include(r => r.Detalles)
+                .Include(r => r.CuotaAcuerdoPago)
+                .ThenInclude(c => c.AcuerdoPago)
+                .FirstOrDefaultAsync(r => r.Id == reciboId, cancellationToken);
 
-            if (recibo.Estado != EstadoRecibo.Pendiente)
-                return 0;
+            if (recibo == null)
+                throw new InvalidOperationException($"El recibo N° {reciboId} no existe.");
 
-            if (recibo.Fecha.Date != DateTime.Today)
+            if (recibo.Estado == EstadoRecibo.Pagado)
+                throw new InvalidOperationException($"El recibo N° {reciboId} ya fue pagado anteriormente.");
+
+            var fechaPagoUtc = DateTime.UtcNow;
+
+            // ==========================================
+            // CASO A: Es un Recibo de Acuerdo de Pago
+            // ==========================================
+            if (recibo.CuotaAcuerdoPagoId.HasValue && recibo.CuotaAcuerdoPago != null)
             {
-                recibo.Estado = EstadoRecibo.Anulado;
-                recibo.FechaProceso = DateTime.UtcNow;
-                await context.SaveChangesAsync();
-                return 0;
+                var cuota = recibo.CuotaAcuerdoPago;
+
+                // 1. Marcar la cuota como pagada
+                cuota.Estado = EstadoCuotaAcuerdo.Pagada;
+                cuota.FechaPago = fechaPagoUtc;
+                cuota.NumeroRecibo = recibo.Id.ToString();
+
+                // 2. Marcar el recibo como pagado
+                recibo.Estado = EstadoRecibo.Pagado;
+                recibo.FechaPago = fechaPagoUtc;
+                recibo.FechaAplica = fechaPagoUtc;
+
+                // 3. (Opcional) Verificar si con esta cuota se liquidó TODO el acuerdo de pago
+                var cuotasAcuerdo = await context.CuotasAcuerdoDePagos
+                    .Where(c => c.AcuerdoPagoId == cuota.AcuerdoPagoId)
+                    .ToListAsync(cancellationToken);
+
+                // Si todas las cuotas (incluida la actual que ya se marcó Pagada en memoria) están pagadas
+                bool todasPagadas = cuotasAcuerdo
+                    .All(c => c.Id == cuota.Id || c.Estado == EstadoCuotaAcuerdo.Pagada);
+
+                if (todasPagadas)
+                {
+                    cuota.AcuerdoPago.Estado = EstadoAcuerdoPago.Finalizado; // O EstadoAcuerdoPago.Pagado
+
+                    // Marcar la cartera original del acuerdo como pagada definitivamente
+                    var carterasAcuerdo = await context.Cartera
+                        .Where(c => c.AcuerdoPagoId == cuota.AcuerdoPagoId)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var car in carterasAcuerdo)
+                    {
+                        car.IsPagado = true;
+                        car.FechaPago = fechaPagoUtc;
+                    }
+                }
+            }
+            // ======================= ===================
+            // CASO B: Es un Recibo Normal (Liquidación Directa)
+            // ==========================================
+            else if (recibo.Detalles != null && recibo.Detalles.Any())
+            {
+                // Validar/procesar la cartera normal
+                recibo.Estado = EstadoRecibo.Pagado;
+                recibo.FechaPago = fechaPagoUtc;
+                recibo.FechaAplica = fechaPagoUtc;
+
+                var carteraIds = recibo.Detalles.Select(d => d.CarteraId).ToList();
+                var carteras = await context.Cartera
+                    .Where(c => carteraIds.Contains(c.Id))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var cartera in carteras)
+                {
+                    cartera.IsPagado = true;
+                    cartera.FechaPago = fechaPagoUtc;
+                }
+            }
+            else
+            {
+                // Si no tiene ni cuota de acuerdo ni detalles de cartera
+                throw new InvalidOperationException($"El recibo N° {reciboId} no contiene detalles de cartera ni está asociado a una cuota de acuerdo de pago.");
             }
 
-            // 2. Traemos los IDs de cartera relacionados al detalle de este recibo
-            var carteraIdsPagos = await context.ReciboDetalle
-                .Where(s => s.ReciboId == numeroRecibo)
-                .Select(c => c.CarteraId)
-                .ToListAsync();
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
 
-            if (!carteraIdsPagos.Any()) return 0;
-            
-            // 3. Obtenemos las entidades físicas de Cartera
-            var carterasAAplicar = await context.Cartera
-                .Where(c => carteraIdsPagos.Contains(c.Id))
-                .ToListAsync();
-            
-            // 4. Actualizamos la cartera (Paz y salvo y fin de coactivo)
-            foreach (var itemCartera in carterasAAplicar)
-            { 
-                itemCartera.IsPagado = true;
-            }
-
-            // 5. 🔥 CORREGIDO: Asignación del estado del recibo usando el operador '='
-            recibo.Estado = EstadoRecibo.Pagado; 
-            recibo.FechaPago = DateTime.UtcNow;
-            
-            // 6. Impactamos la base de datos en una sola transacción atómica
-            return await context.SaveChangesAsync();
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Fallo crítico en AplicarPago para el recibo N° {numeroRecibo}: {ex.Message}");
-            return 0;
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Error al aplicar el pago del recibo N° {ReciboId}", reciboId);
+
+            throw;
         }
     }
 }

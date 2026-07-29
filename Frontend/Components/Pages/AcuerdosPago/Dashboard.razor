@@ -1,9 +1,20 @@
 @page "/AcuerdosPago"
 @rendermode InteractiveServer
+@using Domain.Models
 @using Domain.Models.Acuerdos.Enums
 @using Domain.Models.Acuerdos.Responses
+@using Domain.Responses.Recibo
+@using Frontend.Reportes
 @using Infrastructure.Services.AcuerdosPago
+@using Infrastructure.Services.Liquidaciones
+@using Infrastructure.Services.Pagos
+@using Infrastructure.Services.Parametros
 @inject AcuerdoPagoService AcuerdoPagoService
+@inject PagoService PagoService
+@inject LiquidacionService LiquiService
+@inject ParametroService ParametroService
+@inject NavigationManager NavigationManager
+@inject HttpClient HttpClient
 @inject IJSRuntime JsRuntime
 
 <div class="d-flex align-items-center justify-content-between mb-3">
@@ -147,6 +158,12 @@
                                             Pagar
                                         </button>
                                     }
+                                    else if (cuota.EstadoCuota == EstadoCuotaAcuerdo.Pagada)
+                                    {
+                                        <button class="btn btn-outline-secondary btn-sm py-0 px-2" @onclick="() => ImprimirReciboCuota(cuota)">
+                                            🖨️ Recibo
+                                        </button>
+                                    }
                                 </td>
                             </tr>
                         }
@@ -192,15 +209,91 @@
         _mostrarCuotas = false;
         _acuerdoSeleccionado = null;
     }
+
     private async Task RegistrarPagoCuota(CuotaAcuerdoDto cuota)
     {
         Console.WriteLine($"Registrando pago para Cuota ID: {cuota.Id} | Capital: {cuota.ValorCuota} | Total: {cuota.ValorTotal}");
-    
-        // Enviamos la entidad/DTO completa al servicio
-        var ok = await AcuerdoPagoService.RegistrarPagoCuota(cuota);
-    
-        await JsRuntime.InvokeVoidAsync("alert", ok ? "Cuota registrada y pagada con éxito." : "No se pudo registrar el pago.");
-        await CargarAcuerdos();
+
+        var (success, reciboId, message) = await AcuerdoPagoService.RegistrarPagoCuota(cuota);
+
+        if (success && reciboId > 0)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Cuota registrada y pagada con éxito. Generando recibo PDF...");
+            await CargarAcuerdos();
+            await GenerarYDescargarPdfRecibo(reciboId);
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("alert", string.IsNullOrWhiteSpace(message) ? "No se pudo registrar el pago." : message);
+        }
+    }
+
+    private async Task ImprimirReciboCuota(CuotaAcuerdoDto cuota)
+    {
+        if (int.TryParse(cuota.NumeroRecibo, out int reciboId) && reciboId > 0)
+        {
+            await GenerarYDescargarPdfRecibo(reciboId);
+        }
+        else
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "No se encontró el número de recibo asociado a esta cuota.");
+        }
+    }
+
+    private async Task GenerarYDescargarPdfRecibo(int reciboId)
+    {
+        try
+        {
+            var recibo = await PagoService.GetRecibo(reciboId);
+            if (recibo == null)
+            {
+                await JsRuntime.InvokeVoidAsync("alert", "No se pudo consultar el recibo.");
+                return;
+            }
+
+            var paramObj = await ParametroService.GetParametroById(1) ?? new Parametro();
+            var responseItems = await LiquiService.Items_x_Recibo(reciboId);
+            var listaConceptos = responseItems?.Select(x => new DetalleReciboDto
+            {
+                Vigencia = x.Vigencia,
+                ValorRodamiento = x.ValorRodamiento,
+                ValorCarga = x.ValorCarga,
+                ValorEstampillas = x.ValorEstampillas,
+                ValorRecibo = x.ValorRecibo,
+                ValorInteres = x.ValorInteres
+            }).ToList() ?? [];
+
+            var reporte = new Recibo_pago();
+            await reporte.CreatePdf(recibo, listaConceptos, paramObj);
+
+            await Task.Delay(1000);
+            string reciboPdf = $"Recibo_{reciboId}.pdf";
+            await DescargarYAbrirArchivo(reciboPdf);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al generar PDF del recibo: {ex.Message}");
+            await JsRuntime.InvokeVoidAsync("alert", $"Error al generar PDF del recibo: {ex.Message}");
+        }
+    }
+
+    private async Task DescargarYAbrirArchivo(string fileName)
+    {
+        try
+        {
+            string fileUrl = $"{NavigationManager.BaseUri}api/archivos/{fileName}";
+            HttpResponseMessage response = await HttpClient.GetAsync(fileUrl);
+            if (response.IsSuccessStatusCode)
+            {
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                var contentStream = new DotNetStreamReference(new MemoryStream(fileBytes));
+                await JsRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, contentStream);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al despachar el archivo al navegador: {ex.Message}");
+        }
     }
 
     private async Task MarcarIncumplido(AcuerdoPagoDto acuerdo)

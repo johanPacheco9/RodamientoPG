@@ -1,62 +1,72 @@
 using Domain.Generics;
 using Domain.Models;
-using Domain.Models.Recibos;
+using Domain.Models.Recibos.Responses;
 using Domain.Responses.Recibo;
 using Domain.Responses.Recibo.Enums;
 using Frontend.Reportes;
+using Infrastructure.Services.Liquidaciones;
 using Infrastructure.Services.Pagos;
+using Infrastructure.Services.Parametros;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+
 namespace Frontend.Components.Pages.Pagos;
 
 public partial class Dashboard
 {
     [Inject]
     private PagoService PagoService { get; set; } = null!;
+    [Inject]
+    private LiquidacionService LiquiService { get; set; } = null!;
+    [Inject]
+    private ParametroService ParametroService { get; set; } = null!;
 
     private int _reciboIdBusqueda;
-    public Recibo recibos { get; set; } = new();
-    public List<DetalleReciboDto> Listxconc = [];
+    public ReciboDto? recibo { get; set; }
+
+    // Propiedades requeridas para la generación del PDF original
     private Parametro param_obj = new();
+    private List<DetalleReciboDto> Listxconc = [];
 
     private bool isLoading = false;
     public bool envia_ws = false;
     public string mensaje = "";
-    private bool mostrarSpinnerModal = false; // Control de visualización para el Loading del PDF
+    private bool mostrarSpinnerModal = false;
 
-    protected async override Task OnInitializedAsync()
+    protected override async Task OnInitializedAsync()
     {
         param_obj = await ParametroService.GetParametroById(1) ?? new Parametro();
     }
 
     private async Task BuscaRecibo()
     {
+        if (_reciboIdBusqueda <= 0)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Por favor, ingresa un número de recibo válido.");
+            return;
+        }
+
         try
         {
-            if (_reciboIdBusqueda == 0)
-            {
-                await JsRuntime.InvokeVoidAsync("alert", "Por favor, ingresa un valor de Recibo numérico.");
-
-                return;
-            }
-
             isLoading = true;
             var result = await PagoService.GetRecibo(_reciboIdBusqueda);
 
             if (result != null)
             {
-                recibos = result;
-                mensaje = $"// Recibo {recibos.Id} cargado exitosamente el {DateTime.UtcNow}. Estado actual: {recibos.Estado.GetDisplayName()}";
+                recibo = result;
+                mensaje = $"// Recibo {recibo.Id} cargado exitosamente. Estado actual: {recibo.Estado.GetDisplayName()}";
             }
-            else
-            {
-                recibos = new Recibo();
-                await JsRuntime.InvokeVoidAsync("alert", "El recibo ingresado no existe en el sistema.");
-            }
+        }
+        catch (KeyNotFoundException ex)
+        {
+            recibo = null;
+            mensaje = $"// {ex.Message}";
+            await JsRuntime.InvokeVoidAsync("alert", ex.Message);
         }
         catch (Exception ex)
         {
-            mensaje = $"// Error en la carga del recibo: {ex.Message}";
+            mensaje = $"// Error al cargar el recibo: {ex.Message}";
+            await JsRuntime.InvokeVoidAsync("alert", $"Error: {ex.Message}");
         }
         finally
         {
@@ -66,74 +76,71 @@ public partial class Dashboard
 
     private async Task Procesar()
     {
-        if (recibos.Id <= 0 || recibos.Estado != EstadoRecibo.Pendiente)
+        if (recibo == null || recibo.Id <= 0 || recibo.Estado != EstadoRecibo.Pendiente)
         {
             await JsRuntime.InvokeVoidAsync("alert", "El recibo no se encuentra en estado PENDIENTE para procesar.");
-
             return;
         }
 
         bool confirmar = await JsRuntime.InvokeAsync<bool>("confirm", "¿Está seguro de aplicar este pago al sistema vehicular?");
-        if (confirmar)
+
+        if (!confirmar) return;
+
+        try
         {
-            try
-            {
-                await PagoService.AplicarPago(_reciboIdBusqueda);
-                
-                
-                await JsRuntime.InvokeVoidAsync("alert", "El pago ha sido asentado y la cartera descargada con éxito.");
-            }
-            catch (Exception ex)
-            {
-                await JsRuntime.InvokeVoidAsync("alert", $"Error interno al procesar el pago: {ex.Message}");
-            }
+            await PagoService.AplicarPago(_reciboIdBusqueda);
+            await JsRuntime.InvokeVoidAsync("alert", "El pago ha sido asentado y la cartera descargada con éxito.");
+            await BuscaRecibo();
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error interno al procesar el pago: {ex.Message}");
         }
     }
 
     private async Task Reversar()
     {
-        if (recibos.Id <= 0 || recibos.Estado != EstadoRecibo.Pagado)
+        if (recibo == null || recibo.Id <= 0 || recibo.Estado != EstadoRecibo.Pagado)
         {
             await JsRuntime.InvokeVoidAsync("alert", "Únicamente los recibos PAGADOS se pueden reversar.");
-
             return;
         }
 
         bool confirmar = await JsRuntime.InvokeAsync<bool>("confirm", "¿Está seguro de reversar el dinero? Se reactivará la deuda en mora.");
-        if (confirmar)
-        {
-            try
-            {
-                var filas = await PagoService.ReversarPago(recibos.Id);
 
-                if (filas > 0)
-                {
-                    mensaje += $"\n// Recibo {recibos.Id} reversado el {DateTime.UtcNow}. La cartera vuelve a estar activa.";
-                    await JsRuntime.InvokeVoidAsync("alert", "Transacción reversada. La cartera del vehículo vuelve a estar activa.");
-                    await BuscaRecibo(); // Recarga el recibo para refrescar Estado, FechaPago, FechaAplica en pantalla
-                }
-                else
-                {
-                    await JsRuntime.InvokeVoidAsync("alert", "No se pudo reversar el recibo. Verifica que esté en estado Pagado.");
-                }
-            }
-            catch (Exception ex)
+        if (!confirmar) return;
+
+        try
+        {
+            var filas = await PagoService.ReversarPago(recibo.Id);
+
+            if (filas > 0)
             {
-                await JsRuntime.InvokeVoidAsync("alert", $"Error al ejecutar el reverso: {ex.Message}");
+                mensaje += $"\n// Recibo {recibo.Id} reversado. La cartera vuelve a estar activa.";
+                await JsRuntime.InvokeVoidAsync("alert", "Transacción reversada con éxito.");
+                await BuscaRecibo();
             }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("alert", "No se pudo reversar el recibo. Verifica que esté en estado Pagado.");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Error al ejecutar el reverso: {ex.Message}");
         }
     }
 
     private async Task GenerarPdf()
     {
-        if (recibos.Id <= 0) return;
+        if (recibo == null || recibo.Id <= 0) return;
 
         mostrarSpinnerModal = true;
         StateHasChanged();
 
         try
         {
-            var response = await LiquiService.Items_x_Recibo(recibos.Id);
+            var response = await LiquiService.Items_x_Recibo(recibo.Id);
             if (response != null && response.Any())
             {
                 Listxconc = response.Select(x => new DetalleReciboDto
@@ -151,11 +158,12 @@ public partial class Dashboard
                 Listxconc = [];
             }
 
+            // Uso directo del DTO recibo
             var reporte = new Recibo_pago();
-            await reporte.CreatePdf(recibos, Listxconc, param_obj);
+            await reporte.CreatePdf(recibo, Listxconc, param_obj);
 
             await Task.Delay(1000); // Mantenemos el retraso controlado para asegurar la escritura en el disco local
-            string reciboPdf = $"Recibo_{recibos.Id}.pdf";
+            string reciboPdf = $"Recibo_{recibo.Id}.pdf";
             await DescargarYAbrirArchivo(reciboPdf.Trim());
         }
         catch (Exception ex)
@@ -178,7 +186,7 @@ public partial class Dashboard
             if (response.IsSuccessStatusCode)
             {
                 var fileBytes = await response.Content.ReadAsByteArrayAsync();
-                var contentStream = new DotNetStreamReference(new MemoryStream(fileBytes));
+                using var contentStream = new DotNetStreamReference(new MemoryStream(fileBytes));
                 await JsRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, contentStream);
             }
         }
@@ -187,5 +195,4 @@ public partial class Dashboard
             Console.WriteLine($"Error al despachar el archivo al navegador: {ex.Message}");
         }
     }
-    
 }

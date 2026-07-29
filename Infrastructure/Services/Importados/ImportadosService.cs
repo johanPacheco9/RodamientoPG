@@ -1,4 +1,4 @@
-﻿using Domain.Models.BaseGravable;
+using Domain.Models.BaseGravable;
 using Domain.Responses.Recibo.Enums;
 using Infrastructure.AppDbContext;
 using Infrastructure.Services.Carteras;
@@ -101,11 +101,10 @@ public partial class ImportadosService(MainDataContext context, CarteraService c
                 await context.SaveChangesAsync();
             }
 
-            // Pasamos de un string crudo a una consulta LINQ autogenerada
+            // Obtenemos el recibo pendiente más reciente de la placa
             return await context.Recibos
                 .Where(r => r.Vehiculo.Placa == placa
-                            && r.Estado == EstadoRecibo.Pendiente
-                            && r.Fecha.Date == hoy)
+                            && r.Estado == EstadoRecibo.Pendiente)
                 .OrderByDescending(r => r.Id)
                 .Select(r => new Rvar { Num = r.Id })
                 .FirstOrDefaultAsync();

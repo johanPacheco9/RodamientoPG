@@ -354,7 +354,7 @@
                             <th>Fecha</th>
                             <th>Estado</th>
                             <th>Fecha pago</th>
-                            <th>Rango vigencias</th>
+                            <th>Vigencias</th> <!-- Cambiado de 'Rango vigencias' -->
                             <th class="text-end">Capital</th>
                             <th class="text-end">Interés</th>
                             <th class="text-end">Descuento</th>
@@ -364,12 +364,20 @@
                         <tbody>
                         @foreach (var r in reciboslist)
                         {
+                            // Extraemos las vigencias únicas ordenadas (ej: "2021, 2022, 2024")
+                            var vigenciasTexto = r.Detalles != null && r.Detalles.Any()
+                                ? string.Join(", ", r.Detalles.Select(d => d.Vigencia).Distinct().OrderBy(v => v))
+                                : "—";
+
                             <tr>
                                 <td><strong>#@r.Id</strong></td>
-                                <td>@r.Fecha.ToString("dd/MM/yyyy")</td>
+                                <td>@r.Fecha.ToLocalTime().ToString("dd/MM/yyyy")</td>
                                 <td><span class="badge @BadgeRecibo(r.Estado.GetDisplayName())">@r.Estado</span></td>
-                                <td>@(r.FechaPago?.ToString("dd/MM/yyyy") ?? "—")</td>
-                                <td>@r.Desde – @r.Hasta</td>
+                                <td>@(r.FechaPago?.ToLocalTime().ToString("dd/MM/yyyy") ?? "—")</td>
+                    
+                                <!-- Muestra las vigencias reales liquidadas separadas por coma -->
+                                <td><span class="badge bg-secondary-subtle text-dark">@vigenciasTexto</span></td>
+                    
                                 <td class="text-end">@r.ValorCapital.ToString("C0")</td>
                                 <td class="text-end">@r.InteresMora.ToString("C0")</td>
                                 <td class="text-end">@r.Descuento.ToString("C0")</td>
@@ -380,7 +388,6 @@
                     </table>
                 </div>
             }
-
             <!-- TAB 3: RESUMEN CONCEPTOS (DESGLOSE) -->
             @if (tab == 3)
             {

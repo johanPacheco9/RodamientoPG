@@ -7,15 +7,18 @@ namespace Infrastructure.Services.AcuerdosPago;
 
 public partial class AcuerdoPagoService
 {
-    public async Task<bool> RegistrarPagoCuota(CuotaAcuerdoDto dto)
+    public async Task<(bool success, int reciboId, string message)> RegistrarPagoCuota(CuotaAcuerdoDto dto)
     {
         var cuota = await _context.CuotasAcuerdoDePagos
             .Include(c => c.AcuerdoPago)
             .ThenInclude(a => a.Cuotas)
             .FirstOrDefaultAsync(c => c.Id == dto.Id);
 
-        if (cuota is null || cuota.Estado == EstadoCuotaAcuerdo.Pagada)
-            return false;
+        if (cuota is null)
+            return (false, 0, "La cuota no existe.");
+
+        if (cuota.Estado == EstadoCuotaAcuerdo.Pagada)
+            return (false, 0, "La cuota ya fue pagada.");
 
         var fechaActualUtc = DateTime.UtcNow;
         var acuerdo = cuota.AcuerdoPago;
@@ -64,6 +67,7 @@ public partial class AcuerdoPagoService
         }
 
         // 5. Impactar la actualización de la cuota y del acuerdo
-        return await _context.SaveChangesAsync() > 0;
+        var ok = await _context.SaveChangesAsync() > 0 || recibo.Id > 0;
+        return (ok, recibo.Id, ok ? "Pago registrado exitosamente." : "Error al registrar el pago.");
     }
 }

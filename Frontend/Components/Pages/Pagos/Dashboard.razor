@@ -1,18 +1,12 @@
 ﻿@page "/Pagos"
-@using Domain.Models
 @using Domain.Generics
-@using Domain.Models.Recibos
-@using Domain.Responses.Recibo
+@using Domain.Models.Recibos.Responses
 @using Domain.Responses.Recibo.Enums
 @using Frontend.Reportes
-@using Infrastructure.Services.Liquidaciones
 @using Infrastructure.Services.Pagos
-@using Infrastructure.Services.Parametros
 @using Microsoft.AspNetCore.Components.Web
 
-@inject LiquidacionService LiquiService
 @inject IJSRuntime JsRuntime
-@inject ParametroService ParametroService
 @inject NavigationManager NavigationManager
 @inject HttpClient HttpClient
 @rendermode InteractiveServer
@@ -40,12 +34,15 @@
 
 <div class="container-fluid py-4" style="max-width: 1400px;">
 
+    <!-- Buscador -->
     <div class="row align-items-end g-3 mb-4">
         <div class="col-12 col-md-4 col-lg-3">
             <label class="form-label text-uppercase text-muted fw-bold mb-1"
                    style="font-size: 0.7rem; letter-spacing: 0.05em;">Referencia de pago</label>
             <div class="input-group">
                 <input type="number" class="form-control form-control-sm" @bind="_reciboIdBusqueda"
+                       @bind:event="oninput"
+                       @onkeyup="@(async (e) => { if (e.Key == "Enter") await BuscaRecibo(); })"
                        placeholder="Número de recibo..."/>
                 <button type="button" class="btn btn-dark btn-sm px-3" @onclick="BuscaRecibo">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -56,139 +53,102 @@
             </div>
         </div>
 
-        @if (recibos != null && recibos.Id > 0)
+        @if (recibo != null && recibo.Id > 0)
         {
             <div class="col-12 col-md d-flex gap-4 justify-content-md-end mt-3 mt-md-0">
                 <div>
                     <div class="text-muted" style="font-size: 0.7rem;">ESTADO</div>
                     <div class="d-flex align-items-center gap-2 mt-1">
                         <span class="rounded-circle d-inline-block"
-                              style="width: 10px; height: 10px; background-color: @(recibos.Estado == EstadoRecibo.Aplicado ? "#10b981" : "#f59e0b");"></span>
-                        <span class="fw-bold text-dark small">@recibos.Estado.GetDisplayName()</span>
+                              style="width: 10px; height: 10px; background-color: @(recibo.Estado == EstadoRecibo.Pagado ? "#10b981" : "#f59e0b");"></span>
+                        <span class="fw-bold text-dark small">@recibo.Estado.GetDisplayName()</span>
                     </div>
                 </div>
                 <div class="border-start ps-4">
                     <div class="text-muted" style="font-size: 0.7rem;">TOTAL SISTEMA</div>
-                    <div class="fw-bold text-dark h5 mb-0 mt-1">@recibos.ValorTotalSistema.ToString("C0")</div>
+                    <div class="fw-bold text-dark h5 mb-0 mt-1">@recibo.ValorTotalSistema.ToString("C0")</div>
                 </div>
             </div>
         }
     </div>
 
-    @if (recibos != null && recibos.Id > 0 && recibos.Vehiculo != null)
+    @if (recibo != null && recibo.Id > 0)
     {
-        <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
-            <div class="d-flex align-items-center gap-2 mb-4">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                <span class="fw-bold text-secondary small">Línea de tiempo del pago</span>
-            </div>
-
-            <div class="d-flex align-items-center justify-content-between position-relative px-md-5">
-                <div class="position-absolute w-75 start-50 translate-middle-x bg-light border-top border-2"
-                     style="top: 20px; z-index: 0;"></div>
-
-                <div class="text-center position-relative bg-white px-2" style="z-index: 1; width: 110px;">
-                    <div
-                        class="rounded-circle bg-white border border-2 border-primary mx-auto mb-2 d-flex align-items-center justify-content-center"
-                        style="width: 40px; height: 40px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                            <line x1="16" y1="2" x2="16" y2="6"/>
-                            <line x1="8" y1="2" x2="8" y2="6"/>
-                            <line x1="3" y1="10" x2="21" y2="10"/>
-                        </svg>
-                    </div>
-                    <div class="text-muted fw-semibold" style="font-size: 0.75rem;">Creación</div>
-                    <div class="text-primary fw-bold"
-                         style="font-size: 0.7rem;">@recibos.Fecha.ToShortDateString()</div>
-                </div>
-
-                <div class="text-center position-relative bg-white px-2" style="z-index: 1; width: 110px;">
-                    <div
-                        class="rounded-circle bg-white border border-2 mx-auto mb-2 d-flex align-items-center justify-content-center @(recibos.FechaPago.HasValue ? "border-success" : "border-secondary-subtle")"
-                        style="width: 40px; height: 40px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                             stroke="@(recibos.FechaPago.HasValue ? "#10b981" : "#cbd5e1")" stroke-width="2">
-                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-                        </svg>
-                    </div>
-                    <div class="text-muted fw-semibold" style="font-size: 0.75rem;">Fecha pago</div>
-                    <div class="fw-bold"
-                         style="font-size: 0.7rem; color: @(recibos.FechaPago.HasValue ? "#10b981" : "#94a3b8");">
-                        @(recibos.FechaPago.HasValue ? recibos.FechaPago.Value.ToShortDateString() : "Pendiente")
-                    </div>
-                </div>
-
-                <div class="text-center position-relative bg-white px-2" style="z-index: 1; width: 110px;">
-                    <div
-                        class="rounded-circle bg-white border border-2 mx-auto mb-2 d-flex align-items-center justify-content-center @(recibos.FechaAplica.HasValue ? "border-primary" : "border-secondary-subtle")"
-                        style="width: 40px; height: 40px;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                             stroke="@(recibos.FechaAplica.HasValue ? "#667eea" : "#cbd5e1")" stroke-width="2">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                    </div>
-                    <div class="text-muted fw-semibold" style="font-size: 0.75rem;">Aplicación</div>
-                    <div class="fw-bold"
-                         style="font-size: 0.7rem; color: @(recibos.FechaAplica.HasValue ? "#667eea" : "#94a3b8");">
-                        @(recibos.FechaAplica.HasValue ? recibos.FechaAplica.Value.ToShortDateString() : "Pendiente")
-                    </div>
-                </div>
-            </div>
-        </div>
-
+        <!-- Resumen del DTO -->
         <div class="row g-3 mb-4">
             <div class="col-12 col-sm-6 col-lg-3">
                 <div class="card h-100 shadow-sm border-light-subtle p-3 rounded-3 bg-white">
-                    <div class="text-muted text-uppercase fw-bold mb-2" style="font-size: 0.7rem;">Desglose Económico
+                    <div class="text-muted text-uppercase fw-bold mb-2" style="font-size: 0.7rem;">Vehículo / Placa</div>
+                    <div class="display-6 fw-bold text-dark tracking-wide mb-1" style="font-size: 1.6rem;">
+                        @(string.IsNullOrEmpty(recibo.PlacaVehiculo) ? "SIN PLACA" : recibo.PlacaVehiculo.ToUpper())
                     </div>
+                    <div class="text-muted small">
+                        Vigencias cobradas: 
+                        <strong class="text-primary">
+                            @if (recibo.Detalles.Any())
+                            {
+                                @string.Join(", ", recibo.Detalles.Select(d => d.Vigencia).Distinct().OrderBy(v => v))
+                            }
+                            else
+                            {
+                                <span>Sin detalles</span>
+                            }
+                        </strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-sm-6 col-lg-3">
+                <div class="card h-100 shadow-sm border-light-subtle p-3 rounded-3 bg-white">
+                    <div class="text-muted text-uppercase fw-bold mb-2" style="font-size: 0.7rem;">Liquidación Base</div>
                     <div class="d-flex justify-content-between mb-1 small">
                         <span class="text-secondary">Capital:</span>
-                        <span class="fw-semibold text-dark">@recibos.ValorCapital.ToString("C0")</span>
+                        <span class="fw-semibold text-dark">@recibo.ValorCapital.ToString("C0")</span>
                     </div>
                     <div class="d-flex justify-content-between mb-1 small">
                         <span class="text-secondary">Interés Mora:</span>
-                        <span class="fw-semibold text-danger">@recibos.InteresMora.ToString("C0")</span>
+                        <span class="fw-semibold text-danger">@recibo.InteresMora.ToString("C0")</span>
                     </div>
-                    <div class="d-flex justify-content-between small mt-auto">
-                        <span class="text-secondary">Descuentos:</span>
-                        <span class="fw-semibold text-success">- @recibos.Descuento.ToString("C0")</span>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-secondary">Descuento:</span>
+                        <span class="fw-semibold text-success">- @recibo.Descuento.ToString("C0")</span>
                     </div>
                 </div>
             </div>
 
             <div class="col-12 col-sm-6 col-lg-3">
                 <div class="card h-100 shadow-sm border-light-subtle p-3 rounded-3 bg-white">
-                    <div class="text-muted text-uppercase fw-bold mb-2" style="font-size: 0.7rem;">Identificación
-                        Vehículo
+                    <div class="text-muted text-uppercase fw-bold mb-2" style="font-size: 0.7rem;">Recargos Adicionales</div>
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-secondary">Estampillas:</span>
+                        <span class="fw-semibold text-dark">@recibo.Estampillas.ToString("C0")</span>
                     </div>
-                    <div class="display-6 fw-bold text-dark tracking-wide mb-1"
-                         style="font-size: 1.6rem;">@recibos.Vehiculo.Placa.ToUpper()</div>
-                    <div class="text-muted small mt-auto">Generado: @recibos.Fecha.ToShortDateString()</div>
+                    <div class="d-flex justify-content-between mb-1 small">
+                        <span class="text-secondary">Rodamiento:</span>
+                        <span class="fw-semibold text-dark">@recibo.ValorRodamiento.ToString("C0")</span>
+                    </div>
+                    <div class="d-flex justify-content-between small">
+                        <span class="text-secondary">Carga Datos:</span>
+                        <span class="fw-semibold text-dark">@recibo.ValorCargaDatos.ToString("C0")</span>
+                    </div>
                 </div>
             </div>
 
             <div class="col-12 col-sm-6 col-lg-3">
                 <div class="card h-100 shadow-sm border-light-subtle p-3 rounded-3 bg-white">
-                    <div class="text-muted text-uppercase fw-bold mb-2" style="font-size: 0.7rem;">Contribuyente
-                        deudor
+                    <div class="text-muted text-uppercase fw-bold mb-2" style="font-size: 0.7rem;">Consistencia de Valores</div>
+                    <div class="h4 fw-bold text-primary mb-1">@recibo.ValorTotalCalculado.ToString("C0")</div>
+                    <div class="text-muted small">
+                        Estado Integración:
+                        <span class="badge @(recibo.EstaCompleto ? "bg-success" : "bg-warning text-dark")">
+                            @(recibo.EstaCompleto ? "Consistente" : "Divergencia")
+                        </span>
                     </div>
-                    @if (recibos.Vehiculo.Propietario != null)
-                    {
-                        <div class="fw-bold text-dark text-truncate small" title="@recibos.Vehiculo.Propietario.Nombre">
-                            @recibos.Vehiculo.Propietario.Nombre
-                        </div>
-                        <div class="text-muted small mt-2">
-                            Doc: @recibos.Vehiculo.Propietario.Documento
-                        </div>
-                    }
                 </div>
             </div>
         </div>
 
+        <!-- Tabla de Detalles -->
         <div class="card shadow-sm border-0 rounded-4 p-4 mb-4 bg-white">
             <div class="d-flex align-items-center gap-2 mb-3">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#667eea" stroke-width="2">
@@ -197,54 +157,57 @@
                     <line x1="16" y1="13" x2="8" y2="13"/>
                     <line x1="16" y1="17" x2="8" y2="17"/>
                 </svg>
-                <span class="fw-bold text-secondary small">Información técnica y destino del objeto vehicular</span>
+                <span class="fw-bold text-secondary small">Conceptos por Vigencia (@recibo.Detalles.Count registros)</span>
             </div>
 
-            <div class="row g-4">
-                <div class="col-12 col-sm-6">
-                    <div class="mb-3">
-                        <div class="text-muted mb-1" style="font-size: 0.7rem;">Marca / Línea Mecánica</div>
-                        <div
-                            class="fw-semibold text-dark small">@(recibos.Vehiculo.Marca?.Nombre ?? "N/A") - @(recibos.Vehiculo.Linea?.Nombre ?? "N/A")</div>
-                    </div>
-                    <div>
-                        <div class="text-muted mb-1" style="font-size: 0.7rem;">Total Liquidación (Lógica C#)</div>
-                        <div class="h4 fw-bold text-indigo mb-0"
-                             style="color: #4338ca;">@recibos.ValorTotalCalculado.ToString("C0")</div>
-                    </div>
+            @if (recibo.Detalles != null && recibo.Detalles.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Vigencia</th>
+                                <th>Concepto</th>
+                                <th>ID Cartera</th>
+                                <th class="text-end">Valor Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var det in recibo.Detalles)
+                            {
+                                <tr>
+                                    <td><span class="badge bg-secondary">@det.Vigencia</span></td>
+                                    <td>@det.Concepto</td>
+                                    <td><code>#@det.CarteraId</code></td>
+                                    <td class="text-end fw-bold">@det.ValorTotal.ToString("C0")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
-                <div class="col-12 col-sm-6">
-                    <div class="mb-3">
-                        <div class="text-muted mb-1" style="font-size: 0.7rem;">Clase y Destinación del Servicio</div>
-                        <div class="fw-semibold text-secondary small">
-                            @recibos.Vehiculo.TipoServicioVehiculo.GetDisplayName()
-                        </div>
-                    </div>
-                    <div>
-                        <div class="text-muted mb-1" style="font-size: 0.7rem;">Cilindraje registrado</div>
-                        <div class="fw-semibold text-dark small">@recibos.Vehiculo.Cilindraje cc</div>
-                    </div>
-                </div>
-            </div>
+            }
+            else
+            {
+                <p class="text-muted small mb-0">Este recibo no contiene ítems detallados de vigencias.</p>
+            }
         </div>
 
+        <!-- Registro y Acciones -->
         <div class="p-3 bg-light rounded-4 border border-light-subtle">
             <div class="row align-items-end g-3">
                 <div class="col-12 col-lg">
-                    <label class="form-label text-muted fw-bold mb-1" style="font-size: 0.75rem;">REGISTRO DE EVENTOS Y
-                        AUDITORÍA</label>
+                    <label class="form-label text-muted fw-bold mb-1" style="font-size: 0.75rem;">REGISTRO DE EVENTOS Y AUDITORÍA</label>
                     <textarea @bind="mensaje" rows="3" class="form-control bg-white font-monospace small"
                               placeholder="// Historial operativo del recibo actual..."
                               style="font-size: 0.85rem;"></textarea>
                 </div>
                 <div class="col-12 col-lg-auto d-flex flex-wrap gap-2 justify-content-lg-end">
-                    <button type="button"
-                            class="btn btn-outline-secondary btn-sm px-3 py-2 d-flex align-items-center gap-1"
+                    <button type="button" class="btn btn-outline-secondary btn-sm px-3 py-2 d-flex align-items-center gap-1"
                             @onclick="GenerarPdf">
                         <span>🖨️ PDF</span>
                     </button>
 
-                    @if (recibos.Estado == EstadoRecibo.Pendiente)
+                    @if (recibo.Estado == EstadoRecibo.Pendiente)
                     {
                         <button type="button" class="btn btn-success btn-sm px-4 py-2 text-white fw-semibold"
                                 @onclick="Procesar">
@@ -252,7 +215,7 @@
                         </button>
                     }
 
-                    @if (recibos.Estado == EstadoRecibo.Pagado)
+                    @if (recibo.Estado == EstadoRecibo.Pagado)
                     {
                         <button type="button" class="btn btn-danger btn-sm px-4 py-2 fw-semibold" @onclick="Reversar">
                             ⚠️ Reversar Recibo
@@ -283,10 +246,9 @@
         <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
             <div class="modal-content shadow border-0 py-3">
                 <div class="modal-body text-center">
-                    <div class="spinner-border text-primary mb-3" role="status"
-                         style="width: 3rem; height: 3rem;"></div>
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
                     <h6 class="text-dark fw-bold mb-1">Generando PDF Oficial</h6>
-                    <p class="text-muted small mb-0">Compilando liquidaciones de recaudo, por favor espere...</p>
+                    <p class="text-muted small mb-0">Compilando recibo de pago, por favor espere...</p>
                 </div>
             </div>
         </div>

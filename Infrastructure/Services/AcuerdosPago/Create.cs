@@ -2,8 +2,16 @@ using Domain.Models.Acuerdos;
 using Domain.Models.Acuerdos.Enums;
 using Domain.Models.Acuerdos.Requests;
 using Domain.Models.Acuerdos.Responses;
+using Domain.Models.Recibos;
+using Domain.Responses.Recibo.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Infrastructure.Services.AcuerdosPago;
 
 public partial class AcuerdoPagoService
@@ -23,6 +31,7 @@ public partial class AcuerdoPagoService
         try
         {
             var carteras = await _context.Cartera
+                .Include(c => c.Vehiculo)
                 .Where(c => request.CarteraIds.Contains(c.Id) && c.VehiculoId == request.VehiculoId)
                 .ToListAsync(cancellationToken);
 
@@ -36,7 +45,6 @@ public partial class AcuerdoPagoService
             // 1. Calcular el Interés por Mora dinámicamente usando LiquidacionService para cada cartera
             foreach (var cartera in carteras)
             {
-                // Usamos la lógica de tu LiquidacionService pasándole capital, vigencia y fecha de suscripción
                 cartera.ValorInteres = await liquidacionService.CalcularInteresMora(
                     cartera.Valor, 
                     cartera.Vigencia, 
@@ -72,14 +80,16 @@ public partial class AcuerdoPagoService
                 Estado = EstadoAcuerdoPago.Vigente,
                 Observaciones = request.Observaciones,
                 VehiculoId = request.VehiculoId,
-                ProcesoId = request.ProcesoId
+                ProcesoId = request.ProcesoId,
+                Cuotas = new List<CuotaAcuerdoPago>()
             };
 
-            // 5. Calcular la amortización lineal y generar las cuotas
+            // Variables de control para amortización
             decimal capitalAFinanciar = totalCapital;
             decimal interesAFinanciar = totalInteres;
+            Recibo? reciboCuotaInicial = null;
 
-            // Si pagó cuota inicial, descontamos proporcionalmente de capital e interés
+            // 5. Manejo de Cuota Inicial (Cuota 0) y Generación de su Recibo
             if (request.ValorCuotaInicial > 0)
             {
                 decimal proporcionCapital = totalFinanciado > 0 ? totalCapital / totalFinanciado : 0;
@@ -89,8 +99,8 @@ public partial class AcuerdoPagoService
                 capitalAFinanciar -= inicialCapital;
                 interesAFinanciar -= inicialInteres;
 
-                // Cuota 0: Cuota Inicial (Vence el mismo día)
-                acuerdo.Cuotas.Add(new CuotaAcuerdoPago
+                // A. Crear entidad de Cuota 0 (Cuota Inicial)
+                var cuotaInicial = new CuotaAcuerdoPago
                 {
                     NumeroCuota = 0,
                     FechaVencimiento = fechaSuscripcionUtc,
@@ -98,14 +108,32 @@ public partial class AcuerdoPagoService
                     ValorInteres = inicialInteres,
                     ValorTotalCuota = request.ValorCuotaInicial,
                     Estado = EstadoCuotaAcuerdo.Pendiente
-                });
+                };
+
+                acuerdo.Cuotas.Add(cuotaInicial);
+
+                // B. Generar el Recibo físico de pago para la Cuota Inicial
+                string placaVehiculo = carteras.FirstOrDefault()?.Vehiculo?.Placa ?? string.Empty;
+
+                reciboCuotaInicial = new Recibo
+                {
+                    VehiculoId = request.VehiculoId,
+                    Fecha = fechaSuscripcionUtc,
+                    Estado = EstadoRecibo.Pendiente,
+                    ValorCapital = inicialCapital,
+                    InteresMora = inicialInteres,
+                    Descuento = 0m,
+                    ValorTotalSistema = request.ValorCuotaInicial,
+                    Detalles = new List<ReciboDetalle>()
+                };
+
+                _context.Recibos.Add(reciboCuotaInicial);
             }
 
-            // Reparto lineal entre el número de cuotas
+            // 6. Reparto lineal entre el número de cuotas (Cuotas 1 a N)
             decimal capitalPorCuotaBase = Math.Round(capitalAFinanciar / request.NumeroCuotas, 2);
             decimal interesPorCuotaBase = Math.Round(interesAFinanciar / request.NumeroCuotas, 2);
 
-            // Control de residuos para ajuste exacto en la última cuota
             decimal capitalAcumulado = 0;
             decimal interesAcumulado = 0;
 
@@ -142,18 +170,32 @@ public partial class AcuerdoPagoService
                 });
             }
 
-            // 6. Guardar el acuerdo en BD para obtener su ID
+            // 7. Guardar el Acuerdo y el Recibo inicial en BD para obtener los IDs autogenerados
             _context.AcuerdosDePago.Add(acuerdo);
             await _context.SaveChangesAsync(cancellationToken);
 
-            // 7. Bloquear/Asignar las carteras y actualizar su ValorInteres con la mora calculada
+            // 8. Asociar el ReciboId generado a la Cuota 0 y bloquear las carteras
+            if (reciboCuotaInicial != null)
+            {
+                var cuota0 = acuerdo.Cuotas.FirstOrDefault(c => c.NumeroCuota == 0);
+                if (cuota0 != null)
+                {
+                    // Asignas directamente la entidad de navegación
+                    reciboCuotaInicial.CuotaAcuerdoPago = cuota0;
+                }
+            }
+
             foreach (var cartera in carteras)
             {
                 cartera.AcuerdoPagoId = acuerdo.Id;
             }
 
+            // 9. Confirmar la transacción atómica
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
+
+            _logger.LogInformation("Acuerdo de pago N° {NumeroAcuerdo} creado exitosamente con {CantidadCuotas} cuotas.", 
+                acuerdo.NumeroAcuerdo, acuerdo.NumeroCuotas);
 
             return await GetAcuerdosQuery()
                 .FirstOrDefaultAsync(a => a.Id == acuerdo.Id, cancellationToken);
@@ -161,7 +203,7 @@ public partial class AcuerdoPagoService
         catch (Exception ex)
         {
             await transaction.RollbackAsync(cancellationToken);
-            logger.LogError(ex, "Error al crear el acuerdo de pago para el vehículo ID {VehiculoId}", request.VehiculoId);
+            _logger.LogError(ex, "Error crítico al crear el acuerdo de pago para el vehículo ID {VehiculoId}", request.VehiculoId);
 
             throw;
         }

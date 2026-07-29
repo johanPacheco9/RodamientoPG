@@ -15,4 +15,5 @@ public class CuotaAcuerdoDto
     public decimal InteresFinanciacion { get; set; }
     public decimal ValorTotal => ValorCuota + InteresFinanciacion;
     public bool IsPagado { get; set; }
+    public string? NumeroRecibo { get; set; }
 }
