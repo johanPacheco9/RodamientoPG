@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Models.Acuerdos;
 using Domain.Models.Vehiculos;
 using Domain.Responses.Recibo.Enums;
 namespace Domain.Models.Recibos;
@@ -50,4 +51,7 @@ public class Recibo
 
     public int VehiculoId { get; set; }
     public virtual Vehiculo Vehiculo { get; set; } = null!;
+    
+    public int? CuotaAcuerdoPagoId { get; set; }
+    public virtual CuotaAcuerdoPago? CuotaAcuerdoPago { get; set; }
 }

@@ -1,0 +1,248 @@
+@page "/AcuerdosPago"
+@rendermode InteractiveServer
+@using Domain.Models.Acuerdos.Enums
+@using Domain.Models.Acuerdos.Responses
+@using Infrastructure.Services.AcuerdosPago
+@inject AcuerdoPagoService AcuerdoPagoService
+@inject IJSRuntime JsRuntime
+
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h5 class="mb-0 fw-medium">Gestión de acuerdos de pago</h5>
+        <small class="text-muted">Seguimiento de convenios, cuotas, saldos y estados.</small>
+    </div>
+    <button class="btn btn-outline-secondary btn-sm" @onclick="CargarAcuerdos">
+        <i class="bi bi-arrow-clockwise me-1"></i> Actualizar
+    </button>
+</div>
+
+<div class="card shadow-sm border-0 mb-3">
+    <div class="card-body py-3">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small text-muted mb-1">Placa</label>
+                <input class="form-control form-control-sm" @bind="_filtroPlaca" @bind:event="oninput" placeholder="Filtrar por placa" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Estado</label>
+                <select class="form-select form-select-sm" @bind="_estadoFiltro">
+                    <option value="">Todos</option>
+                    @foreach (var estado in Enum.GetValues<EstadoAcuerdoPago>())
+                    {
+                        <option value="@estado">@estado</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5 text-md-end">
+                <span class="badge bg-light text-dark border me-2">Total: @AcuerdosFiltrados.Count()</span>
+                <span class="badge bg-warning text-dark me-2">Vigentes: @_acuerdos.Count(a => a.Estado == EstadoAcuerdoPago.Vigente)</span>
+                <span class="badge bg-danger">Incumplidos: @_acuerdos.Count(a => a.Estado == EstadoAcuerdoPago.Incumplido)</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0">
+            <thead class="table-light">
+            <tr>
+                <th>No. acuerdo</th>
+                <th>Placa</th>
+                <th>Fecha</th>
+                <th>Vigencias</th>
+                <th class="text-center">Avance</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Saldo</th>
+                <th>Estado</th>
+                <th class="text-end">Acciones</th>
+            </tr>
+            </thead>
+            <tbody>
+            @if (!AcuerdosFiltrados.Any())
+            {
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-4">No hay acuerdos para los filtros seleccionados.</td>
+                </tr>
+            }
+            else
+            {
+                @foreach (var acuerdo in AcuerdosFiltrados)
+                {
+                    var pagadas = acuerdo.Cuotas.Count(c => c.EstadoCuota == EstadoCuotaAcuerdo.Pagada);
+                    <tr>
+                        <td class="fw-semibold">@acuerdo.NumeroAcuerdo</td>
+                        <td>@acuerdo.Placa</td>
+                        <td>@acuerdo.FechaSuscripcion.ToString("dd/MM/yyyy")</td>
+                        <td>@TextoVigencias(acuerdo)</td>
+                        <td class="text-center">
+                            <span class="badge bg-light text-dark border">@pagadas / @acuerdo.NumeroCuotas</span>
+                        </td>
+                        <td class="text-end">@acuerdo.ValorTotalFinanciado.ToString("C0")</td>
+                        <td class="text-end fw-semibold text-danger">@acuerdo.SaldoPendiente.ToString("C0")</td>
+                        <td><span class="@BadgeEstado(acuerdo.Estado)">@acuerdo.Estado</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-outline-primary btn-sm py-0 px-2 me-1" @onclick="() => VerCuotas(acuerdo)">
+                                <i class="bi bi-list-check"></i>
+                            </button>
+                            @if (acuerdo.Estado == EstadoAcuerdoPago.Vigente)
+                            {
+                                <button class="btn btn-outline-danger btn-sm py-0 px-2 me-1" @onclick="() => MarcarIncumplido(acuerdo)">
+                                    Incumplir
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm py-0 px-2" @onclick="() => Anular(acuerdo)">
+                                    Anular
+                                </button>
+                            }
+                        </td>
+                    </tr>
+                }
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (_mostrarCuotas && _acuerdoSeleccionado is not null)
+{
+    <div class="modal fade show d-block" tabindex="-1" style="background:rgba(0,0,0,.45);">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header py-2">
+                    <div>
+                        <h6 class="modal-title mb-0">Cuotas del acuerdo @_acuerdoSeleccionado.NumeroAcuerdo</h6>
+                        <small class="text-muted">@_acuerdoSeleccionado.Placa - @TextoVigencias(_acuerdoSeleccionado)</small>
+                    </div>
+                    <button type="button" class="btn-close" @onclick="CerrarCuotas"></button>
+                </div>
+                <div class="modal-body">
+                    <table class="table table-sm align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Cuota</th>
+                            <th>Vence</th>
+                            <th>Pago</th>
+                            <th class="text-end">Capital</th>
+                            <th class="text-end">Interés</th>
+                            <th class="text-end">Total</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acción</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var cuota in _acuerdoSeleccionado.Cuotas)
+                        {
+                            <tr class="@(cuota.EstadoCuota == EstadoCuotaAcuerdo.Vencido ? "table-danger" : "")">
+                                <td>@(cuota.NumeroCuota == 0 ? "Inicial" : cuota.NumeroCuota.ToString())</td>
+                                <td>@cuota.FechaVencimiento.ToString("dd/MM/yyyy")</td>
+                                <td>@(cuota.FechaPago?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                <td class="text-end">@cuota.ValorCuota.ToString("C0")</td>
+                                <td class="text-end">@cuota.InteresFinanciacion.ToString("C0")</td>
+                                <td class="text-end fw-semibold">@cuota.ValorTotal.ToString("C0")</td>
+                                <td><span class="@BadgeCuota(cuota.EstadoCuota)">@cuota.EstadoCuota</span></td>
+                                <td class="text-end">
+                                    @if (cuota.EstadoCuota != EstadoCuotaAcuerdo.Pagada && _acuerdoSeleccionado.Estado == EstadoAcuerdoPago.Vigente)
+                                    {
+                                        <button class="btn btn-success btn-sm py-0 px-2" @onclick="() => RegistrarPagoCuota(cuota)">
+                                            Pagar
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<AcuerdoPagoDto> _acuerdos = [];
+    private string _filtroPlaca = string.Empty;
+    private string _estadoFiltro = string.Empty;
+    private bool _mostrarCuotas;
+    private AcuerdoPagoDto? _acuerdoSeleccionado;
+
+    private IEnumerable<AcuerdoPagoDto> AcuerdosFiltrados => _acuerdos
+        .Where(a => string.IsNullOrWhiteSpace(_filtroPlaca) || a.Placa.Contains(_filtroPlaca.Trim().ToUpper(), StringComparison.OrdinalIgnoreCase))
+        .Where(a => string.IsNullOrWhiteSpace(_estadoFiltro) || a.Estado.ToString() == _estadoFiltro);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarAcuerdos();
+    }
+
+    private async Task CargarAcuerdos()
+    {
+        _acuerdos = await AcuerdoPagoService.GetAllAcuerdos();
+        if (_acuerdoSeleccionado is not null)
+            _acuerdoSeleccionado = _acuerdos.FirstOrDefault(a => a.Id == _acuerdoSeleccionado.Id);
+    }
+
+    private void VerCuotas(AcuerdoPagoDto acuerdo)
+    {
+        _acuerdoSeleccionado = acuerdo;
+        _mostrarCuotas = true;
+    }
+
+    private void CerrarCuotas()
+    {
+        _mostrarCuotas = false;
+        _acuerdoSeleccionado = null;
+    }
+    private async Task RegistrarPagoCuota(CuotaAcuerdoDto cuota)
+    {
+        Console.WriteLine($"Registrando pago para Cuota ID: {cuota.Id} | Capital: {cuota.ValorCuota} | Total: {cuota.ValorTotal}");
+    
+        // Enviamos la entidad/DTO completa al servicio
+        var ok = await AcuerdoPagoService.RegistrarPagoCuota(cuota);
+    
+        await JsRuntime.InvokeVoidAsync("alert", ok ? "Cuota registrada y pagada con éxito." : "No se pudo registrar el pago.");
+        await CargarAcuerdos();
+    }
+
+    private async Task MarcarIncumplido(AcuerdoPagoDto acuerdo)
+    {
+        if (!await JsRuntime.InvokeAsync<bool>("confirm", $"¿Marcar el acuerdo {acuerdo.NumeroAcuerdo} como incumplido? Las vigencias volverán a cartera ordinaria."))
+            return;
+
+        var ok = await AcuerdoPagoService.MarcarIncumplido(acuerdo.Id);
+        await JsRuntime.InvokeVoidAsync("alert", ok ? "Acuerdo marcado como incumplido." : "No se pudo actualizar el acuerdo.");
+        await CargarAcuerdos();
+    }
+
+    private async Task Anular(AcuerdoPagoDto acuerdo)
+    {
+        if (!await JsRuntime.InvokeAsync<bool>("confirm", $"¿Anular el acuerdo {acuerdo.NumeroAcuerdo}? Las vigencias volverán a cartera ordinaria."))
+            return;
+
+        var ok = await AcuerdoPagoService.AnularAcuerdo(acuerdo.Id);
+        await JsRuntime.InvokeVoidAsync("alert", ok ? "Acuerdo anulado." : "No se pudo anular el acuerdo.");
+        await CargarAcuerdos();
+    }
+
+    private static string TextoVigencias(AcuerdoPagoDto acuerdo)
+    {
+        return acuerdo.VigenciaDesde.HasValue && acuerdo.VigenciaHasta.HasValue
+            ? $"{acuerdo.VigenciaDesde} - {acuerdo.VigenciaHasta}"
+            : "Sin vigencias";
+    }
+
+    private static string BadgeEstado(EstadoAcuerdoPago estado) => estado switch
+    {
+        EstadoAcuerdoPago.Vigente => "badge bg-warning text-dark",
+        EstadoAcuerdoPago.Pagado => "badge bg-success",
+        EstadoAcuerdoPago.Incumplido => "badge bg-danger",
+        EstadoAcuerdoPago.Anulado => "badge bg-secondary",
+        _ => "badge bg-light text-dark"
+    };
+
+    private static string BadgeCuota(EstadoCuotaAcuerdo estado) => estado switch
+    {
+        EstadoCuotaAcuerdo.Pagada => "badge bg-success",
+        EstadoCuotaAcuerdo.Vencido => "badge bg-danger",
+        _ => "badge bg-warning text-dark"
+    };
+}

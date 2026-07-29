@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Domain.Generics;
 using Domain.Models;
 using Domain.Models.Acuerdos.Enums;
+using Domain.Models.Acuerdos.Requests;
 using Domain.Models.Acuerdos.Responses;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Recibos;
@@ -60,6 +61,8 @@ public partial class Dashboard : ComponentBase, IDisposable
     private List<Proceso> coactivosList = [];
     private List<AcuerdoPagoDto> acuerdosList = []; // 🚀 Lista de Acuerdos
     private AcuerdoPagoDto? _acuerdoActivo; // 🚀 Acuerdo Vigente actual
+    private AcuerdoPagoDto? _acuerdoSeleccionado;
+    private bool _mostrarCuotasAcuerdo;
     
     private bool isDropdownOpen = false;
     
@@ -321,12 +324,19 @@ public partial class Dashboard : ComponentBase, IDisposable
     // ── Acciones de Acuerdos de Pago ────────────────────────────────
     private void MostrarModalCrearAcuerdo()
     {
-        // Abrir modal de creación de acuerdo de pago
+        NavigationManager.NavigateTo("/AcuerdosPago");
     }
 
     private void VerCuotasAcuerdo(AcuerdoPagoDto acuerdo)
     {
-        // Mostrar desglose / plan de cuotas del acuerdo
+        _acuerdoSeleccionado = acuerdo;
+        _mostrarCuotasAcuerdo = true;
+    }
+
+    private void CerrarCuotasAcuerdo()
+    {
+        _mostrarCuotasAcuerdo = false;
+        _acuerdoSeleccionado = null;
     }
 
     private static string BadgeEstadoAcuerdo(EstadoAcuerdoPago estado) => estado switch
@@ -335,6 +345,13 @@ public partial class Dashboard : ComponentBase, IDisposable
         EstadoAcuerdoPago.Pagado => "badge bg-success",
         EstadoAcuerdoPago.Incumplido => "badge bg-danger",
         _ => "badge bg-secondary"
+    };
+
+    private static string BadgeEstadoCuota(EstadoCuotaAcuerdo estado) => estado switch
+    {
+        EstadoCuotaAcuerdo.Pagada => "badge bg-success",
+        EstadoCuotaAcuerdo.Vencido => "badge bg-danger",
+        _ => "badge bg-warning text-dark"
     };
 
     // ── Recibo ──────────────────────────────────────────────────────
@@ -691,6 +708,158 @@ public partial class Dashboard : ComponentBase, IDisposable
         finally
         {
             _isLoading = false;
+            StateHasChanged();
+        }
+    }
+    private class VigenciaSeleccionableAcuerdo
+    {
+        public VigenciaForm VigenciaForm { get; set; } = new();
+        public bool Seleccionado { get; set; }
+    }
+
+    // ── Estado del Modal de Creación ────────────────────────────────
+    private bool _mostrarModalCrearAcuerdo = false;
+    private bool _guardandoAcuerdo = false;
+    private CreateAcuerdoPagoRequest _nuevoAcuerdo = new();
+    private List<VigenciaSeleccionableAcuerdo> _vigenciasAcuerdo = [];
+    private decimal _totalFinanciarModal = 0;
+
+    // ── Abrir modal de creación ─────────────────────────────────────
+    private async Task AbrirModalCrearAcuerdo()
+    {
+        if (string.IsNullOrEmpty(_estadoCuenta?.Placa))
+        {
+            await MostrarAlerta("warning", "Primero debe realizar la búsqueda de un vehículo.");
+            return;
+        }
+
+        if (_tieneAcuerdoVigente)
+        {
+            await MostrarAlerta("warning", "El vehículo ya posee un acuerdo de pago VIGENTE activo.");
+            return;
+        }
+
+        // Filtrar únicamente vigencias con deudas que NO estén asociadas a un acuerdo previo
+        _vigenciasAcuerdo = _vigencias
+            .Where(v => v.Conceptos.Any(c => c.AcuerdoPagoId == null))
+            .Select(v => new VigenciaSeleccionableAcuerdo
+            {
+                VigenciaForm = v,
+                Seleccionado = true // Seleccionadas por defecto
+            })
+            .ToList();
+
+        if (!_vigenciasAcuerdo.Any())
+        {
+            await MostrarAlerta("warning", "No hay vigencias pendientes disponibles para financiar.");
+            return;
+        }
+        
+        _nuevoAcuerdo = new CreateAcuerdoPagoRequest()
+        {
+            VehiculoId = _estadoCuenta.VehiculoId,
+            NumeroCuotas = 12,
+            ValorCuotaInicial = 0,
+            FechaSuscripcion = DateTime.Now,
+            Observaciones = string.Empty
+        };
+
+        RecalcularSimulacionAcuerdo();
+        _mostrarModalCrearAcuerdo = true;
+        StateHasChanged();
+    }
+
+    private void CerrarModalCrearAcuerdo()
+    {
+        _mostrarModalCrearAcuerdo = false;
+        _guardandoAcuerdo = false;
+    }
+
+    private void ToggleSeleccionarTodasVigenciasAcuerdo(ChangeEventArgs e)
+    {
+        bool checkedState = (bool)(e.Value ?? false);
+        foreach (var item in _vigenciasAcuerdo)
+        {
+            item.Seleccionado = checkedState;
+        }
+        RecalcularSimulacionAcuerdo();
+    }
+
+    private void RecalcularSimulacionAcuerdo()
+    {
+        _totalFinanciarModal = _vigenciasAcuerdo
+            .Where(v => v.Seleccionado)
+            .Sum(v => v.VigenciaForm.TotalVigencia);
+
+        StateHasChanged();
+    }
+
+    // ── Guardar el acuerdo ──────────────────────────────────────────
+    private async Task GuardarAcuerdoPago()
+    {
+        var carterasSeleccionadas = _vigenciasAcuerdo
+            .Where(v => v.Seleccionado)
+            .SelectMany(v => v.VigenciaForm.Conceptos)
+            .Select(c => c.Id)
+            .ToList();
+
+        if (!carterasSeleccionadas.Any())
+        {
+            await MostrarAlerta("warning", "Debe seleccionar al menos una vigencia para financiar.");
+            return;
+        }
+
+        if (_nuevoAcuerdo.NumeroCuotas <= 0)
+        {
+            await MostrarAlerta("warning", "El número de cuotas debe ser mayor a 0.");
+            return;
+        }
+
+        if (_nuevoAcuerdo.ValorCuotaInicial >= _totalFinanciarModal)
+        {
+            await MostrarAlerta("warning", "La cuota inicial no puede superar o igualar el total de la deuda seleccionada.");
+            return;
+        }
+
+        bool confirmacion = await MostrarConfirmacion(
+            $"¿Está seguro de formalizar el acuerdo a {_nuevoAcuerdo.NumeroCuotas} cuotas por un total de {_totalFinanciarModal:C0}?");
+
+        if (!confirmacion) return;
+
+        try
+        {
+            
+            _guardandoAcuerdo = true;
+            StateHasChanged();
+
+            _nuevoAcuerdo.CarteraIds = carterasSeleccionadas;
+            _nuevoAcuerdo.VehiculoId = _estadoCuenta.VehiculoId;
+
+            var resultado = await AcuerdoPagoService.CrearAcuerdoPago(_nuevoAcuerdo);
+
+            if (resultado != null)
+            {
+                await MostrarAlerta("success", $"Acuerdo No. {resultado.NumeroAcuerdo} creado exitosamente.");
+                
+                _mostrarModalCrearAcuerdo = false;
+                
+                // Recargar cartera para congelar las deudas y refrescar la tabla del Tab 6
+                await ObtenerCartera();
+                await SetTab(6);
+            }
+            else
+            {
+                await MostrarAlerta("error", "No se pudo generar el acuerdo de pago.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al crear acuerdo: {ex.Message}");
+            await MostrarAlerta("error", $"Error: {ex.Message}");
+        }
+        finally
+        {
+            _guardandoAcuerdo = false;
             StateHasChanged();
         }
     }

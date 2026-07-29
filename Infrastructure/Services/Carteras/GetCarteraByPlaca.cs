@@ -58,6 +58,12 @@ public partial class CarteraService
                 .ToListAsync(cancellationToken);
 
             var carteraPendiente = new List<ConceptoCarteraDto>();
+            var hoy = DateTime.UtcNow;
+            var porcentajeDescuento = await context.Descuentos
+                .AsNoTracking()
+                .Where(d => hoy >= d.Desde && hoy <= d.Hasta)
+                .Select(d => d.Porcentaje)
+                .FirstOrDefaultAsync(cancellationToken);
 
             foreach (var c in carteraBase)
             {
@@ -65,7 +71,12 @@ public partial class CarteraService
                     ? await liquidacionService.CalcularInteresMora(c.Valor, c.Vigencia)
                     : 0m;
 
-                decimal totalActualizado = c.Valor + interesActualizado - c.Descuento;
+                decimal descuentoActualizado = Math.Round(
+                    (interesActualizado * porcentajeDescuento) / 100m,
+                    0,
+                    MidpointRounding.AwayFromZero);
+
+                decimal totalActualizado = c.Valor + interesActualizado - descuentoActualizado;
 
                 // 🚀 SE INCLUYE c.AcuerdoPagoId PARA PROTEGER EL REGISTRO
                 carteraPendiente.Add(new ConceptoCarteraDto(
@@ -75,7 +86,7 @@ public partial class CarteraService
                     c.Tipo,
                     c.Valor,
                     interesActualizado, 
-                    c.Descuento,
+                    descuentoActualizado,
                     totalActualizado,
                     c.AcuerdoPagoId // ID del acuerdo si la vigencia está financiada
                 ));
