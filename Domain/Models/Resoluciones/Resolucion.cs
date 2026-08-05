@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Domain.Models.Carteras;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Vehiculos;
 using Domain.Responses.Resolucion.Enums;

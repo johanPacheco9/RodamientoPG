@@ -1,4 +1,5 @@
 using Domain.Models;
+using Domain.Models.Carteras;
 using Domain.Models.Carteras.Enums;
 namespace Infrastructure.Services.Carteras;
 

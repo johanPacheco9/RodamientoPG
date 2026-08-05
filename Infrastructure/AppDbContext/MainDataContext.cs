@@ -2,6 +2,7 @@ using Domain.Models;
 using Domain.Models.Acuerdos;
 using Domain.Models.Avaluo;
 using Domain.Models.BaseGravable;
+using Domain.Models.Carteras;
 using Domain.Models.Notificaciones;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Recibos;

@@ -33,12 +33,9 @@ namespace Rodamiento.Pages.PLogin
 
         public async Task<IActionResult> OnPost()
         {
-//            Console.WriteLine($"Usuario: {UserName}, Contrase�a: {pass}");
             var result = await _loginService.UserLoginAsync(UserName, pass);
-
             if (result == 1)
             {
-                // Inicio de sesi�n exitoso, redirige a la p�gina Comparendos
                 Console.WriteLine("�xito en el inicio de sesi�n");
                 return Redirect("/Principal");
             }

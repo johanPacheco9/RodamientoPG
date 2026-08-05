@@ -179,7 +179,7 @@
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label text-secondary small fw-medium">Número Documento</label>
-                                    <InputText maxlength="13" class="form-control border-secondary-subtle font-monospace fw-semibold" 
+                                    <InputText maxlength="13" readonly="true"  class="form-control border-secondary-subtle font-monospace fw-semibold" 
                                                @bind-Value="_formModel.DocumentoPropietario" @onblur="BuscarNombrePropietario" />
                                     <ValidationMessage For="@(() => _formModel.DocumentoPropietario)" class="text-danger small mt-1" />
                                 </div>

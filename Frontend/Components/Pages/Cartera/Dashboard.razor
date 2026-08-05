@@ -13,7 +13,7 @@
 <!-- Métricas -->
 <div class="row g-3 mb-3">
     <div class="col-6 col-md-3">
-        <div class="card">
+        <div class="card kpi-card kpi-total">
             <div class="card-body py-2 px-3">
                 <small class="text-muted d-block">Total deudores</small>
                 <span class="fw-medium fs-5">@_totalDeudores</span>
@@ -21,7 +21,7 @@
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card">
+        <div class="card kpi-card kpi-deuda">
             <div class="card-body py-2 px-3">
                 <small class="text-muted d-block">Deuda total cartera</small>
                 <span class="fw-medium fs-5 text-danger">@_totalCartera.ToString("C0")</span>
@@ -29,7 +29,7 @@
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card">
+        <div class="card kpi-card kpi-proceso">
             <div class="card-body py-2 px-3">
                 <small class="text-muted d-block">Con proceso activo</small>
                 <span class="fw-medium fs-5">@_conProceso</span>
@@ -37,7 +37,7 @@
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card">
+        <div class="card kpi-card kpi-sinproceso">
             <div class="card-body py-2 px-3">
                 <small class="text-muted d-block">Sin proceso</small>
                 <span class="fw-medium fs-5">@(_totalDeudores - _conProceso)</span>
@@ -109,17 +109,23 @@
             <tbody>
             @foreach (var item in _deudores)
             {
-                <tr style="cursor:pointer;" @onclick="() => VerDetalle(item.Placa)">
+                <tr class="cartera-row @(item.Proceso switch { "coactivo" => "acento-coactivo", "persuasivo" => "acento-persuasivo", _ => "acento-ninguno" })"
+                    style="cursor:pointer;" @onclick="() => VerDetalle(item.Placa)">
                     <td><span class="badge bg-secondary">@item.TipoDocumento</span></td>
-                    <td>@item.Documento</td>
+                    <td class="doc-mono">@item.Documento</td>
                     <td>@item.NombrePropietario</td>
-                    <td><strong class="text-primary">@item.Placa</strong></td>
+                    <td>
+                        <span class="placa-chip">
+                            <span class="placa-tab">CO</span>
+                            <span class="placa-num">@item.Placa</span>
+                        </span>
+                    </td>
                     <td class="text-center">
                             <span class="badge @BadgeVigencias(item.VigenciasPendientes)">
                                 @item.VigenciasPendientes año(s)
                             </span>
                     </td>
-                    <td class="text-end fw-medium text-danger">@item.TotalDeuda.ToString("C")</td>
+                    <td class="text-end fw-medium text-danger valor-mono">@item.TotalDeuda.ToString("C")</td>
                     <td class="text-center">
                             <span class="badge @BadgeProceso(item.Proceso)">
                                 @(string.IsNullOrEmpty(item.Proceso) ? "Ninguno" : item.Proceso)

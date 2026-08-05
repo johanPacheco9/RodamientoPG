@@ -1,5 +1,6 @@
 using Domain.Models;
 using Domain.Models.Acuerdos.Enums;
+using Domain.Models.Carteras;
 using Domain.Models.Carteras.Enums;
 using Domain.Responses.Liquidacion.Enums;
 using Microsoft.EntityFrameworkCore;

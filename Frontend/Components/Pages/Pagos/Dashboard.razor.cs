@@ -112,9 +112,9 @@ public partial class Dashboard
 
         try
         {
-            var filas = await PagoService.ReversarPago(recibo.Id);
+            var response = await PagoService.ReversarPago(recibo.Id);
 
-            if (filas > 0)
+            if (response)
             {
                 mensaje += $"\n// Recibo {recibo.Id} reversado. La cartera vuelve a estar activa.";
                 await JsRuntime.InvokeVoidAsync("alert", "Transacción reversada con éxito.");

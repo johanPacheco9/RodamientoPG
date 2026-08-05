@@ -1,0 +1,199 @@
+/* ============================================================
+   Cartera de deudores — tokens de diseño
+   Las fuentes (Space Grotesk / Inter / IBM Plex Mono) se cargan
+   desde App.razor o _Layout.cshtml — ver instrucción abajo.
+   Blazor no permite @import dentro de un .razor.css (scoped).
+   ============================================================ */
+
+* {
+    font-family: 'Inter', system-ui, sans-serif;
+}
+
+h5, h6 {
+    font-family: 'Space Grotesk', 'Inter', sans-serif;
+    letter-spacing: -0.01em;
+}
+
+/* ------------------------------------------------------------
+   KPIs — tarjetas tipo "ficha de libro mayor": plano, con un
+   acento inferior de color que identifica el tipo de métrica.
+   ------------------------------------------------------------ */
+.kpi-card {
+    border: 1px solid #E3E1DA;
+    border-radius: 4px;
+    border-bottom-width: 3px;
+    box-shadow: none;
+}
+
+.kpi-card small {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6B7280;
+}
+
+.kpi-card .fs-5 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 1.65rem !important;
+    font-variant-numeric: tabular-nums;
+    color: #1C2430;
+}
+
+.kpi-total { border-bottom-color: #1E3A5F; }
+.kpi-deuda { border-bottom-color: #9B2C2C; }
+.kpi-proceso { border-bottom-color: #B5792B; }
+.kpi-sinproceso { border-bottom-color: #9CA3AF; }
+
+.kpi-deuda .fs-5 { color: #9B2C2C !important; }
+
+/* ------------------------------------------------------------
+   Tarjetas generales — quitar el aire "bootstrap por defecto"
+   ------------------------------------------------------------ */
+.card {
+    border: 1px solid #E3E1DA;
+    border-radius: 4px;
+    box-shadow: none;
+}
+
+/* ------------------------------------------------------------
+   Filtros — estilo "ficha de solicitud": inputs subrayados en
+   vez de cajas cerradas, como un formulario en papel.
+   ------------------------------------------------------------ */
+.form-label {
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #6B7280 !important;
+}
+
+.form-control, .form-select {
+    border: none;
+    border-bottom: 1.5px solid #D8D6D0;
+    border-radius: 0;
+    background: transparent;
+    padding-left: 2px;
+}
+
+.form-control:focus, .form-select:focus {
+    box-shadow: none;
+    border-bottom-color: #1E3A5F;
+}
+
+.btn-primary {
+    background-color: #1E3A5F;
+    border-color: #1E3A5F;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.btn-primary:hover, .btn-primary:focus {
+    background-color: #16293F;
+    border-color: #16293F;
+}
+
+.btn-outline-secondary {
+    color: #4B5563;
+    border-color: #D8D6D0;
+    border-radius: 4px;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #F1F0EC;
+    border-color: #D8D6D0;
+    color: #1C2430;
+}
+
+/* ------------------------------------------------------------
+   Tabla
+   ------------------------------------------------------------ */
+.table > thead {
+    background: #FAFAF8 !important;
+}
+
+.table > thead th {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: #6B7280;
+    border-bottom: 2px solid #1E3A5F;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.table > tbody > tr td {
+    font-size: 0.85rem;
+    border-color: #EDEBE5;
+}
+
+.table-hover > tbody > tr:hover {
+    background-color: #F5F6F8;
+}
+
+.doc-mono, .valor-mono {
+    font-family: 'IBM Plex Mono', monospace;
+    font-variant-numeric: tabular-nums;
+}
+
+.valor-mono {
+    font-weight: 600;
+}
+
+/* Acento de fila por severidad del proceso de cobro:
+   codifica información real (gravedad del expediente), no decora. */
+.cartera-row td:first-child {
+    position: relative;
+}
+
+.acento-ninguno td:first-child { box-shadow: inset 3px 0 0 transparent; }
+.acento-persuasivo td:first-child { box-shadow: inset 3px 0 0 #B5792B; }
+.acento-coactivo td:first-child { box-shadow: inset 3px 0 0 #9B2C2C; }
+
+/* ------------------------------------------------------------
+   Chip de placa — referencia directa al objeto real que se
+   está cobrando: una placa vehicular colombiana en miniatura.
+   ------------------------------------------------------------ */
+.placa-chip {
+    display: inline-flex;
+    align-items: stretch;
+    border: 1.5px solid #1C2430;
+    border-radius: 3px;
+    overflow: hidden;
+    background: #FCFBF7;
+    line-height: 1;
+}
+
+.placa-tab {
+    display: flex;
+    align-items: center;
+    padding: 3px 4px;
+    background: #1E3A5F;
+    color: #fff;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.placa-num {
+    display: flex;
+    align-items: center;
+    padding: 3px 7px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+    color: #1C2430;
+}
+
+/* ------------------------------------------------------------
+   Badges — de "pill" genérico a etiqueta rectangular tipo sello
+   ------------------------------------------------------------ */
+.badge {
+    border-radius: 3px !important;
+    font-weight: 600;
+    font-size: 10.5px;
+    letter-spacing: 0.03em;
+    text-transform: capitalize;
+    padding: 4px 7px;
+}

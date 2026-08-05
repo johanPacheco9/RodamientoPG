@@ -2,11 +2,9 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using Domain.Models.Acuerdos;
 using Domain.Models.Carteras.Enums;
-using Domain.Models.Notificaciones;
 using Domain.Models.Resoluciones;
 using Domain.Models.Vehiculos;
-
-namespace Domain.Models;
+namespace Domain.Models.Carteras;
 
 /// <summary>
 /// Clase que representa la deuda de una persona. Tiene relacion con el vehiculo y avisos.

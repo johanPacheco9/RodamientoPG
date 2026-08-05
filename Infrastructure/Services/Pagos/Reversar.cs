@@ -1,54 +1,103 @@
+using Domain.Models.Acuerdos.Enums;
 using Domain.Responses.Recibo.Enums;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace Infrastructure.Services.Pagos;
 
 public partial class PagoService
 {
-    public async Task<int> ReversarPago(int numeroRecibo)
+    public async Task<bool> ReversarPago(int numeroRecibo, CancellationToken cancellationToken = default)
     {
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+
         try
         {
-            // 1. Buscamos el recibo encabezado
-            var recibo = await context.Recibos.FirstOrDefaultAsync(s => s.Id == numeroRecibo);
+            // 1. Cargar el recibo con sus detalles de cartera Y la relación con la cuota del acuerdo
+            var recibo = await context.Recibos
+                .Include(r => r.Detalles)
+                .Include(r => r.CuotaAcuerdoPago)
+                .ThenInclude(c => c.AcuerdoPago)
+                .FirstOrDefaultAsync(r => r.Id == numeroRecibo, cancellationToken);
 
-            if (recibo == null) return 0; // Guardrail por si el recibo no existe
+            if (recibo == null)
+                throw new InvalidOperationException($"El recibo N° {numeroRecibo} no existe.");
 
-            // 2. Guardrail: solo se puede reversar un recibo que esté efectivamente PAGADO
-            if (recibo.Estado != EstadoRecibo.Pagado) return 0;
+            // Guardrail: Solo se puede reversar si está Pagado
+            if (recibo.Estado != EstadoRecibo.Pagado)
+                throw new InvalidOperationException($"El recibo N° {numeroRecibo} no está pagado (Estado actual: {recibo.Estado}).");
 
-            // 3. Traemos los IDs de cartera relacionados al detalle de este recibo
-            var carteraIdsPagos = await context.ReciboDetalle
-                .Where(s => s.ReciboId == numeroRecibo)
-                .Select(c => c.CarteraId)
-                .ToListAsync();
-
-            if (!carteraIdsPagos.Any()) return 0;
-
-            // 4. Obtenemos las entidades físicas de Cartera
-            var carterasAReversar = await context.Cartera
-                .Where(c => carteraIdsPagos.Contains(c.Id))
-                .ToListAsync();
-
-            // 5. Revertimos el estado de la cartera (vuelve a quedar como deuda pendiente)
-            foreach (var itemCartera in carterasAReversar)
+            // ==========================================
+            // CASO A: Es un Recibo de Acuerdo de Pago
+            // ==========================================
+            if (recibo.CuotaAcuerdoPagoId.HasValue && recibo.CuotaAcuerdoPago != null)
             {
-                itemCartera.IsPagado = false;
+                var cuota = recibo.CuotaAcuerdoPago;
+
+                // 1. Revertir la cuota a Pendiente
+                cuota.Estado = EstadoCuotaAcuerdo.Pendiente;
+                cuota.FechaPago = null;
+                cuota.NumeroRecibo = null;
+
+                // 2. Si el Acuerdo de Pago estaba Finalizado, reactivarlo (Ajusta la enum según tu modelo)
+                if (cuota.AcuerdoPago != null && cuota.AcuerdoPago.Estado == EstadoAcuerdoPago.Finalizado)
+                {
+                    cuota.AcuerdoPago.Estado = EstadoAcuerdoPago.Vigente;
+
+                    // Revertir la cartera asociada al acuerdo para que vuelva a figurar como no pagada
+                    var carterasAcuerdo = await context.Cartera
+                        .Where(c => c.AcuerdoPagoId == cuota.AcuerdoPagoId)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var car in carterasAcuerdo)
+                    {
+                        car.IsPagado = false;
+                        car.FechaPago = null;
+                    }
+                }
+            }
+            // ==========================================
+            // CASO B: Es un Recibo Normal (Liquidación Directa)
+            // ==========================================
+            else if (recibo.Detalles != null && recibo.Detalles.Any())
+            {
+                var carteraIds = recibo.Detalles.Select(d => d.CarteraId).ToList();
+
+                var carteras = await context.Cartera
+                    .Where(c => carteraIds.Contains(c.Id))
+                    .ToListAsync(cancellationToken);
+
+                foreach (var itemCartera in carteras)
+                {
+                    itemCartera.IsPagado = false;
+                    itemCartera.FechaPago = null;
+                }
+            }
+            else
+            {
+                throw new InvalidOperationException($"El recibo N° {numeroRecibo} no contiene detalles de cartera ni está asociado a una cuota de acuerdo de pago.");
             }
 
-            // 6. 🔥 Revertimos el estado y fechas del recibo
-            recibo.Estado = EstadoRecibo.Pendiente;
+            // 3. Revertir el estado del Recibo
+            recibo.Estado = EstadoRecibo.Pendiente; // O EstadoRecibo.Anulado según tu lógica de negocio
             recibo.FechaPago = null;
             recibo.FechaAplica = null;
 
-            // 7. Impactamos la base de datos en una sola transacción atómica
-            return await context.SaveChangesAsync();
+            await context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            return true;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Fallo crítico en ReversarPago para el recibo N° {numeroRecibo}: {ex.Message}");
+            await transaction.RollbackAsync(cancellationToken);
+            _logger.LogError(ex, "Error al reversar el pago del recibo N° {NumeroRecibo}", numeroRecibo);
 
-            return 0;
+            throw;
         }
     }
 }

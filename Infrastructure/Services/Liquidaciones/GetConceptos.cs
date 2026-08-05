@@ -1,4 +1,5 @@
 using Domain.Models;
+using Domain.Models.Carteras;
 namespace Infrastructure.Services.Liquidaciones;
 
 public partial class LiquidacionService

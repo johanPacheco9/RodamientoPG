@@ -14,8 +14,7 @@ public class UserService(MainDataContext context, IHttpContextAccessor httpConte
 
     public async Task<int> Add(Usuario usuario)
     {
-        EnsureAdmin();
-
+        
         var existeUsuario = await context.Usuarios!
             .AnyAsync(u => u.UserName.ToLower() == usuario.UserName.Trim().ToLower());
 

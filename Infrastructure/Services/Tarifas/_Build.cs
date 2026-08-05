@@ -1,5 +1,6 @@
 using Domain.Generics;
 using Domain.Models;
+using Domain.Models.Carteras;
 using Domain.Models.Carteras.Enums;
 using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Vehiculos.Enums;
