@@ -63,7 +63,7 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
             vehiculoDb.FechaModificacion = DateTime.UtcNow;
             vehiculoDb.UsuarioModifico = 1;
 
-            vehiculoDb.TipoServicioVehiculo = (Domain.Responses.Vehiculos.Enums.TipoServicioVehiculo)request.TipoServicioVehiculo;
+            vehiculoDb.TipoServicio = (Domain.Responses.Vehiculos.Enums.TipoServicioVehiculo)request.TipoServicioVehiculo;
 
             // 3. Guardar cambios (EF ya trackea las modificaciones automáticamente)
             return await ctx.SaveChangesAsync();
@@ -94,7 +94,7 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
                 v.MarcaId,
                 v.LineaId,
                 v.ColorId,
-                v.TipoServicioVehiculo,
+                v.TipoServicio,
                 v.TipoCarroceriaId,
                 v.PropietarioId,
                 v.Propietario.Documento,

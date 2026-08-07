@@ -62,7 +62,8 @@ public static class DependencyInjection
         //Recibo
         services.AddTransient<ReciboService>();
         //Envio emails
-        services.AddScoped<EmailService>();
+        services.AddScoped<EmailService>(); 
+        //services.AddHostedService<ActualizacionInteresesJob>();
         return services;
     }
 }

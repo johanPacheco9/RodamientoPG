@@ -138,4 +138,13 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
+// Inicializar y sembrar base de datos en el arranque
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<MainDataContext>();
+    var carteraService = scope.ServiceProvider.GetRequiredService<CarteraService>();
+    DbInitializer.Initialize(context, carteraService);
+}
+
 app.Run();

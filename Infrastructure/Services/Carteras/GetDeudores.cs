@@ -49,7 +49,7 @@ public partial class CarteraService
                 TipoDocumento = g.Key.TipoDocumento.ToString(),
                 VigenciasPendientes = g.Select(c => c.Vigencia).Distinct().Count(),
                 // Ahora (Suma Capital + Intereses)
-                TotalDeuda = g.Sum(c => c.ValorTotal + c.ValorInteres),
+                TotalDeudaSinIntereses = g.Sum(c => c.ValorTotal),
                 EstadoProceso = context.Procesos
                     .Where(p => p.VehiculoId == g.Key.VehiculoId && p.EstadoProceso != EstadoProceso.SinProceso)
                     .Select(p => (EstadoProceso?)p.EstadoProceso)
@@ -69,7 +69,7 @@ public partial class CarteraService
 
         if (filtro.DeudaMinima.HasValue && filtro.DeudaMinima > 0)
         {
-            queryAgrupada = queryAgrupada.Where(x => x.TotalDeuda >= filtro.DeudaMinima.Value);
+            queryAgrupada = queryAgrupada.Where(x => x.TotalDeudaSinIntereses >= filtro.DeudaMinima.Value);
         }
 
         var stats = await queryAgrupada
@@ -77,13 +77,13 @@ public partial class CarteraService
             .Select(g => new
             {
                 Total = g.Count(),
-                TotalCartera = g.Sum(x => x.TotalDeuda),
+                TotalCartera = g.Sum(x => x.TotalDeudaSinIntereses),
                 ConProceso = g.Count(x => x.EstadoProceso != EstadoProceso.SinProceso)
             })
             .FirstOrDefaultAsync();
 
         var itemsDb = await queryAgrupada
-            .OrderByDescending(x => x.TotalDeuda)
+            .OrderByDescending(x => x.TotalDeudaSinIntereses)
             .Skip((pagina - 1) * porPagina)
             .Take(porPagina)
             .ToListAsync();
@@ -95,7 +95,7 @@ public partial class CarteraService
             NombrePropietario = x.NombrePropietario,
             Placa = x.Placa,
             VigenciasPendientes = x.VigenciasPendientes,
-            TotalDeuda = x.TotalDeuda,
+            TotalDeuda = x.TotalDeudaSinIntereses,
             Proceso = x.EstadoProceso == EstadoProceso.SinProceso ? null : x.EstadoProceso.GetDisplayName()
         }).ToList();
 

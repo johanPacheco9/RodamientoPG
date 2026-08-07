@@ -20,8 +20,6 @@ namespace Infrastructure.Services.Alimentador;
 
 public static class DbInitializer
 {
-    private const int TargetVehiculosTesting = 10000;
-
     public static void Initialize(MainDataContext context, CarteraService carteraService)
     {
         context.Database.EnsureCreated();
@@ -30,8 +28,7 @@ public static class DbInitializer
         SeedCatalogos(context);
         SeedReglasLiquidacion(context);
         SeedUsuarios(context);
-        SeedVehiculosYCartera(context, carteraService);
-        SeedRecibosDePrueba(context);
+        // Vehicle and receipt seeding is handled during import; only core lookup data is seeded here
     }
 
     private static void SeedParametros(MainDataContext context)
@@ -66,13 +63,13 @@ public static class DbInitializer
 
     private static void SeedCatalogos(MainDataContext context)
     {
-        EnsureTipoVehiculo(context, 1, 10, "Automovil", ClaseAgrupacionVehiculo.Automovil, 1);
-        EnsureTipoVehiculo(context, 2, 20, "Camioneta", ClaseAgrupacionVehiculo.Automovil, 1);
-        EnsureTipoVehiculo(context, 3, 30, "Buseta", ClaseAgrupacionVehiculo.Pasajeros, 2);
-        EnsureTipoVehiculo(context, 4, 40, "Camion", ClaseAgrupacionVehiculo.Carga, 2);
-        EnsureTipoVehiculo(context, 5, 50, "Motocicleta", ClaseAgrupacionVehiculo.Automovil, 1); 
-        EnsureTipoVehiculo(context, 8, 80, "Volqueta", ClaseAgrupacionVehiculo.Carga, 2);
-        EnsureTipoVehiculo(context, 9, 90, "Tractocamion", ClaseAgrupacionVehiculo.Carga, 2);
+        EnsureTipoVehiculo(context, 1, 10, "Automovil", ClaseAgrupacionVehiculo.Automovil, TipoServicioVehiculo.Particular);
+        EnsureTipoVehiculo(context, 2, 20, "Camioneta", ClaseAgrupacionVehiculo.Automovil, TipoServicioVehiculo.Particular);
+        EnsureTipoVehiculo(context, 3, 30, "Buseta", ClaseAgrupacionVehiculo.Pasajeros, TipoServicioVehiculo.Pasajeros);
+        EnsureTipoVehiculo(context, 4, 40, "Camion", ClaseAgrupacionVehiculo.Carga, TipoServicioVehiculo.Carga);
+        EnsureTipoVehiculo(context, 5, 50, "Motocicleta", ClaseAgrupacionVehiculo.Automovil, TipoServicioVehiculo.Particular);
+        EnsureTipoVehiculo(context, 8, 80, "Volqueta", ClaseAgrupacionVehiculo.Carga, TipoServicioVehiculo.Carga);
+        EnsureTipoVehiculo(context, 9, 90, "Tractocamion", ClaseAgrupacionVehiculo.Carga, TipoServicioVehiculo.Carga);
 
         EnsureColor(context, 101, "Blanco");
         EnsureColor(context, 102, "Negro");
@@ -123,24 +120,64 @@ public static class DbInitializer
                 new Uvt { FechaDesde = Utc(2026, 1, 1), FechaHasta = Utc(2026, 12, 31), Valor = 52_500 });
         }
 
-        if (!context.Tarifas.Any())
+        // 🔴 FORZAR LIMPIEZA COMPLETA DE TARIFAS
+        // Borramos todas las tarifas para limpiar valores corruptos/antiguos
+        if (context.Tarifas.Any())
         {
-            var automovil = context.TipoVehiculos.First(t => t.Id == 1);
-            var camioneta = context.TipoVehiculos.First(t => t.Id == 2);
-            var camion = context.TipoVehiculos.First(t => t.Id == 4);
-            var moto = context.TipoVehiculos.First(t => t.Id == 5);
+            context.Tarifas.RemoveRange(context.Tarifas);
+            context.SaveChanges();
+        }
 
-            for (var year = 2017; year <= 2026; year++)
-            {
-                var incremento = (year - 2017) * 7_500;
+        // 🟢 OBTENER LAS ENTIDADES SEGÚN LOS IDS REALES DECLARADOS EN SeedCatalogos
+        // 1: Automovil, 2: Camioneta, 4: Camion, 5: Motocicleta
+        var automovil = context.TipoVehiculos.FirstOrDefault(t => t.Id == 1)
+                        ?? context.TipoVehiculos.First(t => t.Nombre.Contains("Automovil", StringComparison.OrdinalIgnoreCase));
 
-                context.Tarifas.AddRange(
-                    Tarifa(year, 0, 9_999_999, 180_000 + incremento, automovil, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
-                    Tarifa(year, 10_000_000, 99_999_999, 245_000 + incremento, camioneta, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
-                    Tarifa(year, 0, 125, 60_000 + incremento, moto, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
-                    Tarifa(year, 0, 25, 95_000 + incremento, camion, TipoServicioVehiculo.Publico, TipoConceptoTarifa.Carga),
-                    Tarifa(year, 0, 45, 75_000 + incremento, automovil, TipoServicioVehiculo.Publico, TipoConceptoTarifa.Pasajeros));
-            }
+        var camioneta = context.TipoVehiculos.FirstOrDefault(t => t.Id == 2)
+                        ?? context.TipoVehiculos.First(t => t.Nombre.Contains("Camioneta", StringComparison.OrdinalIgnoreCase));
+
+        var camion = context.TipoVehiculos.FirstOrDefault(t => t.Id == 4)
+                     ?? context.TipoVehiculos.First(t =>
+                         t.Nombre.Contains("Camion", StringComparison.OrdinalIgnoreCase) || t.Nombre.Contains("TRACTOCAMION", StringComparison.OrdinalIgnoreCase));
+
+        var moto = context.TipoVehiculos.FirstOrDefault(t => t.Id == 5)
+                   ?? context.TipoVehiculos.First(t => t.Nombre.Contains("Motocicleta", StringComparison.OrdinalIgnoreCase));
+
+        // 1. TARIFAS DE IMPUESTO SOBRE VEHÍCULOS (RODAMIENTO) - LEY 488 DE 1998
+        for (var year = 2017; year <= 2026; year++)
+        {
+            int factorAnios = year - 2017;
+
+            // Ajuste de rangos oficiales en COP actualizados por el MinHacienda año a año
+            decimal limite1 = 44_000_000m + (factorAnios * 2_000_000m);
+            decimal limite2 = 100_000_000m + (factorAnios * 4_500_000m);
+
+            // Automóviles, Camionetas, Motocicletas y Vehículos de Carga
+            context.Tarifas.AddRange(
+                // Automóviles Particular (1.5%, 2.5%, 3.5%)
+                Tarifa(year, 0, (int)limite1, 0.015m, automovil, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
+                Tarifa(year, (int)limite1 + 1, (int)limite2, 0.025m, automovil, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
+                Tarifa(year, (int)limite2 + 1, int.MaxValue, 0.035m, automovil, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
+
+                // Camionetas Particular (1.5%, 2.5%, 3.5%)
+                Tarifa(year, 0, (int)limite1, 0.015m, camioneta, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
+                Tarifa(year, (int)limite1 + 1, (int)limite2, 0.025m, camioneta, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
+                Tarifa(year, (int)limite2 + 1, int.MaxValue, 0.035m, camioneta, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
+
+                // Motocicletas > 125 cc: 1.5% (Se guardará con TipoVehiculoId = 5)
+                Tarifa(year, 0, int.MaxValue, 0.015m, moto, TipoServicioVehiculo.Particular, TipoConceptoTarifa.Rodamiento),
+
+                // Vehículos de servicio Público / Carga (Ley 488 Art. 145: Tarifa única del 0.5%)
+                Tarifa(year, 0, int.MaxValue, 0.005m, camion, TipoServicioVehiculo.Publico, TipoConceptoTarifa.Rodamiento)
+            );
+
+            // 2. CONCEPTOS ADICIONALES (CARGA Y PASAJEROS - TARIFAS PLANAS EN PESOS)
+            var incremento = (year - 2017) * 5_000;
+
+            context.Tarifas.AddRange(
+                Tarifa(year, 0, 25, 95_000m + incremento, camion, TipoServicioVehiculo.Publico, TipoConceptoTarifa.Carga),
+                Tarifa(year, 0, 45, 75_000m + incremento, automovil, TipoServicioVehiculo.Publico, TipoConceptoTarifa.Pasajeros)
+            );
         }
 
         context.SaveChanges();
@@ -180,103 +217,14 @@ public static class DbInitializer
 
     private static void SeedVehiculosYCartera(MainDataContext context, CarteraService carteraService)
     {
-        var existentes = context.Vehiculos.Count();
-        if (existentes >= TargetVehiculosTesting) return;
-
-        var random = new Random(1098825894);
-
-        var nombres = new[] { "Juan", "Carlos", "Diana", "Sandra", "Camila", "Jorge", "Luis", "Pedro", "Maria", "Andres", "Diego", "Paula", "Marta", "Fabian", "Nelson", "Gloria" };
-        var apellidos = new[] { "Gomez", "Rodriguez", "Lopez", "Perez", "Castro", "Silva", "Diaz", "Ortiz", "Mendoza", "Velez", "Chinchilla", "Duarte", "Sarmiento", "Rios" };
-        var direcciones = new[] { "Calle 10 # 5-20", "Carrera 7 # 12-45", "Barrio Centro", "Avenida Principal", "Calle 3 # 8-19", "Zona Industrial Lt 4", "Avenida Los Patios" };
-        var placasBase = new[] { "ALB", "TST", "RDM", "JHN", "CAR", "IMP", "VEH", "TAX", "COL", "MZN", "BGA", "CUC" };
-        var prefijosCedulas = new[] { "72", "19", "91", "37", "51", "1098", "1143", "1015" };
-
-        var marcas = context.Marcas.AsNoTracking().ToList();
-        var lineas = context.Lineas.AsNoTracking().ToList();
-        var colores = context.Colores.AsNoTracking().ToList();
-        var tipos = context.TipoVehiculos.AsNoTracking().ToList();
-
-        var placasExistentes = new HashSet<string>(context.Vehiculos.Select(v => v.Placa).ToList());
-
-        const int batchSize = 1000;
-        var vehiculosNuevos = new List<Vehiculo>();
-
-        for (var i = existentes; i < TargetVehiculosTesting; i++)
-        {
-            var nombreCompleto = $"{Pick(nombres, random)} {Pick(apellidos, random)}";
-            var prefijo = Pick(prefijosCedulas, random);
-            string documentoGenerado = prefijo.Length == 2 
-                ? $"{prefijo}{random.Next(10000, 99999)}{i % 10}" 
-                : $"{prefijo}{i:D6}";
-
-            var propietario = new Propietario
-            {
-                Documento = documentoGenerado,
-                Nombre = nombreCompleto,
-                Direccion = Pick(direcciones, random),
-                Telefono = $"315{random.Next(1000000, 9999999)}",
-                TipoDocumento = TipoDocumento.Cc
-            };
-
-            var tipo = SeleccionarTipoRealista(tipos, random);
-            var marca = SeleccionarMarcaCoherente(marcas, tipo.Id, random);
-            var lineasMarca = lineas.Where(l => l.IdMarca == marca.Id).ToList();
-            var linea = lineasMarca.Any() ? Pick(lineasMarca, random) : Pick(lineas, random);
-            var color = Pick(colores, random);
-
-            var modelo = random.Next(2017, 2025);
-            var pagoHasta = random.Next(modelo, Math.Min(modelo + 3, 2025));
-
-            var placa = $"{Pick(placasBase, random)}{random.Next(10, 99)}{i % 10}";
-            while (placasExistentes.Contains(placa))
-            {
-                placa = $"{Pick(placasBase, random)}{random.Next(100, 999)}";
-            }
-            placasExistentes.Add(placa);
-
-            var vehiculo = new Vehiculo
-            {
-                Placa = placa,
-                Modelo = modelo,
-                Cilindraje = tipo.Id switch
-                {
-                    5 => random.Next(100, 250),
-                    1 or 2 => random.Next(1200, 2500),
-                    _ => random.Next(4000, 9000)
-                },
-                PagoHasta = pagoHasta,
-                CapacidadCarga = tipo.Id is 4 or 8 or 9 ? random.Next(8_000, 22_000) : 0,
-                Pasajeros = tipo.Id is 3 ? random.Next(18, 36) : (tipo.Id == 5 ? 2 : 5),
-                TipoVehiculoId = tipo.Id,
-                MarcaId = marca.Id,
-                LineaId = linea.Id,
-                ColorId = color.Id,
-                TipoServicioVehiculo = tipo.Id is 3 or 4 or 8 or 9 ? TipoServicioVehiculo.Publico : TipoServicioVehiculo.Particular,
-                TipoCarroceriaId = 1,
-                Propietario = propietario
-            };
-
-            vehiculosNuevos.Add(vehiculo);
-
-            // Guardado por lotes masivos
-            if (vehiculosNuevos.Count >= batchSize || i == TargetVehiculosTesting - 1)
-            {
-                // 🚀 Guardar el bloque de vehículos de una sola vez
-                context.Vehiculos.AddRange(vehiculosNuevos);
-                context.SaveChanges();
-
-                // 🚀 Generar Cartera y Procesos en memoria para el lote actual
-                GenerarCarteraYProcesosEnLote(context, carteraService, vehiculosNuevos, random);
-                
-                vehiculosNuevos.Clear();
-            }
-        }
+        // No se generan vehículos ni cartera aquí; la importación lo hará.
+        return;
     }
 
     private static void GenerarCarteraYProcesosEnLote(
-        MainDataContext context, 
-        CarteraService carteraService, 
-        List<Vehiculo> vehiculos, 
+        MainDataContext context,
+        CarteraService carteraService,
+        List<Vehiculo> vehiculos,
         Random random)
     {
         var procesosNuevos = new List<Proceso>();
@@ -371,11 +319,13 @@ public static class DbInitializer
         if (tipoVehiculoId == 5)
         {
             var marcasMotos = marcas.Where(m => new[] { "Yamaha", "Bajaj", "AKT" }.Contains(m.Nombre)).ToList();
+
             if (marcasMotos.Any()) return Pick(marcasMotos, random);
         }
         else if (tipoVehiculoId is 1 or 2)
         {
             var marcasAutos = marcas.Where(m => new[] { "Renault", "Chevrolet", "Toyota", "Mazda" }.Contains(m.Nombre)).ToList();
+
             if (marcasAutos.Any()) return Pick(marcasAutos, random);
         }
 
@@ -437,7 +387,7 @@ public static class DbInitializer
         context.SaveChanges();
     }
 
-    private static void EnsureTipoVehiculo(MainDataContext context, int id, int codigo, string nombre, ClaseAgrupacionVehiculo tipo, int modalidad)
+    private static void EnsureTipoVehiculo(MainDataContext context, int id, int codigo, string nombre, ClaseAgrupacionVehiculo tipo, TipoServicioVehiculo modalidad)
     {
         if (context.TipoVehiculos.Any(t => t.Id == id)) return;
 

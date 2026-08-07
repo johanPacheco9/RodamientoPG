@@ -7,7 +7,7 @@ public partial class LiquidacionService
 {
     public async Task<decimal> ObtenerValorCargaOPasajero(Vehiculo vehiculo, int vigencia)
     {
-        if (vehiculo.TipoServicioVehiculo != TipoServicioVehiculo.Publico)
+        if (vehiculo.TipoServicio != TipoServicioVehiculo.Publico)
             return 0;
 
         if (EsClasePorCarga(vehiculo.TipoVehiculoId))

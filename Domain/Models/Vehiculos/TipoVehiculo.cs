@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using Domain.Models.Vehiculos.Enums;
+using Domain.Responses.Vehiculos.Enums;
 namespace Domain.Models.Vehiculos;
 
 public class TipoVehiculo
@@ -14,7 +15,7 @@ public class TipoVehiculo
     [StringLength(50, ErrorMessage = "El nombre no puede superar los 50 caracteres.")]
     public string Nombre { get; set; } = string.Empty;
 
-    public int ModalidadServicio { get; set; } // Modalidad de servicio para el RUNT
+    public TipoServicioVehiculo ModalidadServicio { get; set; }
 
     public ClaseAgrupacionVehiculo Tipo { get; set;}
 

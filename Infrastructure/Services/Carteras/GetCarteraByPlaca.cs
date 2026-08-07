@@ -27,7 +27,7 @@ public partial class CarteraService
                     v.Modelo,
                     v.Cilindraje,
                     v.PagoHasta,
-                    v.TipoServicioVehiculo,
+                    TipoServicioVehiculo = v.TipoServicio,
                     Clase = v.TipoVehiculo.Nombre,
                     Marca = v.Marca.Nombre,
                     Linea = v.Linea.Nombre,

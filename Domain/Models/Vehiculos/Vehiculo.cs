@@ -35,7 +35,7 @@ public class Vehiculo : EntityWithTraceability
 
     public int ColorId { get; set; } 
 
-    public TipoServicioVehiculo TipoServicioVehiculo { get; set; }
+    public TipoServicioVehiculo TipoServicio { get; set; }
 
     public int TipoCarroceriaId { get; set; }
     

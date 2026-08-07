@@ -47,12 +47,22 @@ public class ImportacionVehiculoDto
     [ExcelColumnName("Color")]
     public string? Color { get; set; }
 
+    // --- Servicio y Capacidades ---
+    [ExcelColumnName("TipoServicio")]
+    public int? TipoServicio { get; set; } // 👈 ID numérico del Enum TipoServicioVehiculo
+
+    [ExcelColumnName("CapacidadCarga")]
+    public int? CapacidadCarga { get; set; }
+
+    [ExcelColumnName("Pasajeros")]
+    public int? Pasajeros { get; set; }
+
     // --- 🚀 Estados y Antecedentes de Negocio Tipados ---
     [ExcelColumnName("UltimaVigenciaPagada")]
     public int? UltimaVigenciaPagada { get; set; }
 
     [ExcelColumnName("EstadoProceso")]
-    public EstadoProceso? EstadoProceso { get; set; } // 👈 Tipado con tu Enum
+    public EstadoProceso? EstadoProceso { get; set; }
 
     [ExcelColumnName("TieneAcuerdoPago")]
     public bool? TieneAcuerdoPago { get; set; }

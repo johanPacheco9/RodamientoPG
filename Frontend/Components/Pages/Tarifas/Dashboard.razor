@@ -64,8 +64,11 @@
                                     <td @onclick="() => Editar(tarifa)" style="cursor: pointer;">@ObtenerNombreTipoVehiculo(tarifa.TipoVehiculoId)</td>
                                     <td @onclick="() => Editar(tarifa)" style="cursor: pointer;">@tarifa.RangoInicial</td>
                                     <td @onclick="() => Editar(tarifa)" style="cursor: pointer;">@tarifa.RangoFinal</td>
-                                    <td @onclick="() => Editar(tarifa)" style="cursor: pointer;" class="fw-bold text-success">@tarifa.Valor.ToString("C0")</td>
-                                    <td class="text-center">
+                                    <td @onclick="() => Editar(tarifa)" style="cursor: pointer;" class="fw-bold text-success">
+                                        @(tarifa.ConceptoTarifa == TipoConceptoTarifa.Rodamiento 
+                                            ? tarifa.Valor.ToString("P1") 
+                                            : tarifa.Valor.ToString("C0"))
+                                    </td>                                <td class="text-center">
                                         <button type="button" class="btn btn-outline-danger btn-sm p-1 shadow-none" 
                                                 style="line-height: 1;"
                                                 @onclick="() => Eliminar(tarifa.Id)" @onclick:stopPropagation="true">
@@ -198,7 +201,14 @@
 
     private async Task CargarDatos()
     {
-        tarifas = await TarifaService.GetAll() ?? new List<Tarifa>();
+        var resultado = await TarifaService.GetAll() ?? new List<Tarifa>();
+        
+        tarifas = resultado
+            .OrderByDescending(t => t.AnioFiscal)
+            .ThenBy(t => t.TipoVehiculoId)
+            .ThenBy(t => t.RangoInicial)
+            .ToList();
+        
         tiposVehiculo = await TiposService.GetAll() ?? new List<TipoVehiculo>();
     }
 

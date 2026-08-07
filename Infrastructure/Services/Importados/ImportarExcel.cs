@@ -1,3 +1,6 @@
+using Domain.Models.Acuerdos;
+using Domain.Models.Acuerdos.Enums;
+using Domain.Models.ProcesoLiquidacion;
 using Domain.Models.Vehiculos;
 using Domain.Responses.Users.Enums;
 using Domain.Responses.Vehiculos.Enums;
@@ -5,15 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using MiniExcelLibs;
 using System.Diagnostics;
 using System.Text;
-using Domain.Models.Acuerdos;
-using Domain.Models.Acuerdos.Enums;
-using Domain.Models.ProcesoLiquidacion;
 
 namespace Infrastructure.Services.Importados;
 
 public partial class ImportadosService
 {
-    // Carpeta donde se guardan los reportes .txt de cada importación.
     private static readonly string CarpetaLogs = Path.Combine(Directory.GetCurrentDirectory(), "ImportLogs");
 
     public async Task<(bool Success, string Message, int Importados, List<string> Errores)> ImportarDesdeExcelAsync(
@@ -26,8 +25,7 @@ public partial class ImportadosService
         int totalFilas = 0;
         var cronometro = Stopwatch.StartNew();
 
-        // Rango fijo de vigencias para la cartera de los vehículos importados
-        const int desdeCartera = 2012;
+        const int desdeCartera = 2022;
         int hastaCartera = DateTime.UtcNow.Year;
 
         try
@@ -44,7 +42,6 @@ public partial class ImportadosService
                 return (false, msgVacio, 0, errores);
             }
 
-            // Cargar catálogos iniciales
             var marcasDict = await CargarCatalogoSeguro(
                 context.Marcas.AsNoTracking(), m => m.Nombre.ToUpper().Trim(), "Marcas", errores);
 
@@ -52,7 +49,7 @@ public partial class ImportadosService
                 context.Lineas.AsNoTracking().Include(l => l.Marca), l => $"{l.Marca.Id}_{l.Nombre.ToUpper().Trim()}", "Lineas", errores);
 
             var tiposDict = await CargarCatalogoSeguro(
-                context.TipoVehiculos.AsNoTracking(), t => t.Nombre.ToUpper().Trim(), "TipoVehiculos", errores);
+                context.TipoVehiculos.AsNoTracking(), t => NormalizarTipoVehiculo(t.Nombre), "TipoVehiculos", errores);
 
             var coloresDict = await CargarCatalogoSeguro(
                 context.Colores.AsNoTracking(), c => c.Nombre.ToUpper().Trim(), "Colores", errores);
@@ -66,7 +63,6 @@ public partial class ImportadosService
                 .ToListAsync())
                 .ToHashSet();
 
-            // Parámetro cacheado para la cartera
             var parametroCacheado = await context.Parametros.AsNoTracking().FirstOrDefaultAsync();
 
             progreso?.Report(20);
@@ -81,7 +77,6 @@ public partial class ImportadosService
                 var nombreSavepoint = $"sp_fila_{filaActual}";
                 await transaction.CreateSavepointAsync(nombreSavepoint);
 
-                // Control de elementos agregados localmente en ESTA iteración
                 string? docPropietarioNuevo = null;
                 string? marcaNuevaClave = null;
                 string? lineaNuevaClave = null;
@@ -113,11 +108,17 @@ public partial class ImportadosService
 
                     int modeloInt = ObtenerEntero(fila, "Modelo", DateTime.UtcNow.Year);
                     int cilindrajeInt = ObtenerEntero(fila, "Cilindraje", 0);
+                    int capacidadCargaInt = ObtenerEntero(fila, "CapacidadCarga", 0);
+                    int pasajerosInt = ObtenerEntero(fila, "Pasajeros", 5);
 
-                    var nombreMarca = ObtenerTextoODefault(fila, "Marca", "GENERICA");
-                    var nombreLinea = ObtenerTextoODefault(fila, "Linea", "ESTANDAR");
-                    var nombreTipo  = ObtenerTextoODefault(fila, "TipoVehiculo", "AUTOMOVIL");
-                    var nombreColor = ObtenerTextoODefault(fila, "Color", "SIN COLOR");
+                    var nombreMarca = ObtenerTextoODefault(fila, "Marca", "GENERICA").Trim().ToUpper();
+                    var nombreLinea = ObtenerTextoODefault(fila, "Linea", "ESTANDAR").Trim().ToUpper();
+                    var nombreTipo  = NormalizarTipoVehiculo(ObtenerTextoODefault(fila, "TipoVehiculo", "AUTOMOVIL"));
+                    var nombreColor = ObtenerTextoODefault(fila, "Color", "SIN COLOR").Trim().ToUpper();
+
+                    // 🔴 OBTENER EL ID NUMÉRICO DEL ENUM (o deducirlo si la celda es inválida)
+                    int servicioRaw = ObtenerEntero(fila, "TipoServicio", 0);
+                    TipoServicioVehiculo servicioEnum = DeducirTipoServicio(servicioRaw, nombreTipo, capacidadCargaInt, pasajerosInt);
 
                     // 1. MARCA
                     if (!marcasDict.TryGetValue(nombreMarca, out var marca))
@@ -143,9 +144,16 @@ public partial class ImportadosService
                     // 3. TIPO VEHÍCULO
                     if (!tiposDict.TryGetValue(nombreTipo, out var tipo))
                     {
-                        tipo = new TipoVehiculo { Nombre = nombreTipo };
-                        context.TipoVehiculos.Add(tipo);
-                        await context.SaveChangesAsync();
+                        tipo = await context.TipoVehiculos
+                            .FirstOrDefaultAsync(t => t.Nombre.ToUpper() == nombreTipo);
+
+                        if (tipo == null)
+                        {
+                            tipo = new TipoVehiculo { Nombre = nombreTipo };
+                            context.TipoVehiculos.Add(tipo);
+                            await context.SaveChangesAsync();
+                        }
+
                         tiposDict.Add(nombreTipo, tipo);
                         tipoNuevoClave = nombreTipo;
                     }
@@ -186,26 +194,32 @@ public partial class ImportadosService
                         docPropietarioNuevo = docLimpio;
                     }
 
-                    // 6. VEHÍCULO (Creación de la entidad principal)
+                    // 6. VEHÍCULO
                     var vehiculo = new Vehiculo
                     {
                         Placa = placaLimpia,
                         Modelo = modeloInt,
                         Cilindraje = cilindrajeInt,
+                        CapacidadCarga = capacidadCargaInt,
+                        Pasajeros = pasajerosInt,
                         PagoHasta = modeloInt - 1,
                         MarcaId = marca.Id,
                         LineaId = linea.Id,
                         TipoVehiculoId = tipo.Id,
                         ColorId = color.Id,
                         PropietarioId = propietario.Id,
-                        TipoServicioVehiculo = TipoServicioVehiculo.Particular,
+
+                        // 🔴 Inserción directa del Enum asignado desde el número de la celda
+                        TipoServicio = servicioEnum, 
+
                         TipoCarroceriaId = 1
                     };
 
                     context.Vehiculos.Add(vehiculo);
-                    await context.SaveChangesAsync(); // Se guarda para obtener vehiculo.Id
+                    await context.SaveChangesAsync();
+                    vehiculo.TipoVehiculo = tipo;
 
-                    // 💡 6.1 PROCESO COACTIVO/PERSUASIVO
+                    // 6.1 PROCESO COACTIVO/PERSUASIVO
                     var estadoProcesoTexto = ObtenerTexto(fila, "EstadoProceso");
                     Proceso? procesoCreado = null;
 
@@ -223,10 +237,10 @@ public partial class ImportadosService
                         };
 
                         context.Procesos.Add(procesoCreado);
-                        await context.SaveChangesAsync(); // Se guarda para obtener procesoCreado.Id
+                        await context.SaveChangesAsync();
                     }
 
-                    // 💡 6.2 ACUERDO DE PAGO (Si el Excel indica que tiene un convenio activo)
+                    // 6.2 ACUERDO DE PAGO
                     bool tieneAcuerdo = ObtenerBooleano(fila, "TieneAcuerdoPago");
 
                     if (tieneAcuerdo)
@@ -241,7 +255,7 @@ public partial class ImportadosService
                             ValorTotalFinanciado = 1650000m,
                             Estado = EstadoAcuerdoPago.Vigente,
                             VehiculoId = vehiculo.Id,
-                            ProcesoId = procesoCreado?.Id, // Enlaza al proceso si existía en esta misma fila
+                            ProcesoId = procesoCreado?.Id,
                             Observaciones = "Acuerdo de pago registrado durante importación masiva"
                         };
 
@@ -264,7 +278,7 @@ public partial class ImportadosService
                         }
 
                         context.AcuerdosDePago.Add(acuerdo);
-                        await context.SaveChangesAsync(); // Se guarda para que CarteraService lo detecte
+                        await context.SaveChangesAsync();
                     }
 
                     // 7. CARTERA ORDINARIA
@@ -278,10 +292,8 @@ public partial class ImportadosService
                 }
                 catch (Exception exFila)
                 {
-                    // 1. Rollback al savepoint de esta fila
                     await transaction.RollbackToSavepointAsync(nombreSavepoint);
 
-                    // 2. Limpiamos Entidades creadas en esta iteración fallida
                     var entradasLocales = context.ChangeTracker.Entries()
                         .Where(e => e.Entity is Vehiculo 
                                  || e.Entity is Proceso 
@@ -295,13 +307,11 @@ public partial class ImportadosService
                         entry.State = EntityState.Detached;
                     }
 
-                    // 3. Re-asociamos por seguridad si sigue en memoria
                     if (parametroCacheado != null && context.Entry(parametroCacheado).State == EntityState.Detached)
                     {
                         context.Attach(parametroCacheado);
                     }
 
-                    // 4. Limpiar la caché local del diccionario de lo que falló en esta fila
                     if (docPropietarioNuevo != null) propietariosDict.Remove(docPropietarioNuevo);
                     if (marcaNuevaClave != null) marcasDict.Remove(marcaNuevaClave);
                     if (lineaNuevaClave != null) lineasDict.Remove(lineaNuevaClave);
@@ -323,7 +333,7 @@ public partial class ImportadosService
 
             if (importados > 0)
             {
-                await context.SaveChangesAsync(); // Guarda todas las carteras acumuladas exitosas
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 cronometro.Stop();
 
@@ -356,7 +366,42 @@ public partial class ImportadosService
         }
     }
 
-    // ── Guarda un archivo .txt con el resumen de la importación ──────────────
+    // ── Helper para validar y deducir el TipoServicioVehiculo desde un entero ─
+    private static TipoServicioVehiculo DeducirTipoServicio(int servicioRaw, string tipoVehiculo, int carga, int pasajeros)
+    {
+        // 1. Si el número ingresado corresponde a un valor válido del enum
+        if (Enum.IsDefined(typeof(TipoServicioVehiculo), servicioRaw) && servicioRaw > 0)
+        {
+            return (TipoServicioVehiculo)servicioRaw;
+        }
+
+        // 2. Si no es válido (o venía en 0), lo deducimos de la información del vehículo
+        if (tipoVehiculo is "CAMION" or "TRACTOCAMION" || carga > 0)
+        {
+            return TipoServicioVehiculo.Carga; // ID = 10
+        }
+
+        if (tipoVehiculo is "BUS" or "BUSETA" or "MICROBUS")
+        {
+            return TipoServicioVehiculo.Pasajeros; // ID = 11
+        }
+
+        return TipoServicioVehiculo.Particular; // ID = 3 por defecto
+    }
+
+    private static string NormalizarTipoVehiculo(string texto)
+    {
+        if (string.IsNullOrWhiteSpace(texto)) return "AUTOMOVIL";
+
+        var t = texto.Trim().ToUpper();
+        if (t.Contains("MOTO")) return "MOTOCICLETA";
+        if (t.Contains("CAMIONETA") || t.Contains("CAMPERO") || t.Contains("SUV")) return "CAMIONETA";
+        if (t.Contains("TRACTO") || t.Contains("CAMION")) return "TRACTOCAMION";
+        if (t.Contains("AUTO") || t.Contains("CARRO") || t.Contains("SEDAN")) return "AUTOMOVIL";
+
+        return t;
+    }
+
     private static void GuardarReporteTxt(
         bool exito,
         string mensaje,
@@ -405,11 +450,10 @@ public partial class ImportadosService
         }
         catch
         {
-            // Ignorar errores al escribir archivo de log secundario
+            // Ignorar errores al escribir log secundario
         }
     }
 
-    // ── Helper: carga un catálogo a Dictionary tolerando claves duplicadas ────
     private static async Task<Dictionary<string, T>> CargarCatalogoSeguro<T>(
         IQueryable<T> query,
         Func<T, string> selectorClave,
@@ -433,8 +477,6 @@ public partial class ImportadosService
 
         return grupos.ToDictionary(g => g.Key, g => g.First());
     }
-
-    // ── Helpers de conversión segura ─────────────────────────────────────────
 
     private static string ObtenerTexto(IDictionary<string, object> fila, string columna)
     {
@@ -477,7 +519,7 @@ public partial class ImportadosService
 
         return valorDefault;
     }
-    
+
     private static bool ObtenerBooleano(IDictionary<string, object> fila, string columna)
     {
         if (!fila.TryGetValue(columna, out var valor) || valor is null)

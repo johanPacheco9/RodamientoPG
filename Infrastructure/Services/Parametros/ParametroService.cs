@@ -112,7 +112,7 @@ public class ParametroService(MainDataContext context)
         {
             // 1. Agrupamos en la base de datos (Postgres ejecuta un GROUP BY rápido)
             var datosAgrupados = await context.Vehiculos
-                .GroupBy(v => new { v.TipoVehiculo.Nombre, v.TipoServicioVehiculo})
+                .GroupBy(v => new { v.TipoVehiculo.Nombre, TipoServicioVehiculo = v.TipoServicio})
                 .Select(g => new
                 {
                     Clase = g.Key.Nombre,

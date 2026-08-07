@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+
 namespace Domain.Responses.Vehiculos.Enums;
 
 public enum TipoServicioVehiculo
@@ -18,7 +19,9 @@ public enum TipoServicioVehiculo
     [Display(Name = "Diplomático")]
     Diplomatico = 5, 
     
-    [Display(Name = "Carga o pasajero")]
-    CargaoPasajero = 10
-    
+    [Display(Name = "Carga")]
+    Carga = 10,
+
+    [Display(Name = "Pasajeros")]
+    Pasajeros = 11
 }

@@ -1,0 +1,14 @@
+﻿==================================================
+ REPORTE DE IMPORTACIÓN DE VEHÍCULOS
+==================================================
+Fecha/Hora     : 2026-08-06 01:17:59
+Resultado      : ÉXITO
+Mensaje        : Importación completada con éxito. Vehículos creados: 10000.
+Duración       : 524,59 segundos
+Filas en Excel : 10000
+Importados     : 10000
+Errores/Avisos : 1
+--------------------------------------------------
+Detalle de errores/avisos:
+  - Aviso: se encontraron registros duplicados preexistentes en Colores: 'ROJO' (2 veces), 'BLANCO' (2 veces), 'GRIS' (2 veces), 'NEGRO' (2 veces), 'AZUL' (2 veces). Se usó el primer registro de cada uno; se recomienda depurar la tabla.
+==================================================

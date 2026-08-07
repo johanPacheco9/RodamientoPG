@@ -97,7 +97,7 @@ public partial class TarifaService(MainDataContext context, ILogger<TarifaServic
                     // ====================================================================
                     // 💼 CONCEPTO: IMPUESTO ADICIONAL (CARGA / PASAJEROS)
                     // ====================================================================
-                    if (vehiculo.TipoServicioVehiculo == TipoServicioVehiculo.Publico)
+                    if (vehiculo.TipoServicio == TipoServicioVehiculo.Publico)
                     {
                         string llaveConceptoAdicional = $"{vehiculo.Placa}-{anioVigenciaActual}-{TipoConceptoCartera.Carga.ToString()}";
                         if (!registroCarteraExistente.Contains(llaveConceptoAdicional))
