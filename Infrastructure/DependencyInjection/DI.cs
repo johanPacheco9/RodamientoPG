@@ -1,6 +1,7 @@
 using Infrastructure.Services.AcuerdosPago;
 using Infrastructure.Services.Carteras;
 using Infrastructure.Services.Colores;
+using Infrastructure.Services.Descuentos;
 using Infrastructure.Services.EmailNotification;
 using Infrastructure.Services.Importados;
 using Infrastructure.Services.Intereses;
@@ -62,7 +63,8 @@ public static class DependencyInjection
         //Recibo
         services.AddTransient<ReciboService>();
         //Envio emails
-        services.AddScoped<EmailService>(); 
+        services.AddScoped<EmailService>();
+        services.AddScoped<DescuentosManager>();
         //services.AddHostedService<ActualizacionInteresesJob>();
         return services;
     }
