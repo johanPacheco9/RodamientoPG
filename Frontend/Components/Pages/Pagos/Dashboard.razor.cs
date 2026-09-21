@@ -160,11 +160,11 @@ public partial class Dashboard
 
             // Uso directo del DTO recibo
             var reporte = new Recibo_pago();
-            await reporte.CreatePdf(recibo, Listxconc, param_obj);
+            var rutaGenerada = await reporte.CreatePdf(recibo, Listxconc, param_obj);
 
-            await Task.Delay(1000); // Mantenemos el retraso controlado para asegurar la escritura en el disco local
-            string reciboPdf = $"Recibo_{recibo.Id}.pdf";
-            await DescargarYAbrirArchivo(reciboPdf.Trim());
+            await Task.Delay(500);
+            string archivoFinal = Path.GetFileName(rutaGenerada);
+            await DescargarYAbrirArchivo(archivoFinal);
         }
         catch (Exception ex)
         {
@@ -182,13 +182,7 @@ public partial class Dashboard
         try
         {
             string fileUrl = $"{NavigationManager.BaseUri}api/archivos/{fileName}";
-            HttpResponseMessage response = await HttpClient.GetAsync(fileUrl);
-            if (response.IsSuccessStatusCode)
-            {
-                var fileBytes = await response.Content.ReadAsByteArrayAsync();
-                using var contentStream = new DotNetStreamReference(new MemoryStream(fileBytes));
-                await JsRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, contentStream);
-            }
+            await JsRuntime.InvokeVoidAsync("downloadFileFromUrl", fileUrl, fileName);
         }
         catch (Exception ex)
         {

@@ -1,4 +1,4 @@
-﻿@page "/Usuariospage"
+﻿@page "/Usuarios"
 @attribute [Authorize(Roles = AppRoles.Administrador)]
 @rendermode InteractiveServer
 @inject NavigationManager NavigationManager
@@ -647,9 +647,9 @@
             Telefono = usuarioSeleccionado.Telefono,
             Correo = usuarioSeleccionado.Correo,
             Password = string.Empty,
-            UsuarioCreo = usuarioSeleccionado.UsuarioCreo,
+            CreatedBy = usuarioSeleccionado.CreatedBy,
             FechaCreacion = usuarioSeleccionado.FechaCreacion,
-            UsuarioModifico = usuarioSeleccionado.UsuarioModifico,
+            UpdatedBy = usuarioSeleccionado.UpdatedBy,
             FechaModificacion = usuarioSeleccionado.FechaModificacion
         };
         esModoEditar = true;

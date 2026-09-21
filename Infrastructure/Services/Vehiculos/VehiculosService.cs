@@ -61,7 +61,7 @@ public class VehiculosService(IDbContextFactory<MainDataContext> contextFactory,
             vehiculoDb.TipoCarroceriaId = request.TipoCarroceriaId;
             vehiculoDb.PropietarioId = request.PropietarioId;
             vehiculoDb.FechaModificacion = DateTime.UtcNow;
-            vehiculoDb.UsuarioModifico = 1;
+            vehiculoDb.UpdatedBy = 1;
 
             vehiculoDb.TipoServicio = (Domain.Responses.Vehiculos.Enums.TipoServicioVehiculo)request.TipoServicioVehiculo;
 

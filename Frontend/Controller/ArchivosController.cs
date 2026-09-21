@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Rodamiento.Controller
@@ -37,6 +39,40 @@ namespace Rodamiento.Controller
                 {
                     Console.WriteLine("⚠️ La carpeta especificada no existe.");
                     return StatusCode(500, "La carpeta de almacenamiento no existe.");
+                }
+
+                if (!System.IO.File.Exists(filePath))
+                {
+                    // Fallback flexible para localizar recibos ya sea que se busquen por:
+                    // - Recibo_123.pdf
+                    // - Recibo_ABC123_20260920_123.pdf
+                    // - o cualquier combinación que contenga el ID
+                    if (fileName.StartsWith("Recibo_", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var rawName = Path.GetFileNameWithoutExtension(fileName);
+
+                        // 1. Búsqueda directa por coincidencia parcial del nombre
+                        var matches = Directory.GetFiles(_archivosFolder, $"*{rawName}*.pdf");
+
+                        // 2. Extraer el ID numérico del recibo (ej: 123 en "Recibo_123" o "Recibo_ABC123_20260920_123")
+                        if (!matches.Any())
+                        {
+                            var matchId = Regex.Match(rawName, @"(?:^Recibo_|_)(?<id>\d+)$");
+                            if (matchId.Success && int.TryParse(matchId.Groups["id"].Value, out var id))
+                            {
+                                matches = Directory.GetFiles(_archivosFolder, $"Recibo_*_{id}.pdf")
+                                    .Concat(Directory.GetFiles(_archivosFolder, $"Recibo_{id}.pdf"))
+                                    .Distinct()
+                                    .ToArray();
+                            }
+                        }
+
+                        if (matches.Any())
+                        {
+                            filePath = matches.OrderByDescending(f => System.IO.File.GetLastWriteTimeUtc(f)).First();
+                            Console.WriteLine($"🔍 Archivo localizado por fallback: '{filePath}'");
+                        }
+                    }
                 }
 
                 if (!System.IO.File.Exists(filePath))

@@ -33,7 +33,7 @@ public partial class PersuasivoService
             FechaModificacion = DateTime.UtcNow,
             EsAutomatico = esAutomatico,
             Motivo = motivo,
-            UsuarioModifico = 1
+            UpdatedBy = 1
         });
     }
 

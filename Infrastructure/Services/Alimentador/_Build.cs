@@ -27,7 +27,6 @@ public static class DbInitializer
         SeedParametros(context);
         SeedCatalogos(context);
         SeedReglasLiquidacion(context);
-        SeedUsuarios(context);
         // Vehicle and receipt seeding is handled during import; only core lookup data is seeded here
     }
 
@@ -179,38 +178,6 @@ public static class DbInitializer
                 Tarifa(year, 0, 45, 75_000m + incremento, automovil, TipoServicioVehiculo.Publico, TipoConceptoTarifa.Pasajeros)
             );
         }
-
-        context.SaveChanges();
-    }
-
-    private static void SeedUsuarios(MainDataContext context)
-    {
-        if (context.Usuarios is null) return;
-
-        var admin = context.Usuarios.FirstOrDefault(u => u.UserName == "admin");
-        if (admin is not null)
-        {
-            if (!PasswordHasher.Verify("admin", admin.Password))
-            {
-                admin.Password = PasswordHasher.Hash("admin");
-                admin.Role = Role.Administrador;
-                admin.IsHabilitado = true;
-                context.SaveChanges();
-            }
-
-            return;
-        }
-
-        context.Usuarios.Add(new Usuario
-        {
-            UserName = "admin",
-            Nombre = "Administrador Testing",
-            Auth0Id = "local-admin",
-            Role = Role.Administrador,
-            Correo = "admin@test.local",
-            Password = PasswordHasher.Hash("admin"),
-            IsHabilitado = true
-        });
 
         context.SaveChanges();
     }

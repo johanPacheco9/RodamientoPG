@@ -6,12 +6,17 @@ using Infrastructure.Services.Carteras;
 using Infrastructure.Services.EmailNotification;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
 using QuestPDF.Infrastructure;
 using System.Text;
+using Domain.Models;
+using Domain.Responses.Users.Enums;
+using Infrastructure.Services.AcuerdosPago;
 using Infrastructure.Services.Importados;
+using Microsoft.AspNetCore.Identity;
 
 QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
@@ -34,7 +39,12 @@ builder.Services.AddDbContextFactory<MainDataContext>(options =>
 builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
 builder.Services.AddCascadingAuthenticationState();
 
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "rodamiento-dev-key-change-me-1098825894";
@@ -114,9 +124,36 @@ app.MapGet("/generar-excel-prueba", async (HttpContext context) =>
 
 if (!app.Environment.IsDevelopment())
 {
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        // En lugar de pedir el contexto directo, le pedimos la factoría instalada
+        var contextFactory = scope.ServiceProvider.GetRequiredService<IDbContextFactory<MainDataContext>>();
+
+        // Creamos un contexto temporal exclusivo para migrar y poblar la base de datos
+        using var context = await contextFactory.CreateDbContextAsync();
+
+        await context.Database.MigrateAsync();
+
+// Admin seeding moved to later block after static files
+    }
+    catch (Exception e)
+    {
+        Console.WriteLine(e.Message);
+        throw;
+    }
+    
+    
+    
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
+app.UseStaticFiles(); // Serve static files (e.g., permissions)
 }
+// Ensure admin user exists (runs in all environments)
+// Admin seeding moved to later block after DB initialization
+
+
+
 
 
 app.UseStatusCodePagesWithReExecute("/not-found", createScopeForStatusCodePages: true);
@@ -145,6 +182,33 @@ using (var scope = app.Services.CreateScope())
     var context = scope.ServiceProvider.GetRequiredService<MainDataContext>();
     var carteraService = scope.ServiceProvider.GetRequiredService<CarteraService>();
     DbInitializer.Initialize(context, carteraService);
+    using (var adminScope = app.Services.CreateScope())
+    {
+        var adminContext = adminScope.ServiceProvider.GetRequiredService<MainDataContext>();
+        if (!await adminContext.Usuarios.AnyAsync())
+        {
+            var hasher = new PasswordHasher<object>();
+            var admin = new Usuario
+            {
+                Nombre = "Johan",
+                UserName = "admin@dataset-software.com",
+                Role = Role.Administrador,
+                IsHabilitado = true,
+                Auth0Id = "alsdaj",
+                CreatedBy = 1,
+                FechaCreacion = DateTime.UtcNow,
+            };
+            admin.Password = hasher.HashPassword(null!, "123456");
+            adminContext.Usuarios.Add(admin);
+            await adminContext.SaveChangesAsync();
+        }
+    }
+}
+
+using (var scope = app.Services.CreateScope())
+{
+    var acuerdoPagoService = scope.ServiceProvider.GetRequiredService<AcuerdoPagoService>();
+    await acuerdoPagoService.ActualizarVencidosToCoactivo();
 }
 
 app.Run();

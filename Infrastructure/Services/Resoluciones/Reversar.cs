@@ -30,12 +30,12 @@ public partial class ResolucionService
             // 3. Desvincular las carteras afectadas y restaurar su trazabilidad
             foreach (var cartera in resolucion.Carteras.ToList())
             {
-                cartera.UsuarioModifico = usuarioId;
+                cartera.UpdatedBy = usuarioId;
                 cartera.FechaModificacion = DateTime.UtcNow;
                 resolucion.Carteras.Remove(cartera);
             }
             resolucion.Estado = EstadoResolucion.Revocada;
-            resolucion.UsuarioModifico = usuarioId;
+            resolucion.UpdatedBy = usuarioId;
             resolucion.FechaModificacion = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();

@@ -4,10 +4,10 @@ using System.Text;
 using Domain.Models;
 using Domain.Responses.Users.Enums;
 using Infrastructure.AppDbContext;
-using Infrastructure.Services.Security;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
@@ -19,6 +19,8 @@ public class LoginService(
     MainDataContext dbContext,
     IConfiguration configuration)
 {
+    private static readonly PasswordHasher<object> _passwordHasher = new();
+
     public string GetConnection()
     {
         return configuration.GetConnectionString("DefaultConnection") ?? string.Empty;
@@ -30,7 +32,7 @@ public class LoginService(
         {
             UserName = usuarios.UserName.Trim(),
             Nombre = usuarios.Nombre.Trim(),
-            Password = PasswordHasher.Hash(usuarios.Password),
+            Password = _passwordHasher.HashPassword(null!, usuarios.Password),
             Role = usuarios.Role,
             Auth0Id = string.IsNullOrWhiteSpace(usuarios.Auth0Id) ? usuarios.UserName.Trim() : usuarios.Auth0Id,
             Correo = usuarios.Correo,
@@ -38,7 +40,7 @@ public class LoginService(
             Telefono = usuarios.Telefono,
             IsHabilitado = true,
             FechaCreacion = DateTime.UtcNow,
-            UsuarioCreo = 1
+            CreatedBy = 1
         };
 
         dbContext.Usuarios!.Add(nuevoUsuario);
@@ -46,12 +48,7 @@ public class LoginService(
 
         return (true, string.Empty);
     }
-
-    public bool ValidatePasswordHash(string password, string dbPassword)
-    {
-        return PasswordHasher.Verify(password, dbPassword);
-    }
-
+    
     public async Task<int> UserLoginAsync(string username, string pass)
     {
         try
@@ -66,7 +63,8 @@ public class LoginService(
             if (user is null || !user.IsHabilitado)
                 return 0;
 
-            if (!PasswordHasher.Verify(pass, user.Password))
+            
+            if (_passwordHasher.VerifyHashedPassword(null!, user.Password, pass) == PasswordVerificationResult.Failed)
                 return 0;
 
             var claims = BuildClaims(user);

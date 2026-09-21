@@ -30,6 +30,9 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Estado")
                         .HasColumnType("integer");
 
@@ -38,8 +41,7 @@ namespace Infrastructure.Migrations
                         .HasColumnName("fecha_creacion");
 
                     b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_modificacion");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("FechaSuscripcion")
                         .HasColumnType("timestamp with time zone");
@@ -59,13 +61,8 @@ namespace Infrastructure.Migrations
                     b.Property<int?>("ProcesoId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("UsuarioCreo")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_creo");
-
-                    b.Property<int?>("UsuarioModifico")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_modifico");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("ValorCapitalFinanciado")
                         .HasColumnType("decimal(18,2)");
@@ -102,6 +99,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("AcuerdoPagoId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Estado")
                         .HasColumnType("integer");
 
@@ -110,8 +110,7 @@ namespace Infrastructure.Migrations
                         .HasColumnName("fecha_creacion");
 
                     b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_modificacion");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("FechaPago")
                         .HasColumnType("timestamp with time zone");
@@ -126,13 +125,8 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<int>("UsuarioCreo")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_creo");
-
-                    b.Property<int?>("UsuarioModifico")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_modifico");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("ValorCapital")
                         .HasColumnType("decimal(18,2)");
@@ -306,6 +300,9 @@ namespace Infrastructure.Migrations
                     b.Property<int>("Concepto")
                         .HasColumnType("integer");
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<decimal>("Descuento")
                         .HasColumnType("decimal(18,2)");
 
@@ -314,8 +311,7 @@ namespace Infrastructure.Migrations
                         .HasColumnName("fecha_creacion");
 
                     b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_modificacion");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("FechaPago")
                         .HasColumnType("timestamp with time zone");
@@ -341,13 +337,8 @@ namespace Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<int>("UsuarioCreo")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_creo");
-
-                    b.Property<int?>("UsuarioModifico")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_modifico");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Valor")
                         .HasColumnType("decimal(18,2)");
@@ -481,6 +472,9 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Correo")
                         .HasColumnType("text");
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<string>("CuentaTercero")
                         .HasColumnType("text");
 
@@ -498,8 +492,7 @@ namespace Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_modificacion");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("MetodoImpuesto")
                         .HasColumnType("integer");
@@ -523,13 +516,8 @@ namespace Infrastructure.Migrations
                     b.Property<string>("Telefono")
                         .HasColumnType("text");
 
-                    b.Property<int>("UsuarioCreo")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_creo");
-
-                    b.Property<int?>("UsuarioModifico")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_modifico");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("ValorCostasCoactivo")
                         .HasColumnType("numeric");
@@ -556,6 +544,9 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("EsAutomatico")
                         .HasColumnType("boolean");
 
@@ -570,8 +561,7 @@ namespace Infrastructure.Migrations
                         .HasColumnName("fecha_creacion");
 
                     b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_modificacion");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("Motivo")
                         .HasMaxLength(200)
@@ -580,13 +570,8 @@ namespace Infrastructure.Migrations
                     b.Property<int>("ProcesoId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("UsuarioCreo")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_creo");
-
-                    b.Property<int?>("UsuarioModifico")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_modifico");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 
@@ -834,6 +819,9 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Estado")
                         .HasColumnType("integer");
 
@@ -845,8 +833,7 @@ namespace Infrastructure.Migrations
                         .HasColumnName("fecha_creacion");
 
                     b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_modificacion");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("FechaProceso")
                         .HasColumnType("timestamp with time zone");
@@ -865,16 +852,11 @@ namespace Infrastructure.Migrations
                     b.Property<int>("TipoResolucion")
                         .HasColumnType("integer");
 
-                    b.Property<int>("UsuarioCreo")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_creo");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<int>("UsuarioId")
                         .HasColumnType("integer");
-
-                    b.Property<int?>("UsuarioModifico")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_modifico");
 
                     b.Property<decimal>("Valor")
                         .HasColumnType("decimal(18,2)");
@@ -907,13 +889,15 @@ namespace Infrastructure.Migrations
                     b.Property<int>("ConceptoTarifa")
                         .HasColumnType("integer");
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_creacion");
 
                     b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_modificacion");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("RangoFinal")
                         .HasColumnType("integer");
@@ -930,13 +914,8 @@ namespace Infrastructure.Migrations
                     b.Property<int>("TipoVehiculoId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("UsuarioCreo")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_creo");
-
-                    b.Property<int?>("UsuarioModifico")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_modifico");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Valor")
                         .HasColumnType("decimal(18,2)");
@@ -965,6 +944,9 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Direccion")
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
@@ -974,8 +956,7 @@ namespace Infrastructure.Migrations
                         .HasColumnName("fecha_creacion");
 
                     b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_modificacion");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<bool>("IsHabilitado")
                         .HasColumnType("boolean");
@@ -996,18 +977,13 @@ namespace Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
 
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
-
-                    b.Property<int>("UsuarioCreo")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_creo");
-
-                    b.Property<int?>("UsuarioModifico")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_modifico");
 
                     b.HasKey("Id");
 
@@ -1023,6 +999,9 @@ namespace Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_creacion");
@@ -1036,16 +1015,10 @@ namespace Infrastructure.Migrations
                         .HasColumnName("inhasta");
 
                     b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_modificacion");
+                        .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("UsuarioCreo")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_creo");
-
-                    b.Property<int?>("UsuarioModifico")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_modifico");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.Property<decimal>("Valor")
                         .HasColumnType("decimal(18,2)")
@@ -1226,13 +1199,15 @@ namespace Infrastructure.Migrations
                     b.Property<int>("ColorId")
                         .HasColumnType("integer");
 
+                    b.Property<int>("CreatedBy")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime>("FechaCreacion")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fecha_creacion");
 
                     b.Property<DateTime?>("FechaModificacion")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("fecha_modificacion");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("LineaId")
                         .HasColumnType("integer");
@@ -1266,13 +1241,8 @@ namespace Infrastructure.Migrations
                     b.Property<int>("TipoVehiculoId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("UsuarioCreo")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_creo");
-
-                    b.Property<int?>("UsuarioModifico")
-                        .HasColumnType("integer")
-                        .HasColumnName("usuario_modifico");
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("integer");
 
                     b.HasKey("Id");
 

@@ -20,3 +20,10 @@ public record ReciboDto(
     string PlacaVehiculo,
     List<ReciboDetalleDto> Detalles // Cambiado de Vigencias a Detalles para hacer match con el modelo
 );
+
+public record GenerarReciboResponse(
+    int ReciboId,
+    string Placa,
+    DateTime Fecha,
+    string NombreArchivo
+);

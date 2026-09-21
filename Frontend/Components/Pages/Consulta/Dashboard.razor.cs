@@ -1,3 +1,4 @@
+using System.IO;
 using System.Security.Claims;
 using Domain.Generics;
 using Domain.Models;
@@ -350,7 +351,7 @@ public partial class Dashboard : ComponentBase, IDisposable
     private static string BadgeEstadoCuota(EstadoCuotaAcuerdo estado) => estado switch
     {
         EstadoCuotaAcuerdo.Pagada => "badge bg-success",
-        EstadoCuotaAcuerdo.Vencido => "badge bg-danger",
+        EstadoCuotaAcuerdo.Vencida => "badge bg-danger",
         _ => "badge bg-warning text-dark"
     };
 
@@ -379,23 +380,14 @@ public partial class Dashboard : ComponentBase, IDisposable
                 _estadoCuenta.TipoDocumento,
                 carterasSeleccionadasIds);
 
-            if (!resultado.success)
+            if (resultado.IsFailure)
             {
-                await MostrarAlerta("error", $"Error: {resultado.message}");
+                await MostrarAlerta("error", $"Error: {resultado.Error.Message}");
                 return;
             }
 
-            int reciboId = resultado.reciboId;
-            if (reciboId <= 0)
-            {
-                var ultimoRecibo = await Importadoservice.Ultimo_recibo(_estadoCuenta.Placa);
-                reciboId = ultimoRecibo?.Num ?? 0;
-            }
-
-            if (reciboId <= 0)
-            {
-                throw new Exception("No se ha encontrado el recibo generado.");
-            }
+            var reciboInfo = resultado.Value;
+            int reciboId = reciboInfo.ReciboId;
 
             reciboActual = await PagoService.GetRecibo(reciboId);
             _detalleRecibo = await ComparendoService.Items_x_Recibo(reciboId);
@@ -403,9 +395,22 @@ public partial class Dashboard : ComponentBase, IDisposable
             if (_detalleRecibo.Count == 0)
                 throw new Exception("El recibo no tiene ítems");
 
-            await recibo_Pago.CreatePdf(reciboActual, _detalleRecibo, paramObj);
-            await Task.Delay(1000);
-            await Muestra_Pdf($"Recibo_{reciboId}.pdf");
+            var carpetaPdf = Config.GetValue<string>("FileStorageTemplate") ?? "/var/www/velez/pdf/";
+            var pdfPath = await recibo_Pago.CreatePdf(
+                reciboActual,
+                _detalleRecibo,
+                paramObj,
+                carpetaPdf,
+                reciboInfo.NombreArchivo);
+            
+            if (string.IsNullOrEmpty(pdfPath) || !File.Exists(pdfPath))
+            {
+                await MostrarAlerta("error", "No se pudo generar el PDF del recibo.");
+                return;
+            }
+            
+            await Task.Delay(500);
+            await Muestra_Pdf(reciboInfo.NombreArchivo);
             await CargarRecibos(_estadoCuenta.Placa);
         }
         catch (Exception ex)
@@ -434,7 +439,16 @@ public partial class Dashboard : ComponentBase, IDisposable
 
         if (!await MostrarConfirmacion("¿Está seguro de generar Paz y Salvo?")) return;
 
-        await recibo_Pago.PazySalvo(_estadoCuenta, paramObj);
+        var carpetaPdf = Config.GetValue<string>("FileStorageTemplate") ?? "/var/www/velez/pdf/";
+        var pdfPath = await recibo_Pago.PazySalvo(_estadoCuenta, paramObj, carpetaPdf);
+
+        if (string.IsNullOrEmpty(pdfPath) || !File.Exists(pdfPath))
+        {
+            await MostrarAlerta("error", "No se pudo generar el Paz y Salvo.");
+            return;
+        }
+
+        await Task.Delay(500);
         await Muestra_Pdf($"PazySalvo_{_estadoCuenta.Placa}.pdf");
     }
 
@@ -614,16 +628,12 @@ public partial class Dashboard : ComponentBase, IDisposable
         try
         {
             var url = $"{NavigationManager.BaseUri}api/archivos/{archivo}";
-            var response = await HttpClient.GetAsync(url);
-            response.EnsureSuccessStatusCode();
-            var bytes = await response.Content.ReadAsByteArrayAsync();
-            var stream = new DotNetStreamReference(new MemoryStream(bytes));
-            await JsRuntime.InvokeVoidAsync("downloadFileFromStream", archivo, stream);
+            await JsRuntime.InvokeVoidAsync("downloadFileFromUrl", url, archivo);
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error PDF: {ex.Message}");
-            await MostrarAlerta("error", $"Error al abrir PDF: {ex.Message}");
+            await MostrarAlerta("error", $"Error al descargar PDF: {ex.Message}");
         }
     }
 

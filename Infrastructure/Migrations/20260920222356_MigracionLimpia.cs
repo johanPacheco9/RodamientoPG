@@ -7,30 +7,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialMigration : Migration
+    public partial class MigracionLimpia : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "BaseGravableVehiculos",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    Codigo = table.Column<string>(type: "text", nullable: false),
-                    ClaseVehiculo = table.Column<string>(type: "text", nullable: false),
-                    Marca = table.Column<string>(type: "text", nullable: false),
-                    Linea = table.Column<string>(type: "text", nullable: false),
-                    Cilindraje = table.Column<int>(type: "integer", nullable: false),
-                    Capacidad = table.Column<int>(type: "integer", nullable: false),
-                    Pasajeros = table.Column<int>(type: "integer", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BaseGravableVehiculos", x => x.Id);
-                });
-
             migrationBuilder.CreateTable(
                 name: "Colores",
                 columns: table => new
@@ -79,13 +60,13 @@ namespace Infrastructure.Migrations
                 name: "Marcas",
                 columns: table => new
                 {
-                    id = table.Column<int>(type: "integer", nullable: false)
+                    Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    nombre = table.Column<string>(type: "text", nullable: false)
+                    Nombre = table.Column<string>(type: "text", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Marcas", x => x.id);
+                    table.PrimaryKey("PK_Marcas", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -115,10 +96,10 @@ namespace Infrastructure.Migrations
                     ValorCostasCoactivo = table.Column<decimal>(type: "numeric", nullable: false),
                     PorcentajeSancion = table.Column<decimal>(type: "numeric", nullable: false),
                     PorcentajeInteresACobrar = table.Column<decimal>(type: "numeric", nullable: false),
-                    usuario_creo = table.Column<int>(type: "integer", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
                     fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    usuario_modifico = table.Column<int>(type: "integer", nullable: true),
-                    fecha_modificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -175,10 +156,10 @@ namespace Infrastructure.Migrations
                     Telefono = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     Correo = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     Password = table.Column<string>(type: "text", nullable: false),
-                    usuario_creo = table.Column<int>(type: "integer", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
                     fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    usuario_modifico = table.Column<int>(type: "integer", nullable: true),
-                    fecha_modificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -194,35 +175,14 @@ namespace Infrastructure.Migrations
                     indesde = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     inhasta = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     valor = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    usuario_creo = table.Column<int>(type: "integer", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
                     fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    usuario_modifico = table.Column<int>(type: "integer", nullable: true),
-                    fecha_modificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Uvts", x => x.id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "BaseGravableVigencia",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "integer", nullable: false)
-                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
-                    BaseGravableVehiculoId = table.Column<int>(type: "integer", nullable: false),
-                    AnioVigencia = table.Column<int>(type: "integer", nullable: false),
-                    ValorComercial = table.Column<decimal>(type: "numeric", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BaseGravableVigencia", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_BaseGravableVigencia_BaseGravableVehiculos_BaseGravableVehi~",
-                        column: x => x.BaseGravableVehiculoId,
-                        principalTable: "BaseGravableVehiculos",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -232,17 +192,16 @@ namespace Infrastructure.Migrations
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
                     Nombre = table.Column<string>(type: "text", nullable: false),
-                    IdMarca = table.Column<int>(type: "integer", nullable: false),
-                    MarcaId = table.Column<int>(type: "integer", nullable: false)
+                    IdMarca = table.Column<int>(type: "integer", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Lineas", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Lineas_Marcas_MarcaId",
-                        column: x => x.MarcaId,
+                        name: "FK_Lineas_Marcas_IdMarca",
+                        column: x => x.IdMarca,
                         principalTable: "Marcas",
-                        principalColumn: "id",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -286,10 +245,10 @@ namespace Infrastructure.Migrations
                     TipoServicioVehiculo = table.Column<int>(type: "integer", nullable: false),
                     ConceptoTarifa = table.Column<int>(type: "integer", nullable: false),
                     TipoServicio = table.Column<int>(type: "integer", nullable: true),
-                    usuario_creo = table.Column<int>(type: "integer", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
                     fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    usuario_modifico = table.Column<int>(type: "integer", nullable: true),
-                    fecha_modificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -300,6 +259,43 @@ namespace Infrastructure.Migrations
                         principalTable: "TipoVehiculos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "BaseGravableVehiculos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Codigo = table.Column<string>(type: "text", nullable: false),
+                    Cilindraje = table.Column<int>(type: "integer", nullable: false),
+                    Capacidad = table.Column<int>(type: "integer", nullable: false),
+                    Pasajeros = table.Column<int>(type: "integer", nullable: false),
+                    MarcaId = table.Column<int>(type: "integer", nullable: false),
+                    LineaId = table.Column<int>(type: "integer", nullable: false),
+                    TipoVehiculoId = table.Column<int>(type: "integer", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BaseGravableVehiculos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BaseGravableVehiculos_Lineas_LineaId",
+                        column: x => x.LineaId,
+                        principalTable: "Lineas",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BaseGravableVehiculos_Marcas_MarcaId",
+                        column: x => x.MarcaId,
+                        principalTable: "Marcas",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BaseGravableVehiculos_TipoVehiculos_TipoVehiculoId",
+                        column: x => x.TipoVehiculoId,
+                        principalTable: "TipoVehiculos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -318,13 +314,13 @@ namespace Infrastructure.Migrations
                     MarcaId = table.Column<int>(type: "integer", nullable: false),
                     LineaId = table.Column<int>(type: "integer", nullable: false),
                     ColorId = table.Column<int>(type: "integer", nullable: false),
-                    TipoServicioVehiculo = table.Column<int>(type: "integer", nullable: false),
+                    TipoServicio = table.Column<int>(type: "integer", nullable: false),
                     TipoCarroceriaId = table.Column<int>(type: "integer", nullable: false),
                     PropietarioId = table.Column<int>(type: "integer", nullable: false),
-                    usuario_creo = table.Column<int>(type: "integer", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
                     fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    usuario_modifico = table.Column<int>(type: "integer", nullable: true),
-                    fecha_modificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -345,7 +341,7 @@ namespace Infrastructure.Migrations
                         name: "FK_Vehiculos_Marcas_MarcaId",
                         column: x => x.MarcaId,
                         principalTable: "Marcas",
-                        principalColumn: "id",
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Vehiculos_Propietarios_PropietarioId",
@@ -379,6 +375,28 @@ namespace Infrastructure.Migrations
                         name: "FK_AvaluoVigencias_AvaluoVehiculos_AvaluoVehiculoId",
                         column: x => x.AvaluoVehiculoId,
                         principalTable: "AvaluoVehiculos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "BaseGravableVigencias",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    BaseGravableVehiculoId = table.Column<int>(type: "integer", nullable: false),
+                    Vigencia = table.Column<int>(type: "integer", nullable: false),
+                    Modelo = table.Column<int>(type: "integer", nullable: false),
+                    Valor = table.Column<decimal>(type: "numeric", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BaseGravableVigencias", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BaseGravableVigencias_BaseGravableVehiculos_BaseGravableVeh~",
+                        column: x => x.BaseGravableVehiculoId,
+                        principalTable: "BaseGravableVehiculos",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -441,30 +459,37 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Recibos",
+                name: "AcuerdosDePago",
                 columns: table => new
                 {
                     Id = table.Column<int>(type: "integer", nullable: false)
                         .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    NumeroAcuerdo = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
+                    FechaSuscripcion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    NumeroCuotas = table.Column<int>(type: "integer", nullable: false),
+                    ValorCapitalFinanciado = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    ValorInteresFinanciado = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    ValorCuotaInicial = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    ValorTotalFinanciado = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     Estado = table.Column<int>(type: "integer", nullable: false),
-                    Fecha = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    FechaAplica = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    FechaProceso = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    FechaPago = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    ValorCapital = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    InteresMora = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    Descuento = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    Estampillas = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    ValorTotalSistema = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    ValorCargaDatos = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    ValorRodamiento = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
-                    VehiculoId = table.Column<int>(type: "integer", nullable: false)
+                    Observaciones = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    VehiculoId = table.Column<int>(type: "integer", nullable: false),
+                    ProcesoId = table.Column<int>(type: "integer", nullable: true),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
+                    fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Recibos", x => x.Id);
+                    table.PrimaryKey("PK_AcuerdosDePago", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Recibos_Vehiculos_VehiculoId",
+                        name: "FK_AcuerdosDePago_Procesos_ProcesoId",
+                        column: x => x.ProcesoId,
+                        principalTable: "Procesos",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_AcuerdosDePago_Vehiculos_VehiculoId",
                         column: x => x.VehiculoId,
                         principalTable: "Vehiculos",
                         principalColumn: "Id",
@@ -506,10 +531,10 @@ namespace Infrastructure.Migrations
                     EstadoNuevo = table.Column<int>(type: "integer", nullable: false),
                     EsAutomatico = table.Column<bool>(type: "boolean", nullable: false),
                     Motivo = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    usuario_creo = table.Column<int>(type: "integer", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
                     fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    usuario_modifico = table.Column<int>(type: "integer", nullable: true),
-                    fecha_modificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -568,10 +593,10 @@ namespace Infrastructure.Migrations
                     VehiculoId = table.Column<int>(type: "integer", nullable: false),
                     UsuarioId = table.Column<int>(type: "integer", nullable: false),
                     ProcesoId = table.Column<int>(type: "integer", nullable: true),
-                    usuario_creo = table.Column<int>(type: "integer", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
                     fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    usuario_modifico = table.Column<int>(type: "integer", nullable: true),
-                    fecha_modificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -596,6 +621,37 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CuotasAcuerdoDePagos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    NumeroCuota = table.Column<int>(type: "integer", nullable: false),
+                    FechaVencimiento = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ValorCapital = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    ValorInteres = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    ValorTotalCuota = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Estado = table.Column<int>(type: "integer", nullable: false),
+                    FechaPago = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    NumeroRecibo = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
+                    AcuerdoPagoId = table.Column<int>(type: "integer", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
+                    fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CuotasAcuerdoDePagos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_CuotasAcuerdoDePagos_AcuerdosDePago_AcuerdoPagoId",
+                        column: x => x.AcuerdoPagoId,
+                        principalTable: "AcuerdosDePago",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Cartera",
                 columns: table => new
                 {
@@ -613,15 +669,22 @@ namespace Infrastructure.Migrations
                     Descuento = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     ValorInteres = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
                     ValorTotal = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    FechaPago = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    AcuerdoPagoId = table.Column<int>(type: "integer", nullable: true),
                     ResolucionId = table.Column<int>(type: "integer", nullable: true),
-                    usuario_creo = table.Column<int>(type: "integer", nullable: false),
+                    CreatedBy = table.Column<int>(type: "integer", nullable: false),
                     fecha_creacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    usuario_modifico = table.Column<int>(type: "integer", nullable: true),
-                    fecha_modificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    UpdatedBy = table.Column<int>(type: "integer", nullable: true),
+                    FechaModificacion = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Cartera", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Cartera_AcuerdosDePago_AcuerdoPagoId",
+                        column: x => x.AcuerdoPagoId,
+                        principalTable: "AcuerdosDePago",
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Cartera_Resolucion_ResolucionId",
                         column: x => x.ResolucionId,
@@ -629,6 +692,43 @@ namespace Infrastructure.Migrations
                         principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Cartera_Vehiculos_VehiculoId",
+                        column: x => x.VehiculoId,
+                        principalTable: "Vehiculos",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Recibos",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Estado = table.Column<int>(type: "integer", nullable: false),
+                    Fecha = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    FechaAplica = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FechaProceso = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    FechaPago = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    ValorCapital = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    InteresMora = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Descuento = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    Estampillas = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    ValorTotalSistema = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    ValorCargaDatos = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    ValorRodamiento = table.Column<decimal>(type: "numeric(18,2)", nullable: false),
+                    VehiculoId = table.Column<int>(type: "integer", nullable: false),
+                    CuotaAcuerdoPagoId = table.Column<int>(type: "integer", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Recibos", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_Recibos_CuotasAcuerdoDePagos_CuotaAcuerdoPagoId",
+                        column: x => x.CuotaAcuerdoPagoId,
+                        principalTable: "CuotasAcuerdoDePagos",
+                        principalColumn: "Id");
+                    table.ForeignKey(
+                        name: "FK_Recibos_Vehiculos_VehiculoId",
                         column: x => x.VehiculoId,
                         principalTable: "Vehiculos",
                         principalColumn: "Id",
@@ -699,6 +799,16 @@ namespace Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_AcuerdosDePago_ProcesoId",
+                table: "AcuerdosDePago",
+                column: "ProcesoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AcuerdosDePago_VehiculoId",
+                table: "AcuerdosDePago",
+                column: "VehiculoId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AvaluoVehiculos_TipoVehiculoId",
                 table: "AvaluoVehiculos",
                 column: "TipoVehiculoId");
@@ -714,9 +824,36 @@ namespace Infrastructure.Migrations
                 column: "ProcesoId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BaseGravableVigencia_BaseGravableVehiculoId",
-                table: "BaseGravableVigencia",
-                column: "BaseGravableVehiculoId");
+                name: "IX_BaseGravableVehiculos_Codigo_MarcaId_LineaId_Cilindraje",
+                table: "BaseGravableVehiculos",
+                columns: new[] { "Codigo", "MarcaId", "LineaId", "Cilindraje" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BaseGravableVehiculos_LineaId",
+                table: "BaseGravableVehiculos",
+                column: "LineaId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BaseGravableVehiculos_MarcaId",
+                table: "BaseGravableVehiculos",
+                column: "MarcaId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BaseGravableVehiculos_TipoVehiculoId",
+                table: "BaseGravableVehiculos",
+                column: "TipoVehiculoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BaseGravableVigencias_BaseGravableVehiculoId_Vigencia_Modelo",
+                table: "BaseGravableVigencias",
+                columns: new[] { "BaseGravableVehiculoId", "Vigencia", "Modelo" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Cartera_AcuerdoPagoId",
+                table: "Cartera",
+                column: "AcuerdoPagoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Cartera_ResolucionId",
@@ -727,6 +864,11 @@ namespace Infrastructure.Migrations
                 name: "IX_Cartera_VehiculoId",
                 table: "Cartera",
                 column: "VehiculoId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CuotasAcuerdoDePagos_AcuerdoPagoId",
+                table: "CuotasAcuerdoDePagos",
+                column: "AcuerdoPagoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_HistorialEstadoProceso_ProcesoId",
@@ -744,9 +886,9 @@ namespace Infrastructure.Migrations
                 column: "VehiculoId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Lineas_MarcaId",
+                name: "IX_Lineas_IdMarca",
                 table: "Lineas",
-                column: "MarcaId");
+                column: "IdMarca");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Liquidacion_ProcesoId",
@@ -782,6 +924,11 @@ namespace Infrastructure.Migrations
                 name: "IX_ReciboDetalle_ReciboId",
                 table: "ReciboDetalle",
                 column: "ReciboId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Recibos_CuotaAcuerdoPagoId",
+                table: "Recibos",
+                column: "CuotaAcuerdoPagoId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Recibos_VehiculoId",
@@ -850,7 +997,7 @@ namespace Infrastructure.Migrations
                 name: "Avisos");
 
             migrationBuilder.DropTable(
-                name: "BaseGravableVigencia");
+                name: "BaseGravableVigencias");
 
             migrationBuilder.DropTable(
                 name: "Descuentos");
@@ -898,10 +1045,16 @@ namespace Infrastructure.Migrations
                 name: "Resolucion");
 
             migrationBuilder.DropTable(
-                name: "Procesos");
+                name: "CuotasAcuerdoDePagos");
 
             migrationBuilder.DropTable(
                 name: "Usuarios");
+
+            migrationBuilder.DropTable(
+                name: "AcuerdosDePago");
+
+            migrationBuilder.DropTable(
+                name: "Procesos");
 
             migrationBuilder.DropTable(
                 name: "Vehiculos");

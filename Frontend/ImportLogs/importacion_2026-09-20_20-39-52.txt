@@ -1,0 +1,14 @@
+﻿==================================================
+ REPORTE DE IMPORTACIÓN DE VEHÍCULOS
+==================================================
+Fecha/Hora     : 2026-09-20 20:39:52
+Resultado      : ÉXITO
+Mensaje        : Importación completada con éxito. Vehículos creados: 10000.
+Duración       : 238,14 segundos
+Filas en Excel : 10000
+Importados     : 10000
+Errores/Avisos : 1
+--------------------------------------------------
+Detalle de errores/avisos:
+  - Aviso: se encontraron registros duplicados preexistentes en TipoVehiculos: 'TRACTOCAMION' (2 veces). Se usó el primer registro de cada uno; se recomienda depurar la tabla.
+==================================================

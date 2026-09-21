@@ -57,14 +57,14 @@ public partial class ResolucionService
                 VehiculoId = request.VehiculoId,
                 UsuarioId = 1,
 
-                UsuarioCreo = request.UsuarioId,
+                CreatedBy = request.UsuarioId,
                 FechaCreacion = DateTime.UtcNow
             };
 
             // 4. Vincular las carteras y actualizar su trazabilidad
             foreach (var cartera in carterasAfectadas)
             {
-                cartera.UsuarioModifico = request.UsuarioId;
+                cartera.UpdatedBy = request.UsuarioId;
                 cartera.FechaModificacion = DateTime.UtcNow;
                 
                 // Si en tu entidad Cartera mantienes la FK explícita 'ResolucionId', se puede asignar aquí.

@@ -143,7 +143,7 @@
                         <tbody>
                         @foreach (var cuota in _acuerdoSeleccionado.Cuotas)
                         {
-                            <tr class="@(cuota.EstadoCuota == EstadoCuotaAcuerdo.Vencido ? "table-danger" : "")">
+                            <tr class="@(cuota.EstadoCuota == EstadoCuotaAcuerdo.Vencida ? "table-danger" : "")">
                                 <td>@(cuota.NumeroCuota == 0 ? "Inicial" : cuota.NumeroCuota.ToString())</td>
                                 <td>@cuota.FechaVencimiento.ToString("dd/MM/yyyy")</td>
                                 <td>@(cuota.FechaPago?.ToString("dd/MM/yyyy") ?? "-")</td>
@@ -264,10 +264,10 @@
             }).ToList() ?? [];
 
             var reporte = new Recibo_pago();
-            await reporte.CreatePdf(recibo, listaConceptos, paramObj);
+            var rutaGenerada = await reporte.CreatePdf(recibo, listaConceptos, paramObj);
 
-            await Task.Delay(1000);
-            string reciboPdf = $"Recibo_{reciboId}.pdf";
+            await Task.Delay(500);
+            string reciboPdf = Path.GetFileName(rutaGenerada);
             await DescargarYAbrirArchivo(reciboPdf);
         }
         catch (Exception ex)
@@ -282,13 +282,7 @@
         try
         {
             string fileUrl = $"{NavigationManager.BaseUri}api/archivos/{fileName}";
-            HttpResponseMessage response = await HttpClient.GetAsync(fileUrl);
-            if (response.IsSuccessStatusCode)
-            {
-                var fileBytes = await response.Content.ReadAsByteArrayAsync();
-                var contentStream = new DotNetStreamReference(new MemoryStream(fileBytes));
-                await JsRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, contentStream);
-            }
+            await JsRuntime.InvokeVoidAsync("downloadFileFromUrl", fileUrl, fileName);
         }
         catch (Exception ex)
         {
@@ -335,7 +329,7 @@
     private static string BadgeCuota(EstadoCuotaAcuerdo estado) => estado switch
     {
         EstadoCuotaAcuerdo.Pagada => "badge bg-success",
-        EstadoCuotaAcuerdo.Vencido => "badge bg-danger",
+        EstadoCuotaAcuerdo.Vencida => "badge bg-danger",
         _ => "badge bg-warning text-dark"
     };
 }

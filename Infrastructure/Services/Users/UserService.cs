@@ -26,7 +26,7 @@ public class UserService(MainDataContext context, IHttpContextAccessor httpConte
         usuario.Auth0Id = string.IsNullOrWhiteSpace(usuario.Auth0Id) ? usuario.UserName : usuario.Auth0Id.Trim();
         usuario.Password = PasswordHasher.Hash(string.IsNullOrWhiteSpace(usuario.Password) ? DefaultPassword : usuario.Password);
         usuario.IsHabilitado = true;
-        usuario.UsuarioCreo = GetCurrentUserId();
+        usuario.CreatedBy = GetCurrentUserId();
         usuario.FechaCreacion = DateTime.UtcNow;
 
         context.Usuarios!.Add(usuario);
@@ -50,7 +50,7 @@ public class UserService(MainDataContext context, IHttpContextAccessor httpConte
         usuarioDb.Role = usuario.Role;
         usuarioDb.Auth0Id = string.IsNullOrWhiteSpace(usuario.Auth0Id) ? usuarioDb.UserName : usuario.Auth0Id.Trim();
         usuarioDb.IsHabilitado = usuario.IsHabilitado;
-        usuarioDb.UsuarioModifico = GetCurrentUserId();
+        usuarioDb.UpdatedBy = GetCurrentUserId();
         usuarioDb.FechaModificacion = DateTime.UtcNow;
 
         if (!string.IsNullOrWhiteSpace(usuario.Password))
@@ -74,7 +74,7 @@ public class UserService(MainDataContext context, IHttpContextAccessor httpConte
             .Where(u => u.Id == id)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(u => u.IsHabilitado, false)
-                .SetProperty(u => u.UsuarioModifico, GetCurrentUserId())
+                .SetProperty(u => u.UpdatedBy, GetCurrentUserId())
                 .SetProperty(u => u.FechaModificacion, DateTime.UtcNow));
     }
 
@@ -86,7 +86,7 @@ public class UserService(MainDataContext context, IHttpContextAccessor httpConte
             .Where(u => u.Id == id)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(u => u.IsHabilitado, habilitado)
-                .SetProperty(u => u.UsuarioModifico, GetCurrentUserId())
+                .SetProperty(u => u.UpdatedBy, GetCurrentUserId())
                 .SetProperty(u => u.FechaModificacion, DateTime.UtcNow));
     }
 
@@ -127,7 +127,7 @@ public class UserService(MainDataContext context, IHttpContextAccessor httpConte
             .Where(u => u.Id == id)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(u => u.Password, nuevaClave)
-                .SetProperty(u => u.UsuarioModifico, GetCurrentUserId())
+                .SetProperty(u => u.UpdatedBy, GetCurrentUserId())
                 .SetProperty(u => u.FechaModificacion, DateTime.UtcNow));
 
         return filasAfectadas > 0;
@@ -143,7 +143,7 @@ public class UserService(MainDataContext context, IHttpContextAccessor httpConte
             .Where(u => u.Id == id)
             .ExecuteUpdateAsync(s => s
                 .SetProperty(u => u.Password, PasswordHasher.Hash(nuevaKey))
-                .SetProperty(u => u.UsuarioModifico, usuarioActualId)
+                .SetProperty(u => u.UpdatedBy, usuarioActualId)
                 .SetProperty(u => u.FechaModificacion, DateTime.UtcNow));
     }
 
